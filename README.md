@@ -1,12 +1,8 @@
 # ToAdapt
 
-// ToAdapt — Multi-Agent Scaffolding System für BWL A
-// Universität St. Gallen · ~2.000 Studierende · 80 Übungsgruppen
-
 // === USER LAYER ===
 
 Student Group [shape: oval, icon: users, color: teal] {
-  6er-Team
   Simultaner Zugriff
   Chat UI (DE/EN)
 }
