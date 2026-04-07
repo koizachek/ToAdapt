@@ -1,225 +1,59 @@
 # ToAdapt
 
-// === USER LAYER ===
+A multi-agent scaffolding system for collaborative problem-solving in higher education. Groups of students work through ill-structured business cases across multiple phases, supported by AI agents that scaffold their thinking — without giving answers.
 
-Student Group [shape: oval, icon: users, color: teal] {
-  Simultaner Zugriff
-  Chat UI (DE/EN)
-}
+Built on empirically validated findings from a [Computers & Education publication](https://doi.org/10.1016/j.compedu.2025.105364) on orchestrating scaffolding AI agents (metacognitive-first sequencing, Cohen's d = 0.44).
 
-// === FRONTEND ===
+## Architecture
 
-Frontend [shape: rectangle, icon: monitor, color: blue] {
-  React/Next.js
-}
+```
+Frontend (React/Next.js)
+  ↕ WebSocket (group chat, presence)
+Session Orchestrator
+  ├── Metacognitive Agent    (1st — reflection, planning)
+  ├── Strategic Agent        (2nd — approach, trade-offs)
+  ├── Conceptual Agent       (3rd — domain knowledge)
+  └── Procedural Agent       (4th — format, structure)
+  ↕
+Guardrail Layer              (no direct answers, implicit framework steering)
+  ↕
+RAG Knowledge Layer          (phase-gated case materials, rubrics, frameworks)
+  ↕
+Group Memory (PostgreSQL)    (persistent state across phases)
+Research Logger              (comprehensive interaction logging)
+Instructor Dashboard         (aggregated insights, no chat logs)
+```
 
-Chat Window [shape: rectangle, color: blue]
-TP Progress [shape: rectangle, color: blue]
-Case Reference Panel [shape: rectangle, color: blue]
-Presence Bar [shape: rectangle, color: blue]
-Language Switch [shape: rectangle, color: blue]
+## Key Design Principles
 
-Frontend > Chat Window
-Frontend > TP Progress
-Frontend > Case Reference Panel
-Frontend > Presence Bar
-Frontend > Language Switch
+- **Scaffolding, not answering** — agents ask questions and give thinking prompts, never solutions
+- **Metacognitive-first** — every session starts with reflection before content-focused support
+- **Phase-aware** — agent configuration, available knowledge, and allowed frameworks adapt per phase
+- **Group-native** — all members interact simultaneously; persistent group memory across phases
+- **Guardrailed** — filters enforce no direct answers, no framework name-dropping, phase consistency
 
-// === REALTIME LAYER ===
+## Tech Stack
 
-WebSocket Manager [shape: diamond, icon: zap, color: purple] {
-  Gruppenchat
-  Broadcast
-  Presence
-}
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React, Next.js, Tailwind, next-intl (DE/EN) |
+| Realtime | WebSocket (group chat + presence) |
+| Backend | Python 3.11+, FastAPI, Pydantic v2 |
+| LLM | OpenAI / Anthropic API |
+| RAG | ChromaDB (vector search, phase-gated access control) |
+| Database | PostgreSQL (groups, sessions, memory), Redis (session cache) |
+| Logging | structlog, JSON/CSV export for research data |
+| Deployment | Docker, docker-compose |
 
-Student Group > WebSocket Manager: WS connect
-WebSocket Manager > Frontend: Real-time updates
+## Setup
 
-// === ORCHESTRATOR ===
+```bash
+git clone https://github.com/koizachek/ToAdapt.git
+cd ToAdapt
+cp .env.example .env  # add API keys
+docker-compose up
+```
 
-Session Orchestrator [shape: hexagon, icon: cpu, color: purple] {
-  Phase-Erkennung
-  Agent-Routing
-  Metacognitive-First-Sequenzierung
-  Intent-Klassifikation
-}
+## License
 
-WebSocket Manager > Session Orchestrator: User messages
-
-// === GROUP MEMORY ===
-
-Group Memory [shape: cylinder, icon: database, color: gray] {
-  TP1: Herausforderungen, Stakeholder
-  TP2: Strategie, Trade-offs, KPI
-  TP3: Decision Log (4 Felder)
-  TP4: Integration, Risiken
-  Konversationshistorie
-  Scaffolding-Intensität
-}
-
-Session Orchestrator <> Group Memory: Read/Write state
-
-// === SCAFFOLDING AGENTS ===
-
-Metacognitive Agent [shape: rectangle, icon: brain, color: coral] {
-  Reflexion
-  Planung
-  Monitoring
-  FIRST in sequence
-}
-
-Strategic Agent [shape: rectangle, icon: compass, color: coral] {
-  Herangehensweise
-  Priorisierung
-  Trade-off-Denken
-  Implizite Frameworks
-}
-
-Conceptual Agent [shape: rectangle, icon: book-open, color: coral] {
-  Domänenwissen
-  Case-Verständnis
-  TP-weise Freischaltung
-  Exhibit-Referenzen
-}
-
-Procedural Agent [shape: rectangle, icon: layout, color: coral] {
-  Abgabeformat
-  Strukturhilfe
-  TP-spezifisch
-  Anti-Formatrezept
-}
-
-Session Orchestrator > Metacognitive Agent: 1. Aktiviert zuerst
-Session Orchestrator > Strategic Agent: 2. Nach Reflexion
-Session Orchestrator > Conceptual Agent: 3. Bei Inhaltsfragen
-Session Orchestrator > Procedural Agent: 4. Bei Formatfragen
-
-// === GUARDRAIL LAYER ===
-
-Guardrail Layer [shape: rectangle, icon: shield, color: amber] {
-  Answer Filter
-  Framework Name Filter
-  Phase Consistency Filter
-  Anti-Musterlösung
-}
-
-Metacognitive Agent > Guardrail Layer: Response
-Strategic Agent > Guardrail Layer: Response
-Conceptual Agent > Guardrail Layer: Response
-Procedural Agent > Guardrail Layer: Response
-
-Guardrail Layer > WebSocket Manager: Validated response
-
-// === TP CONFIGURATION ===
-
-TP1 Config [shape: rectangle, color: green] {
-  Bloom 2–4
-  Slides
-  SGMM, Stakeholder
-  Case Kap. A
-}
-
-TP2 Config [shape: rectangle, color: green] {
-  Bloom 4–5
-  Memo
-  +Porter/RBV (implizit)
-  Case Kap. A+B
-}
-
-TP3 Config [shape: rectangle, color: green] {
-  Bloom 3–5
-  Decision Log
-  +4P, TK, Elastizität
-  Case Kap. A+B+C
-}
-
-TP4 Config [shape: rectangle, color: green] {
-  Bloom 5–6
-  Strategy-on-a-Page
-  +GM-Canvas, SGMM-Dim.
-  Case Kap. A+B+C+D
-}
-
-TP1 Config > Session Orchestrator: Active config
-TP2 Config > Session Orchestrator: Active config
-TP3 Config > Session Orchestrator: Active config
-TP4 Config > Session Orchestrator: Active config
-
-// === RAG / KNOWLEDGE ===
-
-RAG Knowledge Layer [shape: cylinder, icon: search, color: green] {
-  Vektor-DB (ChromaDB)
-  TP-weise Access Control
-}
-
-ON Case v3 [shape: document, color: green] {
-  4 Kapitel
-  17 Exhibits
-}
-
-TP Briefings [shape: document, color: green] {
-  Aufgabenstellungen
-  Bewertungskriterien
-}
-
-Rubrics [shape: document, color: green] {
-  Pfadoffene Rubrics
-  "So ja" Beispiele
-}
-
-BWL Frameworks [shape: document, color: green] {
-  Denkprinzipien
-  OHNE Modellnamen
-}
-
-ON Case v3 > RAG Knowledge Layer
-TP Briefings > RAG Knowledge Layer
-Rubrics > RAG Knowledge Layer
-BWL Frameworks > RAG Knowledge Layer
-
-RAG Knowledge Layer > Conceptual Agent: Retrieval
-RAG Knowledge Layer > Strategic Agent: Retrieval
-
-// === GLOBAL SCHEDULE ===
-
-Global TP Schedule [shape: rectangle, icon: calendar, color: gray] {
-  Deadlines für alle Gruppen gleich
-  Automatischer TP-Wechsel
-}
-
-Global TP Schedule > Session Orchestrator: Current phase
-
-// === DASHBOARD (DOZIERENDE) ===
-
-Dozierenden Dashboard [shape: rectangle, icon: bar-chart, color: blue] {
-  Aggregierte Insights
-  Topic Heatmap
-  Stuck Groups
-  Activity Chart
-  KEINE Chat-Logs
-}
-
-Group Memory > Dozierenden Dashboard: Aggregierte Daten
-
-// === RESEARCH LOGGING ===
-
-Research Logger [shape: cylinder, icon: archive, color: gray] {
-  Vollständige Konversationen
-  Agent-Routing-Decisions
-  Guardrail-Triggers
-  Session-Metriken
-  NUR für Forschende
-}
-
-Session Orchestrator > Research Logger: All events
-Guardrail Layer > Research Logger: Filter events
-WebSocket Manager > Research Logger: Activity data
-
-// === BLOCKED ===
-
-NORDIC HOME [shape: rectangle, icon: x-circle, color: red] {
-  GESPERRT
-  Klausur-Case
-  Nicht im RAG
-}
+MIT
