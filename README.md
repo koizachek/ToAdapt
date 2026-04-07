@@ -2,7 +2,7 @@
 
 A multi-agent scaffolding system for collaborative problem-solving in higher education. Groups of students work through ill-structured business cases across multiple phases, supported by AI agents that scaffold their thinking — without giving answers.
 
-Built on empirically validated findings from a [Computers & Education publication](https://doi.org/10.1016/j.compedu.2025.105364) on orchestrating scaffolding AI agents (metacognitive-first sequencing, Cohen's d = 0.44).
+Built on empirically validated findings from an orchestrating scaffolding AI agents (metacognitive-first sequencing, Cohen's d = 0.44).
 
 ## Architecture
 
