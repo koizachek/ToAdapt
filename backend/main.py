@@ -19,7 +19,8 @@ logger = structlog.get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     key = os.environ.get("ANTHROPIC_API_KEY", "")
-    logger.info("toadapt_startup", tp_phase=current_tp_phase(), api_key_set=bool(key), api_key_prefix=key[:10] if key else "MISSING")
+    all_keys = [k for k in os.environ.keys() if "ANTHROP" in k.upper()]
+    logger.info("toadapt_startup", tp_phase=current_tp_phase(), api_key_len=len(key), api_key_prefix=key[:12] if key else "MISSING", matching_env_keys=all_keys)
     yield
     logger.info("toadapt_shutdown")
 
