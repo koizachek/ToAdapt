@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
 from backend.agents.orchestrator import AgentOrchestrator
-from backend.config.tp_configs import current_tp_phase
+from backend.cases.manager import case_manager
 from backend.config.tp_configs import current_tp_phase
 from backend.evaluator.rubric_evaluator import RubricEvaluator
 from backend.models.session import Session, SessionCreate, SessionResponse
