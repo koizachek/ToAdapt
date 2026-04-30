@@ -75,8 +75,9 @@ export default function CasePage() {
       )
       historyRef.current = [...historyRef.current, { role: 'assistant', content: res.content }]
       setChat(c => [...c, { role: 'agent', content: res.content, agent_type: res.agent_type }])
-    } catch (e) {
-      setChat(c => [...c, { role: 'agent', content: 'Verbindungsfehler — bitte nochmal versuchen.', agent_type: 'metacognitive' }])
+    } catch (e: any) {
+      const msg = e?.message || 'Unbekannter Fehler'
+      setChat(c => [...c, { role: 'agent', content: `Fehler: ${msg}`, agent_type: 'metacognitive' }])
     } finally {
       setSending(false)
     }

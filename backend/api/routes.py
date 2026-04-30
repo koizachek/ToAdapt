@@ -96,12 +96,16 @@ async def chat(session_id: str, body: ChatRequest):
     session.message_count += 1
     session.last_activity = datetime.utcnow()
 
-    agent_type, response_text = await orchestrator.respond(
-        session=session,
-        user_message=body.content,
-        history=body.history,
-        case_context=case_context,
-    )
+    try:
+        agent_type, response_text = await orchestrator.respond(
+            session=session,
+            user_message=body.content,
+            history=body.history,
+            case_context=case_context,
+        )
+    except Exception as e:
+        logger.error("chat_error", error=str(e), type=type(e).__name__)
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e}")
 
     return ChatResponse(agent_type=agent_type, content=response_text)
 
