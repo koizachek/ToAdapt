@@ -65,80 +65,45 @@ async def create_session(body: SessionCreate):
 
 
 # ---------------------------------------------------------------------------
-# WebSocket — Scaffolding Chat
+# Chat — HTTP POST (zuverlässiger als WebSocket durch Railway-Proxy)
 # ---------------------------------------------------------------------------
 
-@router.websocket("/ws/{session_id}")
-async def ws_chat(websocket: WebSocket, session_id: str, case_id: str = "", user_id: str = "anon"):
+class ChatRequest(BaseModel):
+    content: str
+    history: list[dict] = []
+
+class ChatResponse(BaseModel):
+    agent_type: str
+    content: str
+
+@router.post("/sessions/{session_id}/chat", response_model=ChatResponse)
+async def chat(session_id: str, body: ChatRequest):
     session = _sessions.get(session_id)
-
-    # Fallback: reconstruct session from query params if lost (e.g. after restart)
-    if not session and case_id:
-        case = case_manager.get(case_id)
-        if case:
-            session = Session(
-                session_id=session_id,
-                user_id=user_id,
-                case_id=case_id,
-                tp_phase=case.target_tp or current_tp_phase(),
-            )
-            _sessions[session_id] = session
-
     if not session:
-        await websocket.accept()
-        await websocket.send_json({"event": "error", "message": "Session nicht gefunden."})
-        await websocket.close()
-        return
+        raise HTTPException(status_code=404, detail="Session nicht gefunden")
 
     case = case_manager.get(session.case_id)
     if not case:
-        await websocket.accept()
-        await websocket.send_json({"event": "error", "message": "Case nicht gefunden."})
-        await websocket.close()
-        return
+        raise HTTPException(status_code=404, detail="Case nicht gefunden")
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     orchestrator = AgentOrchestrator(api_key=api_key)
 
-    # Kompakter Case-Kontext für den Agent
     case_context = f"{case.title}\n{case.tagline}\n" + "\n".join(
-        s.content[:300] for s in case.sections[:2]
+        s.content[:400] for s in case.sections[:2]
     )
 
-    history: list[dict] = []
-    await websocket.accept()
+    session.message_count += 1
+    session.last_activity = datetime.utcnow()
 
-    try:
-        while True:
-            data = await websocket.receive_json()
-            content = data.get("content", "").strip()
-            if not content:
-                continue
+    agent_type, response_text = await orchestrator.respond(
+        session=session,
+        user_message=body.content,
+        history=body.history,
+        case_context=case_context,
+    )
 
-            history.append({"role": "user", "content": content})
-            session.message_count += 1
-            session.last_activity = datetime.utcnow()
-
-            await websocket.send_json({"event": "agent_typing", "is_typing": True})
-
-            agent_type, response_text = await orchestrator.respond(
-                session=session,
-                user_message=content,
-                history=history[:-1],   # ohne aktuelle Nachricht
-                case_context=case_context,
-            )
-
-            history.append({"role": "assistant", "content": response_text})
-
-            await websocket.send_json({
-                "event": "agent_response",
-                "agent_type": agent_type,
-                "content": response_text,
-            })
-            await websocket.send_json({"event": "agent_typing", "is_typing": False})
-
-    except WebSocketDisconnect:
-        logger.info("ws_disconnected", session_id=session_id)
+    return ChatResponse(agent_type=agent_type, content=response_text)
 
 
 # ---------------------------------------------------------------------------
