@@ -1,58 +1,83 @@
 # ToAdapt
 
-A multi-agent scaffolding system for collaborative problem-solving in higher education. Groups of students work through ill-structured business cases across multiple phases, supported by AI agents that scaffold their thinking — without giving answers.
+AI-gestützter Transfer-Trainer für BWL A — Universität St. Gallen.
 
-Built on empirically validated findings from an orchestrating scaffolding AI agents (metacognitive-first sequencing, Cohen's d = 0.44).
+Studierende bearbeiten individuell AI-generierte Mini-Cases und trainieren so den Transfer betriebswirtschaftlicher Denklogiken auf unbekannte Unternehmenskontexte — die Kernkompetenz der summativen Prüfung.
 
-## Architecture
+## Architektur
 
 ```
-Frontend (React/Next.js)
-  ↕ WebSocket (group chat, presence)
-Session Orchestrator
-  ├── Metacognitive Agent    (1st — reflection, planning)
-  ├── Strategic Agent        (2nd — approach, trade-offs)
-  ├── Conceptual Agent       (3rd — domain knowledge)
-  └── Procedural Agent       (4th — format, structure)
-  ↕
-Guardrail Layer              (no direct answers, implicit framework steering)
-  ↕
-RAG Knowledge Layer          (phase-gated case materials, rubrics, frameworks)
-  ↕
-Group Memory (PostgreSQL)    (persistent state across phases)
-Research Logger              (comprehensive interaction logging)
-Instructor Dashboard         (aggregated insights, no chat logs)
+Frontend (Next.js → Vercel)
+  ↕ REST + WebSocket
+FastAPI Backend (→ Railway)
+  ├── Case Generator       (AI-Draft: Branche + Land + TP-Ziel → Mini-Case)
+  ├── Case Pool            (JSON-basiert, Approval-Workflow für Dozierende)
+  ├── Agent Orchestrator   (Metacognitive-first, 4 Agents, Guardrail-Layer)
+  ├── Rubric Evaluator     (Bloom-Level-Scoring, scaffolded Feedback)
+  ├── Admin Interface      (Case generieren, reviewen, freigeben)
+  └── Instructor Dashboard (Matrikelnummer + Scores nach TP/Bloom/Lernziel)
 ```
 
-## Key Design Principles
+## Design-Prinzipien
 
-- **Scaffolding, not answering** — agents ask questions and give thinking prompts, never solutions
-- **Metacognitive-first** — every session starts with reflection before content-focused support
-- **Phase-aware** — agent configuration, available knowledge, and allowed frameworks adapt per phase
-- **Group-native** — all members interact simultaneously; persistent group memory across phases
-- **Guardrailed** — filters enforce no direct answers, no framework name-dropping, phase consistency
+- **Transfer, nicht Reproduktion** — jeder Case ist ein unbekanntes Unternehmen in einer neuen Branche
+- **Scaffolding, nicht Antworten** — Agenten stellen Gegenfragen, geben keine Musterlösungen
+- **Metacognitive-first** — jede Session beginnt mit Reflexion vor Inhaltsarbeit
+- **Pfadoffene Bewertung** — mehrere valide Antwortpfade erhalten volle Punktzahl
+- **Dual-Use** — Studierenden-Submissions aggregieren automatisch zum GA-Kalibrierungs-Dashboard
+
+## Case-Pool Workflow
+
+```
+Dozent → POST /admin/cases/generate  (Branche, Land, TP-Ziel)
+       → AI erstellt Draft (status: draft)
+       → Dozent reviewed im Admin-Interface
+       → POST /admin/cases/{id}/approve  (status: approved)
+       → Case erscheint im Studierenden-Pool
+```
+
+## API-Endpunkte
+
+| Endpunkt | Beschreibung |
+|----------|-------------|
+| `POST /sessions` | Neue individuelle Session starten |
+| `WS /ws/{session_id}` | Scaffolding-Chat mit Agent |
+| `POST /submissions` | Submission erstellen |
+| `POST /submissions/{id}/answer` | Antwort auf Frage speichern |
+| `POST /submissions/{id}/submit` | Abgeben + Evaluieren |
+| `POST /admin/cases/generate` | AI-Draft generieren |
+| `GET /admin/cases` | Case-Pool einsehen |
+| `POST /admin/cases/{id}/approve` | Case freigeben |
+| `GET /dashboard/overview` | Kursübersicht |
+| `GET /dashboard/student/{matrikel}` | Einzelstudent |
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React, Next.js, Tailwind, next-intl (DE/EN) |
-| Realtime | WebSocket (group chat + presence) |
+| Layer | Technologie |
+|-------|-------------|
+| Frontend | Next.js, Tailwind, Vercel |
 | Backend | Python 3.11+, FastAPI, Pydantic v2 |
-| LLM | OpenAI / Anthropic API |
-| RAG | ChromaDB (vector search, phase-gated access control) |
-| Database | PostgreSQL (groups, sessions, memory), Redis (session cache) |
-| Logging | structlog, JSON/CSV export for research data |
-| Deployment | Docker, docker-compose |
+| LLM | Anthropic API (claude-sonnet-4-6) |
+| Case Pool | JSON-Dateien (pool/) |
+| Scoring Storage | JSON (db/submissions/) |
+| Deployment | Railway (Backend), Vercel (Frontend) |
 
 ## Setup
 
 ```bash
 git clone https://github.com/koizachek/ToAdapt.git
 cd ToAdapt
-cp .env.example .env  # add API keys
-docker-compose up
+cp .env.example .env  # API Keys eintragen
+pip install -r requirements.txt
+uvicorn backend.main:app --reload
 ```
+
+## Guardrails
+
+- Keine Framework-Namen in Agent-Antworten (Porter, RBV, VRIO, TCE, 4P …)
+- Keine direkten Antworten oder Musterlösungen
+- TP-phasenspezifische Framework-Beschränkungen (aus `tp_configs.py`)
+- NORDIC HOME und ON dürfen in generierten Cases nicht vorkommen
 
 ## License
 
