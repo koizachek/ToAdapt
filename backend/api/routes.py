@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
 from backend.agents.orchestrator import AgentOrchestrator
-from backend.cases.manager import case_manager
+from backend.config.tp_configs import current_tp_phase
 from backend.config.tp_configs import current_tp_phase
 from backend.evaluator.rubric_evaluator import RubricEvaluator
 from backend.models.session import Session, SessionCreate, SessionResponse
@@ -69,15 +69,32 @@ async def create_session(body: SessionCreate):
 # ---------------------------------------------------------------------------
 
 @router.websocket("/ws/{session_id}")
-async def ws_chat(websocket: WebSocket, session_id: str):
+async def ws_chat(websocket: WebSocket, session_id: str, case_id: str = "", user_id: str = "anon"):
     session = _sessions.get(session_id)
+
+    # Fallback: reconstruct session from query params if lost (e.g. after restart)
+    if not session and case_id:
+        case = case_manager.get(case_id)
+        if case:
+            session = Session(
+                session_id=session_id,
+                user_id=user_id,
+                case_id=case_id,
+                tp_phase=case.target_tp or current_tp_phase(),
+            )
+            _sessions[session_id] = session
+
     if not session:
-        await websocket.close(code=4004)
+        await websocket.accept()
+        await websocket.send_json({"event": "error", "message": "Session nicht gefunden."})
+        await websocket.close()
         return
 
     case = case_manager.get(session.case_id)
     if not case:
-        await websocket.close(code=4004)
+        await websocket.accept()
+        await websocket.send_json({"event": "error", "message": "Case nicht gefunden."})
+        await websocket.close()
         return
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")

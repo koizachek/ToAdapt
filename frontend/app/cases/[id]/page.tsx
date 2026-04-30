@@ -61,7 +61,7 @@ export default function CasePage() {
     }).then(r => {
       setSessionId(r.session_id)
       const wsBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/^http/, 'ws')
-      const ws = new WebSocket(`${wsBase}${r.websocket_url}`)
+      const ws = new WebSocket(`${wsBase}/ws/${r.session_id}?case_id=${id}&user_id=${encodeURIComponent(userId)}`)
       ws.onmessage = e => {
         const data = JSON.parse(e.data)
         if (data.event === 'agent_typing') { setAgentTyping(data.is_typing); return }
