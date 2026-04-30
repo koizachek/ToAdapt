@@ -1,0 +1,104 @@
+{
+  "case_id": "alpes-bank-genai-001",
+  "title": "Alpes Bank — Wenn Tradition auf Künstliche Intelligenz trifft",
+  "industry": "Banking / FinTech",
+  "country": "Schweiz",
+  "tagline": "Eine traditionsreiche Schweizer Universalbank steht vor der Entscheidung, wie sie Generative AI einsetzen soll — ohne ihr Kerngeschäft zu gefährden.",
+  "difficulty": "full",
+  "target_tp": 0,
+  "status": "approved",
+  "generated_by": "manual",
+  "reviewed_by": "koizachek",
+  "review_notes": "Adapted from MBA teaching case for BWL A bachelor level. All names fictional.",
+  "created_at": "2026-04-30T12:00:00",
+  "approved_at": "2026-04-30T12:00:00",
+  "sections": [
+    {
+      "section_id": "s1",
+      "title": "Alpes Bank: Ein Unternehmen unter Druck",
+      "content": "Alpes Bank ist eine der grössten Universalbanken der Schweiz. Seit über hundert Jahren steht sie für persönliche Beratung, Verlässlichkeit und den direkten Kontakt mit Kundinnen und Kunden in ihren Filialen. Das Unternehmen beschäftigt 4'000 Mitarbeitende und betreut rund eine Million Kundinnen und Kunden schweizweit.\n\nWährend viele Konkurrenten in den letzten Jahren massiv in digitale Kanäle investierten, hat Alpes Bank bewusst an ihrem Filialnetz festgehalten. Ihre Kundschaft ist im Schnitt 51 Jahre alt, einkommensstark und legt grossen Wert auf persönliche Betreuung. Für guten Service ist sie bereit, höhere Preise zu zahlen. Die Filiale bleibt das profitabelste Geschäftsfeld — weit vor Online-Banking oder der App (siehe Exhibit 1).\n\nDoch plötzlich gerät dieses bewährte Modell unter Druck: Konkurrenzbanken beginnen, KI-gestützte Beratungstools anzubieten — zu einem Bruchteil der Kosten eines menschlichen Beraters. Der Verwaltungsrat reagiert mit einer Frage, die sich niemand laut zu stellen wagte: 'Wenn eine KI Finanzberatung für wenige Rappen übernimmt — wie lange können wir noch unser teures Filialmodell rechtfertigen?'"
+    },
+    {
+      "section_id": "s2",
+      "title": "Der Auftrag: Generative AI beweisen",
+      "content": "Als defensive Massnahme beschliesst der Verwaltungsrat, eine interne Initiative zu starten. Tamara Maurer, Leiterin der digitalen Transformation bei Alpes Bank, erhält ein klares Mandat vom CEO: 'Bis Quartalsende möchte ich einen GenAI-Piloten sehen — etwas, das schnell ausgerollt werden kann, einen klaren Geschäftsnutzen zeigt und nichts kaputt macht.'\n\nTamara hat drei Monate Zeit. Sie darf dabei einige interne Prozesse umgehen — aber nur solange sie klaren Mehrwert nachweist. Intern ist das Unternehmen skeptisch: Die Kultur bei Alpes Bank ist traditionell und risikoavers. Wer mit einem Misserfolg zurückkommt, hat kaum eine zweite Chance.\n\nTamara versammelt ein kleines Team aus Datenwissenschaftlerinnen, IT-Spezialistinnen und Business-Analysten. Gemeinsam entwickeln sie in einem eintägigen Workshop drei Ideen für einen ersten GenAI-Anwendungsfall (siehe Exhibit 2). Am Ende des Tages muss sich das Team auf einen einzigen Anwendungsfall festlegen."
+    },
+    {
+      "section_id": "s3",
+      "title": "Die Umsetzung: Zwischen Tempo und Kontrolle",
+      "content": "Das Team entscheidet sich für den E-Mail-Assistenten. In zwölf Wochen, verteilt auf vier Sprints, entwickelt Alpes Bank gemeinsam mit dem externen Startup AILabs ein funktionsfähiges System. Der Ablauf: Eine Kundin schickt eine E-Mail, der Assistent analysiert ihr Anliegen, durchsucht die interne Wissensdatenbank und schlägt dem Kundendienstmitarbeitenden einen vollständigen Antwortentwurf vor — in Deutsch, Französisch, Italienisch und Englisch, innerhalb von zehn Sekunden.\n\nDoch der Weg dorthin ist holprig. In Sprint 3 taucht ein technisches Problem auf, das das Team für erledigt gehalten hatte: Das System versteht viele Kundennachrichten nicht richtig, weil Kundinnen unterschiedlich formulieren. Teile des Systems müssen überarbeitet werden — obwohl sie bereits als 'fertig' abgehakt waren. Das frustriert das Bankteam, das gewohnt ist, Projekte in klar abgegrenzten Phasen abzuschliessen.\n\nIn Sprint 4 kommt ein weiteres Problem ans Licht: Kundinnen aus Graubünden schreiben häufig auf Hochdeutsch, aber mit einzelnen rätoromanischen Wörtern. Der Assistent erkennt diese Mischung oft nicht korrekt — Kundinnen aus dieser Region erhalten schlechtere Antworten als andere. AILabs empfiehlt, den Rollout zu verschieben, bis das Problem behoben ist. Tamara sieht es anders und entscheidet sich für einen begrenzten, als 'experimentell' deklarierten Rollout — mit einem menschlichen Mitarbeitenden als letzter Kontrollinstanz.\n\nDas Ergebnis: Der E-Mail-Assistent reduziert die durchschnittliche Bearbeitungszeit einfacher Anfragen um 21 Prozent. Das System funktioniert — aber es ist nicht perfekt."
+    },
+    {
+      "section_id": "s4",
+      "title": "Governance: Wer trägt die Verantwortung?",
+      "content": "Nach dem erfolgreichen Piloten stellt der CEO eine klare Bedingung: Ohne ein GenAI-spezifisches Governance-Modell wird das System nicht weiter ausgerollt. Im Verwaltungsrat präsentiert Tamara ihr Konzept mit drei Leitprinzipien — 'Kompetent, Regelkonform, Kalkuliert' (3K-Modell):\n\nKompetent: Die Mitarbeitenden im Kundendienst müssen in der Lage sein, KI-generierte Antworten zu beurteilen, zu korrigieren und Fehler zu melden. Sie sind die erste Kontrollinstanz.\n\nRegelkonform: Jede Änderung am System wird dokumentiert und geprüft. Datenschutz und Rückverfolgbarkeit sind nicht verhandelbar.\n\nKalkuliert: Der Nutzen wird laufend gemessen — Zeitersparnis, Fehlerquote, Kundenzufriedenheit. Wenn die Kennzahlen sich negativ entwickeln, wird der Rollout gestoppt.\n\nDer CEO ist überzeugt, aber warnt: 'Der eigentliche Aufwand beginnt jetzt. Die Geschäftsbereiche sind es nicht gewohnt, Verantwortung für Technologie zu übernehmen. Das müssen wir erst aufbauen.'"
+    },
+    {
+      "section_id": "s5",
+      "title": "Ein Jahr später: Wachstum und seine Grenzen",
+      "content": "Ein Jahr nach dem Piloten hat Alpes Bank mehrere GenAI-Anwendungen im Einsatz: den E-Mail-Assistenten, einen internen Wissens-Copiloten und einen HR-Chatbot für Routinefragen. Die Mitarbeitenden schätzen die Unterstützung. Die Zahlen stimmen.\n\nDoch der CEO ist unzufrieden: 'Wir nutzen GenAI, um die alten Strukturen ein bisschen effizienter zu machen. Aber wir denken noch nicht wirklich neu.' Er sieht das grösste Potenzial nicht in der Automatisierung einzelner Aufgaben, sondern in der Neugestaltung ganzer Geschäftsprozesse — über die Grenzen einzelner Abteilungen hinaus.\n\nTamara steht vor einer strategischen Frage: Wie muss die Organisation umgebaut werden, damit GenAI nicht nur innerhalb bestehender Silos wirkt, sondern echten Mehrwert entlang der gesamten Wertschöpfungskette schafft? Die Art, wie sie diese Frage beantwortet, wird die Zukunft der Alpes Bank mitbestimmen."
+    }
+  ],
+  "exhibits": [
+    {
+      "exhibit_id": "e1",
+      "title": "Exhibit 1: Durchschnittlicher Gewinn pro Kundin / Kunde nach Kanal (in CHF)",
+      "exhibit_type": "table",
+      "content": "Kanal               | 2015  | 2020  | 2025  | Branchendurchschnitt 2025\nFiliale             | 120   | 10    | 140   | 80\nE-Mail              | 20    | 80    | 30    | 20\nTelefon             | 70    | 100   | 80    | 20\nOnline-Banking      | 0     | 20    | 10    | 60\nWebsite             | 10    | 40    | 30    | 40\nApp                 | 0     | 10    | 0     | 60\nGesamt              | 220   | 260   | 290   | 290\n\nHinweis: Negative Werte in einzelnen Jahren spiegeln hohe Initialinvestitionen wider. Der Sprung im Filialgewinn 2020 → 2025 erklärt sich durch gezielte Premiumisierung des Beratungsangebots."
+    },
+    {
+      "exhibit_id": "e2",
+      "title": "Exhibit 2: Grobeinschätzung der drei GenAI-Anwendungsfälle",
+      "exhibit_type": "table",
+      "content": "Kennzahl                          | E-Mail-Assistent       | Interner Wissens-Copilot | Website-Chatbot\nJährliche Interaktionen           | 300'000 E-Mails        | 200'000 Anfragen         | 100'000 Hilfeanfragen\nEingesparte Zeit (Ø pro Fall)     | 2 Minuten              | 5 Minuten                | 2 Minuten\nJährlich eingesparte Stunden      | 10'000 h               | 16'667 h                 | 3'333 h\nKosten pro Stunde                 | CHF 35 (Agent)         | CHF 50 (Wissensarb.)     | CHF 35 (Agent)\nJährl. Kosteneinsparung (ab J.1)  | CHF 350'000            | CHF 833'000              | CHF 117'000\nInitialkosten (J.0)               | CHF 160'000            | CHF 800'000              | CHF 110'000\nLaufende Betriebskosten (ab J.1)  | CHF 80'000             | CHF 300'000              | CHF 45'000\nJährl. Bruttogewinn (ab J.1)      | CHF 270'000            | CHF 533'000              | CHF 72'000\nGeschätzte Zeit bis MVP           | ≈ 12 Wochen            | ≈ 27 Wochen              | ≈ 10 Wochen\n\nHinweis: Diese Zahlen sind Grobeinschätzungen aus dem Ideations-Workshop. Sie berücksichtigen keine Investitionen in Mitarbeitendenentwicklung oder mögliche Widerstände bei der Einführung."
+    },
+    {
+      "exhibit_id": "e3",
+      "title": "Exhibit 3: Management-Stimmen zur Governance-Frage",
+      "exhibit_type": "quote",
+      "content": "CEO: 'Wir haben bewiesen, dass GenAI echten Geschäftsnutzen schaffen kann. Jetzt ist die Frage, ob wir das Risiko kontrollieren können, um weiterzumachen. Ohne Governance rollen wir nicht weiter aus.'\n\nTamara Maurer (Leiterin Digitale Transformation): 'GenAI wird immer ein bisschen halluzinieren. Die eigentliche Governance-Frage lautet nicht: Wie eliminieren wir Halluzinationen? Sondern: Wo sind wir bereit, dieses Risiko zu tragen — und sind wir in der Lage, es zu managen?'\n\nHead of Customer Service: 'Meine Mitarbeitenden sind gut darin, mit Kunden zu kommunizieren. Aber jetzt sollen sie plötzlich auch KI-Outputs beurteilen? Das ist eine neue Kompetenz. Die kommt nicht von selbst.'\n\nAILabs-Technikleiter Lucien Gétaz: 'Aus technischer Sicht ist das System bereit. Aber 'bereit' aus technischer Sicht und 'bereit' aus Bankensicht — das sind zwei sehr verschiedene Dinge. Das haben wir in diesem Projekt erst lernen müssen.'"
+    }
+  ],
+  "questions": [
+    {
+      "question_id": "q1",
+      "phase": 1,
+      "bloom_level": 4,
+      "text": "Identifizieren Sie die zwei Herausforderungen, die für die zukünftige Entwicklung von Alpes Bank am kritischsten sind. Erläutern Sie für jede, worin sie konkret besteht und warum sie für das Geschäftsmodell relevant ist. Zeigen Sie bei mindestens einer Herausforderung, warum sie sich aus dem Zusammenspiel von externen Entwicklungen und internen Gegebenheiten ergibt.",
+      "max_points": 25,
+      "rubric_reference": "tp1_rubric.json",
+      "allowed_frameworks": ["SGMM (Umwelt-Organisation-Spannungsfeld)", "Stakeholder-Mapping (Einfluss/Betroffenheit)"],
+      "forbidden_framework_names": ["Porter", "Five Forces", "RBV", "VRIO", "Transaktionskosten", "Preiselastizität"]
+    },
+    {
+      "question_id": "q2",
+      "phase": 2,
+      "bloom_level": 5,
+      "text": "Tamara muss entscheiden, welchen GenAI-Anwendungsfall sie priorisiert. Entwickeln Sie eine klare Empfehlung: Welchen der drei Anwendungsfälle sollte Alpes Bank zuerst umsetzen — und worauf soll der Wettbewerbsvorteil langfristig basieren? Benennen Sie konkret, welche internen Stärken diesen Vorteil tragen, warum er für Wettbewerber schwer zu imitieren ist, und welchen zentralen Zielkonflikt Ihre Empfehlung mit sich bringt.",
+      "max_points": 24,
+      "rubric_reference": "tp2_rubric.json",
+      "allowed_frameworks": ["SGMM", "Stakeholder-Mapping", "Wettbewerbslogik (Kosten vs. Differenzierung)", "Ressourcenbasierte Logik (VRIO-Prinzip, ohne Namen)", "KPI und Steuerungslogik"],
+      "forbidden_framework_names": ["Porter", "Five Forces", "RBV", "VRIO", "Transaktionskosten", "Preiselastizität", "4P", "Marketing-Mix"]
+    },
+    {
+      "question_id": "q3",
+      "phase": 3,
+      "bloom_level": 4,
+      "text": "Tamara entscheidet sich, die KI-Entwicklung mit dem externen Partner AILabs durchzuführen, statt alles intern zu bauen. Treffen Sie eine begründete Make-or-Buy-Entscheidung für die Entwicklung des E-Mail-Assistenten: Welche Faktoren — etwa wie spezifisch die benötigte Leistung ist, wie häufig sie gebraucht wird, und wie unsicher die Qualitätsanforderungen sind — sprechen für oder gegen eine externe Lösung? Welches konkrete Risiko entsteht aus Ihrer Entscheidung, und welche Massnahme würden Sie ergreifen?",
+      "max_points": 22,
+      "rubric_reference": "tp3_rubric.json",
+      "allowed_frameworks": ["Alle aus TP1+TP2", "Transaktionskostenlogik (implizit)", "Make-or-Buy-Logik"],
+      "forbidden_framework_names": ["Transaktionskostentheorie", "TCE", "Williamson", "4P", "Marketing-Mix"]
+    },
+    {
+      "question_id": "q4",
+      "phase": 4,
+      "bloom_level": 6,
+      "text": "Betrachten Sie Ihre Entscheidungen aus den vorigen Aufgaben als Ganzes. Welche strategische Stossrichtung sollte Alpes Bank in den nächsten 12–24 Monaten priorisieren — und welche Ihrer Entscheidungen halten Sie im Rückblick für die riskanteste? Begründen Sie, warum diese Entscheidung das grösste Risiko birgt, und zeigen Sie, welche Konsequenzen eine Revision dieser Entscheidung für die anderen Teile Ihrer Empfehlung hätte.",
+      "max_points": 30,
+      "rubric_reference": "tp4_rubric.json",
+      "allowed_frameworks": ["Alle aus TP1–TP3", "Geschäftsmodell-Logik (Wertversprechen, Wertschöpfung, Erlös)", "SGMM-Gestaltungsdimensionen"],
+      "forbidden_framework_names": []
+    }
+  ]
+}

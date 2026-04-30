@@ -118,6 +118,23 @@ def _select_agent(session: Session, user_message: str) -> str:
     return AgentType.STRATEGIC
 
 
+def _load_case_guidance(case_id: str) -> str:
+    """Lädt case-spezifisches Agent-Guidance JSON falls vorhanden."""
+    import json
+    from pathlib import Path
+    p = Path(__file__).parent.parent / "cases" / "pool" / f"{case_id}-agent.json"
+    if not p.exists():
+        return ""
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        g = data.get("agent_guidance", {})
+        tensions = "\n".join(f"- {t}" for t in g.get("key_tensions", []))
+        mistakes  = "\n".join(f"- {m}" for m in g.get("common_mistakes", []))
+        return f"\nKERN-SPANNUNGSFELDER:\n{tensions}\n\nHÄUFIGE FEHLER VERMEIDEN:\n{mistakes}"
+    except Exception:
+        return ""
+
+
 class AgentOrchestrator:
     def __init__(self, api_key: str):
         self.client = anthropic.Anthropic(api_key=api_key)
@@ -134,9 +151,11 @@ class AgentOrchestrator:
         agent_type = _select_agent(session, user_message)
         tp = session.tp_phase
 
+        guidance = _load_case_guidance(session.case_id)
         system = (
             f"{AGENT_PROMPTS[agent_type]}\n\n"
             f"CASE-KONTEXT (TP{tp} — {TP_CONFIGS[tp]['name']}):\n{case_context}"
+            f"{guidance}"
         )
 
         messages = history + [{"role": "user", "content": user_message}]

@@ -1,0 +1,57 @@
+{
+  "case_id": "alpes-bank-genai-001",
+  "agent_guidance": {
+    "case_summary": "Alpes Bank, eine traditionsreiche Schweizer Universalbank, steht unter Druck durch KI-getriebene Konkurrenz. Tamara Maurer hat 12 Wochen, um einen GenAI-Piloten zu liefern. Sie wählt einen E-Mail-Assistenten, entwickelt ihn mit dem Startup AILabs, und liefert 21% Zeitersparnis — aber auch neue Fragen zu Governance und Organisationsdesign.",
+    "key_tensions": [
+      "Traditionelles Filialmodell vs. digitaler Wettbewerbsdruck (extern trifft intern)",
+      "Geschwindigkeit (12 Wochen) vs. Qualität und Compliance (Bankenkultur)",
+      "Externe Abhängigkeit (AILabs, Azure, OpenAI) vs. Kontrolle und Datenschutz",
+      "Definition von 'fertig': technisch (AILabs) vs. geschäftlich (Bank)",
+      "GenAI als Automatisierung einzelner Aufgaben vs. Neugestaltung ganzer Prozesse"
+    ],
+    "learning_objectives": [
+      "Herausforderungen im Spannungsfeld Umwelt-Organisation identifizieren (TP1)",
+      "Strategische Empfehlung mit Wettbewerbslogik und Trade-offs formulieren (TP2)",
+      "Make-or-Buy-Entscheidung mit Risiken und Massnahmen ableiten (TP3)",
+      "Entscheidungen als System verstehen und Kaskadeneffekte erkennen (TP4)"
+    ],
+    "scaffolding_questions": {
+      "metacognitive": [
+        "Was ist für dich der schwierigste Teil dieser Analyse — und warum?",
+        "Welche Annahmen triffst du über Alpes Bank, ohne dass der Case das explizit sagt?",
+        "Wenn du Tamara wärst: Was würde dich nachts wachhalten?"
+      ],
+      "strategic": [
+        "Was würde passieren, wenn Alpes Bank alle drei Anwendungsfälle gleichzeitig startet?",
+        "Welcher Stakeholder hat den grössten Einfluss auf den Erfolg des Piloten — und warum?",
+        "Der CEO sagt 'nichts kaputt machen' — was bedeutet das konkret für die Entscheidung?",
+        "Warum ist der E-Mail-Assistent schwerer zu imitieren als der Website-Chatbot?",
+        "Was geht verloren, wenn Alpes Bank die Entwicklung komplett outsourct?"
+      ],
+      "conceptual": [
+        "Was macht eine Ressource oder Fähigkeit schwer imitierbar — welche Eigenschaften müsste sie dafür haben?",
+        "Wenn du dir überlegst, ob etwas intern oder extern erledigt werden soll: Welche Faktoren sind dabei entscheidend?",
+        "Wie würdest du den Zusammenhang zwischen dem, was aussen im Markt passiert, und dem, was innen in der Organisation passiert, beschreiben?",
+        "Was bedeutet 'Skalierbarkeit' für ein Geschäftsmodell wie das von Alpes Bank konkret?"
+      ],
+      "procedural": [
+        "Du hast jetzt mehrere Argumente — welches ist wirklich zentral, und welches ist nur Hintergrund?",
+        "Kannst du deine Empfehlung in einem Satz zusammenfassen, bevor du sie ausführst?",
+        "Eine Wirkungskette zeigt: Ursache → Wirkung → Handlungsdruck. Hast du alle drei Schritte?",
+        "Was ist der Unterschied zwischen einer Beobachtung und einer begründeten Entscheidung?"
+      ]
+    },
+    "common_mistakes": [
+      "Alle drei Anwendungsfälle als 'gleich gut' beurteilen, ohne Priorisierung",
+      "Make-or-Buy-Entscheidung rein nach Kosten treffen, ohne Spezifität und Kontrolle zu bedenken",
+      "Stakeholder benennen, ohne ihre konkreten Erwartungen oder Einflussmechanismen zu analysieren",
+      "Trade-offs benennen, ohne zu zeigen, warum beide Seiten wirklich relevant sind",
+      "GenAI als rein technisches Problem behandeln, ohne organisatorische und kulturelle Dimension"
+    ],
+    "forbidden_in_feedback": [
+      "Direkte Musterlösungen oder 'die richtige Antwort ist...'",
+      "Framework-Namen wie Porter, RBV, VRIO, TCE, Transaktionskostentheorie",
+      "Aussagen wie 'du solltest schreiben...' oder 'füge hinzu...'"
+    ]
+  }
+}
