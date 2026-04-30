@@ -1,41 +1,7 @@
-# Web Framework
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
-
-# Pydantic v2
 pydantic==2.9.2
-pydantic-settings==2.5.2
-
-# Database
-asyncpg==0.29.0
-sqlalchemy[asyncio]==2.0.35
-alembic==1.13.3
-
-# Redis (Session Cache)
-redis[hiredis]==5.1.1
-
-# WebSocket
-websockets==13.1
-
-# LLM APIs
-openai==1.51.0
 anthropic==0.34.2
-
-# RAG / Vector DB
-chromadb==0.5.11
-
-# Logging
 structlog==24.4.0
-
-# Auth / Security
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-
-# Utils
 python-dotenv==1.0.1
-httpx==0.27.2
-
-# Testing
-pytest==8.3.3
-pytest-asyncio==0.24.0
-pytest-httpx==0.32.0
+websockets==13.1
