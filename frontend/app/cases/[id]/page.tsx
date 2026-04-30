@@ -62,6 +62,11 @@ export default function CasePage() {
       setSessionId(r.session_id)
       const wsBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/^http/, 'ws')
       const ws = new WebSocket(`${wsBase}/ws/${r.session_id}?case_id=${id}&user_id=${encodeURIComponent(userId)}`)
+      ws.onopen = () => {
+        console.log('WebSocket connected')
+        setChat(c => c.length === 0 ? [{ role: 'agent', content: 'Hallo! Ich bin dein Lernbegleiter für diesen Case. Was beschäftigt dich — wo möchtest du anfangen?', agent_type: 'metacognitive' }] : c)
+      }
+      ws.onerror = e => console.error('WebSocket error', e)
       ws.onmessage = e => {
         const data = JSON.parse(e.data)
         if (data.event === 'agent_typing') { setAgentTyping(data.is_typing); return }
@@ -77,7 +82,11 @@ export default function CasePage() {
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [chat, agentTyping])
 
   const sendChat = () => {
-    if (!chatInput.trim() || !wsRef.current) return
+    if (!chatInput.trim()) return
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      console.warn('WebSocket not open, state:', wsRef.current?.readyState)
+      return
+    }
     setChat(c => [...c, { role: 'user', content: chatInput }])
     wsRef.current.send(JSON.stringify({ type: 'message', content: chatInput }))
     setChatInput('')
