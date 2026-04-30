@@ -1,4 +1,5 @@
 .venv/
 .env
 CLAUDE.md
-dev-docs/
+dev-docs/frontend/.next
+frontend/node_modules
