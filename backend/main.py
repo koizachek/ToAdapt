@@ -41,6 +41,19 @@ app.include_router(admin_router)
 app.include_router(dashboard_router)
 
 
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error("unhandled_exception", error=str(exc), path=request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+
 @app.get("/health", tags=["meta"])
 async def health() -> dict:
     return {"status": "ok", "tp_phase": current_tp_phase(), "version": "0.2.0"}
