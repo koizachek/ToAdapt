@@ -2,6 +2,8 @@
 
 from contextlib import asynccontextmanager
 
+import os
+
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,7 +18,8 @@ logger = structlog.get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("toadapt_startup", tp_phase=current_tp_phase())
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    logger.info("toadapt_startup", tp_phase=current_tp_phase(), api_key_set=bool(key), api_key_prefix=key[:10] if key else "MISSING")
     yield
     logger.info("toadapt_shutdown")
 
