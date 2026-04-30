@@ -65,7 +65,7 @@ Vergabe-Leitlinien:
 
 class RubricEvaluator:
     def __init__(self, api_key: str):
-        self.client = anthropic.Anthropic(api_key=api_key)
+        self.client = anthropic.AsyncAnthropic(api_key=api_key)
 
     def _make_tags(self, question: CaseQuestion) -> list[str]:
         base = {

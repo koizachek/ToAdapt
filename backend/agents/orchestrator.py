@@ -14,7 +14,7 @@ import anthropic
 import structlog
 
 from backend.config.tp_configs import TP_CONFIGS
-from backend.models.message import Message, AgentType
+from backend.models.message import AgentType
 from backend.models.session import Session
 
 logger = structlog.get_logger(__name__)
@@ -137,7 +137,7 @@ def _load_case_guidance(case_id: str) -> str:
 
 class AgentOrchestrator:
     def __init__(self, api_key: str):
-        self.client = anthropic.Anthropic(api_key=api_key)
+        self.client = anthropic.AsyncAnthropic(api_key=api_key)
 
     async def respond(
         self,
@@ -160,7 +160,7 @@ class AgentOrchestrator:
 
         messages = history + [{"role": "user", "content": user_message}]
 
-        response = self.client.messages.create(
+        response = await self.client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=512,
             system=system,

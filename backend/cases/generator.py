@@ -118,7 +118,7 @@ TP_GENERATION_PARAMS: dict[int, dict] = {
 
 class CaseGenerator:
     def __init__(self, api_key: str):
-        self.client = anthropic.Anthropic(api_key=api_key)
+        self.client = anthropic.AsyncAnthropic(api_key=api_key)
 
     async def generate_draft(
         self,
