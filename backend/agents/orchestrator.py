@@ -10,6 +10,8 @@ Der Orchestrator entscheidet anhand von Session-State und Message-Content,
 welcher Agent antwortet.
 """
 
+import re
+
 import structlog
 
 from backend.config.tp_configs import TP_CONFIGS
@@ -57,10 +59,9 @@ AGENT_PROMPTS = {
     AgentType.METACOGNITIVE: """Du bist ein metacognitiver Lernbegleiter in BWL A.
 
 Deine Rolle: Studierende zum Nachdenken über ihren eigenen Denkprozess anregen.
-Du fragst IMMER zuerst, bevor du inhaltlich hilfst:
-- Wo stehst du gerade? Was hast du schon durchdacht?
-- Was ist für dich der schwierigste Teil dieser Frage?
-- Welche Annahmen triffst du — und warum?
+Antworte kurz und klar in 2–4 Sätzen.
+Stelle höchstens eine Gegenfrage.
+Verwende kein Markdown, keine Listen, keine Überschriften.
 
 Niemals: direkte Antworten, Musterlösungen, Framework-Namen.
 Immer: Gegenfragen, die tiefer führen.""",
@@ -68,10 +69,9 @@ Immer: Gegenfragen, die tiefer führen.""",
     AgentType.STRATEGIC: """Du bist ein strategischer Denkpartner in BWL A.
 
 Deine Rolle: Studierende bei der Entscheidungslogik unterstützen.
-Du hilfst dabei:
-- Optionen zu strukturieren (ohne die "richtige" zu nennen)
-- Trade-offs sichtbar zu machen
-- Konsequenzen von Entscheidungen zu durchdenken
+Antworte kurz und klar in 2–4 Sätzen.
+Verwende kein Markdown, keine Listen, keine Überschriften.
+Hilf dabei, Optionen zu strukturieren, Trade-offs sichtbar zu machen und Konsequenzen zu durchdenken.
 
 Niemals: Framework-Namen, direkte Empfehlungen, Musterlösungen.
 Immer: "Was würde passieren, wenn...?" — "Welche Alternative hättest du?".""",
@@ -79,9 +79,11 @@ Immer: "Was würde passieren, wenn...?" — "Welche Alternative hättest du?".""
     AgentType.CONCEPTUAL: """Du bist ein konzeptueller Wissensbegleiter in BWL A.
 
 Deine Rolle: Betriebswirtschaftliche Konzepte implizit zugänglich machen.
-Du erklärst Logiken ohne Modellnamen:
-- Statt "Porter's Five Forces": "Welche Kräfte beeinflussen den Wettbewerbsdruck?"
-- Statt "RBV": "Was macht eine Ressource schwer imitierbar?"
+Wenn nach einem Begriff gefragt wird, antworte in genau zwei kurzen Teilen:
+1. Erkläre den Begriff in 1–2 Sätzen einfach und präzise.
+2. Erkläre in 1 Satz, welche Rolle er im aktuellen Case spielt.
+Halte die Antwort insgesamt unter 90 Wörtern.
+Verwende kein Markdown, keine Listen, keine Überschriften, keine Sonderzeichen-Deko.
 
 Niemals: Framework-Namen nennen, Definitionen auswendig lernen lassen.
 Immer: die Logik hinter dem Konzept verständlich machen.""",
@@ -89,10 +91,9 @@ Immer: die Logik hinter dem Konzept verständlich machen.""",
     AgentType.PROCEDURAL: """Du bist ein Format- und Strukturbegleiter in BWL A.
 
 Deine Rolle: Bei Darstellung und Struktur der Antwort helfen.
-Du hilfst dabei:
-- Die Antwort klar zu gliedern
-- Das richtige Format zu wählen (Fließtext, Tabelle, Wirkungskette)
-- Prägnanz zu verbessern
+Antworte kurz und klar in 2–4 Sätzen.
+Verwende kein Markdown, keine Listen, keine Überschriften.
+Hilf dabei, die Antwort klar zu gliedern, das passende Format zu wählen und prägnanter zu werden.
 
 Niemals: Inhaltliche Antworten, Framework-Namen.
 Immer: strukturelle Hinweise, Fragen zur Klarheit.""",
@@ -103,19 +104,44 @@ Immer: strukturelle Hinweise, Fragen zur Klarheit.""",
 # Orchestrator
 # ---------------------------------------------------------------------------
 
+def _is_concept_request(user_message: str) -> bool:
+    lower = user_message.lower()
+    return any(w in lower for w in [
+        "erklär",
+        "begriff",
+        "was bedeutet",
+        "einordnen",
+        "rolle im case",
+        "rolle im kontext",
+        "rolle im gesamtkontext",
+    ])
+
+
 def _select_agent(session: Session, user_message: str) -> str:
     """Wählt den passenden Agent-Typ basierend auf Session-State."""
+    if _is_concept_request(user_message):
+        return AgentType.CONCEPTUAL
+
     if not session.metacognitive_phase_complete:
         return AgentType.METACOGNITIVE
 
     lower = user_message.lower()
     if any(w in lower for w in ["entscheidung", "strategie", "option", "warum", "wählen"]):
         return AgentType.STRATEGIC
-    if any(w in lower for w in ["konzept", "modell", "theorie", "erklär", "was bedeutet"]):
+    if any(w in lower for w in ["konzept", "modell", "theorie"]):
         return AgentType.CONCEPTUAL
     if any(w in lower for w in ["format", "struktur", "folie", "memo", "schreiben"]):
         return AgentType.PROCEDURAL
     return AgentType.STRATEGIC
+
+
+def _clean_response_text(text: str) -> str:
+    text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
+    text = re.sub(r"^#{1,6}\s*", "", text, flags=re.MULTILINE)
+    text = re.sub(r"\n?---+\n?", "\n", text)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
 
 
 def _load_case_guidance(case_id: str) -> str:
@@ -163,8 +189,9 @@ class AgentOrchestrator:
         text = await self.client.complete(
             system=system,
             messages=messages,
-            max_tokens=512,
+            max_tokens=220 if agent_type == AgentType.CONCEPTUAL else 320,
         )
+        text = _clean_response_text(text)
 
         ok, reason = guardrail_check(text, tp)
         if not ok:

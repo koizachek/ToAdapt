@@ -26,6 +26,11 @@ interface GlossaryTerm {
   explanation: string
   starterPrompt: string
 }
+interface ParsedExhibitTable {
+  headers: string[]
+  rows: string[][]
+  notes: string[]
+}
 
 const AGENT_LABEL: Record<string, string> = {
   metacognitive: 'Reflexion',
@@ -39,37 +44,37 @@ const CASE_GLOSSARY: Record<string, GlossaryTerm[]> = {
     {
       term: 'Wertschöpfungskette',
       explanation: 'Beschreibt die zusammenhängenden Aktivitäten, mit denen ein Unternehmen über mehrere Schritte hinweg Wert für Kundinnen und Kunden erzeugt.',
-      starterPrompt: 'Erkläre mir im Kontext dieses Cases den Begriff "Wertschöpfungskette" und warum er strategisch wichtiger ist als die reine Optimierung einzelner Aufgaben.',
+      starterPrompt: 'Erkläre mir kurz den Begriff "Wertschöpfungskette" und ordne in einem Satz ein, welche Rolle er in diesem Case spielt.',
     },
     {
       term: 'Silos',
       explanation: 'Organisatorische Abschottungen zwischen Bereichen, die Informationsfluss, Zusammenarbeit und gemeinsame Verantwortung erschweren.',
-      starterPrompt: 'Hilf mir zu verstehen, was mit "Silos" in diesem Case gemeint ist und warum sie für GenAI-getriebene Prozessveränderungen problematisch sind.',
+      starterPrompt: 'Erkläre mir kurz den Begriff "Silos" und ordne in einem Satz ein, welche Rolle er in diesem Case spielt.',
     },
     {
       term: 'Governance-Modell',
       explanation: 'Legt fest, wer entscheidet, wer kontrolliert und nach welchen Regeln Technologie verantwortungsvoll betrieben wird.',
-      starterPrompt: 'Erkläre mir das Governance-Modell in diesem Case und welche organisatorischen Fähigkeiten dafür aufgebaut werden müssen.',
+      starterPrompt: 'Erkläre mir kurz den Begriff "Governance-Modell" und ordne in einem Satz ein, welche Rolle er in diesem Case spielt.',
     },
     {
       term: 'Kontrollinstanz',
       explanation: 'Eine Rolle oder Person, die Ergebnisse prüft, Fehler abfängt und Verantwortung für die Qualität übernimmt.',
-      starterPrompt: 'Was bedeutet "letzte Kontrollinstanz" hier konkret und warum bleibt sie trotz GenAI für Alpes Bank wichtig?',
+      starterPrompt: 'Erkläre mir kurz den Begriff "Kontrollinstanz" und ordne in einem Satz ein, welche Rolle er in diesem Case spielt.',
     },
     {
       term: 'Rollout',
       explanation: 'Die schrittweise Einführung eines Systems im realen Betrieb, oft mit klar definiertem Umfang und Risikobegrenzung.',
-      starterPrompt: 'Erkläre mir, was ein begrenzter Rollout im Fall Alpes Bank bedeutet und welche Vor- und Nachteile diese Entscheidung hat.',
+      starterPrompt: 'Erkläre mir kurz den Begriff "Rollout" und ordne in einem Satz ein, welche Rolle er in diesem Case spielt.',
     },
     {
       term: 'Anwendungsfall',
       explanation: 'Ein klar umrissener Einsatzbereich, in dem Technologie ein konkretes Problem lösen oder Nutzen stiften soll.',
-      starterPrompt: 'Hilf mir, den Begriff "Anwendungsfall" im Kontext der drei GenAI-Optionen von Alpes Bank sauber einzuordnen.',
+      starterPrompt: 'Erkläre mir kurz den Begriff "Anwendungsfall" und ordne in einem Satz ein, welche Rolle er in diesem Case spielt.',
     },
     {
       term: 'MVP',
       explanation: 'Ein minimal funktionsfähiges Produkt, das den Kernnutzen schnell testbar macht, ohne schon vollständig ausgereift zu sein.',
-      starterPrompt: 'Erkläre mir, was ein MVP in diesem Case bedeutet und welche Risiken entstehen, wenn man zu früh auf Geschwindigkeit setzt.',
+      starterPrompt: 'Erkläre mir kurz den Begriff "MVP" und ordne in einem Satz ein, welche Rolle er in diesem Case spielt.',
     },
   ],
 }
@@ -90,10 +95,107 @@ function buildGlossaryMatcher(terms: GlossaryTerm[]) {
   return new RegExp(`(${sortedTerms.map(({ term }) => escapeRegExp(term)).join('|')})`, 'gi')
 }
 
+function parseExhibitTable(content: string): ParsedExhibitTable | null {
+  const lines = content
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+
+  const pipeLines = lines.filter(line => line.includes('|'))
+  if (pipeLines.length < 2) return null
+
+  const parseRow = (line: string) =>
+    line
+      .split('|')
+      .map(cell => cell.trim())
+      .filter(Boolean)
+
+  const headers = parseRow(pipeLines[0])
+  if (headers.length < 2) return null
+
+  const rows = pipeLines.slice(1)
+    .map(parseRow)
+    .filter(row => row.length >= 2)
+
+  if (!rows.length) return null
+
+  const notes = lines.filter(line => !line.includes('|'))
+
+  return { headers, rows, notes }
+}
+
+function ExhibitTable({ content }: { content: string }) {
+  const parsed = parseExhibitTable(content)
+
+  if (!parsed) {
+    return (
+      <pre
+        className="overflow-x-auto whitespace-pre-wrap text-xs leading-6"
+        style={{ fontFamily: 'inherit' }}
+      >
+        {content}
+      </pre>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="overflow-x-auto">
+        <table className="min-w-full border-separate border-spacing-0 text-sm">
+          <thead>
+            <tr>
+              {parsed.headers.map((header, index) => (
+                <th
+                  key={`${header}-${index}`}
+                  className="border-b px-4 py-3 text-left text-xs font-semibold tracking-[0.08em] uppercase"
+                  style={{
+                    borderColor: 'rgba(53,40,30,0.12)',
+                    color: 'var(--muted)',
+                    whiteSpace: index === 0 ? 'normal' : 'nowrap',
+                  }}
+                >
+                  {header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {parsed.rows.map((row, rowIndex) => (
+              <tr key={`row-${rowIndex}`}>
+                {parsed.headers.map((_, cellIndex) => (
+                  <td
+                    key={`cell-${rowIndex}-${cellIndex}`}
+                    className="border-b px-4 py-3 align-top text-sm"
+                    style={{
+                      borderColor: 'rgba(53,40,30,0.08)',
+                      color: 'var(--ink)',
+                      fontWeight: cellIndex === 0 ? 500 : 400,
+                      whiteSpace: cellIndex === 0 ? 'normal' : 'nowrap',
+                    }}
+                  >
+                    {row[cellIndex] ?? ''}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {parsed.notes.map((note, index) => (
+        <p key={`note-${index}`} className="text-sm leading-7" style={{ color: 'var(--ink)' }}>
+          {note}
+        </p>
+      ))}
+    </div>
+  )
+}
+
 function renderRichText(
   text: string,
   glossaryMap: Map<string, GlossaryTerm>,
   glossaryPattern: RegExp | null,
+  highlightedTerms: Set<string>,
   activeTerm: string | null,
   onDiscuss: (term: GlossaryTerm) => void,
 ) {
@@ -102,6 +204,11 @@ function renderRichText(
   return text.split(glossaryPattern).filter(Boolean).map((part, index) => {
     const match = glossaryMap.get(part.toLowerCase())
     if (!match) return <Fragment key={`${part}-${index}`}>{part}</Fragment>
+    if (highlightedTerms.has(match.term)) {
+      return <Fragment key={`${match.term}-plain-${index}`}>{part}</Fragment>
+    }
+
+    highlightedTerms.add(match.term)
 
     return (
       <GlossaryChip
@@ -145,7 +252,7 @@ function GlossaryChip({
         {term.term}
       </button>
 
-      <div
+      <span
         className={clsx(
           'pointer-events-none absolute left-0 top-full z-20 mt-2 w-72 origin-top-left rounded-xl border px-4 py-3 text-sm shadow-sm transition-all duration-150',
           open ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0',
@@ -155,16 +262,17 @@ function GlossaryChip({
           borderColor: 'rgba(53,40,30,0.12)',
           color: 'var(--ink)',
         }}
+        role="tooltip"
       >
-        <div className="mb-2 flex items-start gap-2">
+        <span className="mb-2 flex items-start gap-2">
           <MessageSquare size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
-          <div>
-            <p className="text-xs font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--muted)' }}>
+          <span>
+            <span className="text-xs font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--muted)' }}>
               Begriff im Kontext
-            </p>
-            <p className="mt-1 text-sm leading-6">{term.explanation}</p>
-          </div>
-        </div>
+            </span>
+            <span className="mt-1 block text-sm leading-6">{term.explanation}</span>
+          </span>
+        </span>
 
         <button
           type="button"
@@ -176,7 +284,7 @@ function GlossaryChip({
           <BookOpenText size={14} />
           Mit Agent besprechen
         </button>
-      </div>
+      </span>
     </span>
   )
 }
@@ -193,8 +301,7 @@ export default function CasePage() {
   const [chatInput, setChatInput] = useState('')
   const [sending, setSending] = useState(false)
   const [activeTerm, setActiveTerm] = useState<string | null>(null)
-  const chatEndRef = useRef<HTMLDivElement>(null)
-  const chatPanelRef = useRef<HTMLElement>(null)
+  const chatScrollRef = useRef<HTMLDivElement>(null)
   const historyRef = useRef<{ role: string; content: string }[]>([])
 
   const matrikel = typeof window !== 'undefined' ? sessionStorage.getItem('matrikelnummer') ?? '' : ''
@@ -223,7 +330,9 @@ export default function CasePage() {
   }, [id, matrikel, userId])
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const node = chatScrollRef.current
+    if (!node) return
+    node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' })
   }, [chat, sending])
 
   const glossaryTerms = useMemo(() => CASE_GLOSSARY[id] ?? [], [id])
@@ -265,7 +374,6 @@ export default function CasePage() {
 
   const startGlossaryChat = async (term: GlossaryTerm) => {
     setActiveTerm(term.term)
-    chatPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 
     if (!sessionId || sending) {
       setChatInput(term.starterPrompt)
@@ -303,6 +411,7 @@ export default function CasePage() {
     { key: 'case' as const, label: 'Task Materials', icon: <FileText size={14} /> },
     { key: 'questions' as const, label: 'Fragen', icon: <FileText size={14} /> },
   ]
+  const highlightedTerms = new Set<string>()
 
   return (
     <>
@@ -344,9 +453,16 @@ export default function CasePage() {
                     <h2 className="mb-3 text-base font-medium">{section.title}</h2>
                     <div className="flex flex-col gap-5 text-sm leading-8">
                       {splitParagraphs(section.content).map((paragraph, index) => (
-                        <p key={`${section.section_id}-${index}`}>
-                          {renderRichText(paragraph, glossaryMap, glossaryPattern, activeTerm, startGlossaryChat)}
-                        </p>
+                        <div key={`${section.section_id}-${index}`}>
+                          {renderRichText(
+                            paragraph,
+                            glossaryMap,
+                            glossaryPattern,
+                            highlightedTerms,
+                            activeTerm,
+                            startGlossaryChat,
+                          )}
+                        </div>
                       ))}
                     </div>
                   </section>
@@ -365,12 +481,16 @@ export default function CasePage() {
                           <p className="mb-3 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
                             {exhibit.title}
                           </p>
-                          <pre
-                            className="overflow-x-auto whitespace-pre-wrap text-xs leading-6"
-                            style={{ fontFamily: 'inherit' }}
-                          >
-                            {exhibit.content}
-                          </pre>
+                          {exhibit.exhibit_type === 'table'
+                            ? <ExhibitTable content={exhibit.content} />
+                            : (
+                              <pre
+                                className="overflow-x-auto whitespace-pre-wrap text-xs leading-6"
+                                style={{ fontFamily: 'inherit' }}
+                              >
+                                {exhibit.content}
+                              </pre>
+                            )}
                         </div>
                       ))}
                     </div>
@@ -428,10 +548,7 @@ export default function CasePage() {
             )}
           </section>
 
-          <aside
-            ref={chatPanelRef}
-            className="xl:sticky xl:top-28"
-          >
+          <aside className="xl:sticky xl:top-28">
             <div
               className="overflow-hidden rounded-[28px] border"
               style={{
@@ -449,10 +566,7 @@ export default function CasePage() {
                     <MessageSquare size={18} />
                   </div>
                   <div>
-                    <p className="text-xs tracking-[0.16em] uppercase" style={{ color: 'var(--muted)' }}>
-                      Lernchat
-                    </p>
-                    <p className="text-sm font-medium">Direkt neben dem Material</p>
+                    <p className="text-sm font-medium">Lernchat</p>
                   </div>
                 </div>
 
@@ -472,7 +586,7 @@ export default function CasePage() {
               </div>
 
               <div className="flex h-[28rem] flex-col">
-                <div className="flex-1 overflow-y-auto px-5 py-4">
+                <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-5 py-4">
                   <div className="flex flex-col gap-4">
                     {chat.map((message, index) => (
                       <div key={index} className={clsx('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}>
@@ -499,7 +613,6 @@ export default function CasePage() {
                         <span className="text-xs" style={{ color: 'var(--muted)' }}>schreibt…</span>
                       </div>
                     )}
-                    <div ref={chatEndRef} />
                   </div>
                 </div>
 
