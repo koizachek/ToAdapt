@@ -10,10 +10,10 @@ Der Orchestrator entscheidet anhand von Session-State und Message-Content,
 welcher Agent antwortet.
 """
 
-import anthropic
 import structlog
 
 from backend.config.tp_configs import TP_CONFIGS
+from backend.llm import OpenRouterClient
 from backend.models.message import AgentType
 from backend.models.session import Session
 
@@ -137,7 +137,7 @@ def _load_case_guidance(case_id: str) -> str:
 
 class AgentOrchestrator:
     def __init__(self, api_key: str):
-        self.client = anthropic.AsyncAnthropic(api_key=api_key)
+        self.client = OpenRouterClient(api_key=api_key)
 
     async def respond(
         self,
@@ -160,14 +160,11 @@ class AgentOrchestrator:
 
         messages = history + [{"role": "user", "content": user_message}]
 
-        response = await self.client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=512,
+        text = await self.client.complete(
             system=system,
             messages=messages,
+            max_tokens=512,
         )
-
-        text = response.content[0].text
 
         ok, reason = guardrail_check(text, tp)
         if not ok:

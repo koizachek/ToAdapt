@@ -1,14 +1,12 @@
 """Admin-Interface — Case-Generierung und Approval-Workflow."""
 
-import os
-import uuid
-
 import structlog
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from backend.cases.generator import CaseGenerator
 from backend.cases.manager import case_manager
+from backend.llm import get_openrouter_key
 from backend.models.case import CaseDifficulty, CaseSummary, Case
 
 logger = structlog.get_logger(__name__)
@@ -38,9 +36,9 @@ class ReviewCaseRequest(BaseModel):
 @router.post("/cases/generate", response_model=Case)
 async def generate_case(body: GenerateCaseRequest):
     """Generiert einen AI-Draft-Case und legt ihn im Pool ab."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = get_openrouter_key()
     if not api_key:
-        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY nicht konfiguriert")
+        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
 
     generator = CaseGenerator(api_key=api_key)
 

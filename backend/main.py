@@ -3,24 +3,37 @@
 from contextlib import asynccontextmanager
 
 import os
+from pathlib import Path
 
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 
 from backend.api.routes import router as session_router
 from backend.admin.routes import router as admin_router
 from backend.dashboard.routes import router as dashboard_router
 from backend.config.tp_configs import current_tp_phase
+from backend.llm import DEFAULT_OPENROUTER_MODEL
 
 logger = structlog.get_logger(__name__)
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    key = os.environ.get("ANTHROPIC_API_KEY", "")
-    all_keys = [k for k in os.environ.keys() if "ANTHROP" in k.upper()]
-    logger.info("toadapt_startup", tp_phase=current_tp_phase(), api_key_len=len(key), api_key_prefix=key[:12] if key else "MISSING", matching_env_keys=all_keys)
+    key = os.environ.get("OPENROUTER_API_KEY", "")
+    all_keys = [k for k in os.environ.keys() if "OPENROUTER" in k.upper()]
+    logger.info(
+        "toadapt_startup",
+        tp_phase=current_tp_phase(),
+        llm_provider="openrouter",
+        llm_model=os.environ.get("OPENROUTER_MODEL", DEFAULT_OPENROUTER_MODEL),
+        api_key_len=len(key),
+        api_key_prefix=key[:12] if key else "MISSING",
+        matching_env_keys=all_keys,
+    )
     yield
     logger.info("toadapt_shutdown")
 

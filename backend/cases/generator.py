@@ -11,10 +11,10 @@ import json
 import uuid
 from datetime import datetime
 
-import anthropic
 import structlog
 
 from backend.config.tp_configs import TP_CONFIGS
+from backend.llm import OpenRouterClient
 from backend.models.case import (
     Case,
     CaseDifficulty,
@@ -118,7 +118,7 @@ TP_GENERATION_PARAMS: dict[int, dict] = {
 
 class CaseGenerator:
     def __init__(self, api_key: str):
-        self.client = anthropic.AsyncAnthropic(api_key=api_key)
+        self.client = OpenRouterClient(api_key=api_key)
 
     async def generate_draft(
         self,
@@ -148,14 +148,11 @@ class CaseGenerator:
 
         logger.info("case_generation_started", industry=industry, country=country, tp=target_tp)
 
-        response = self.client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=4096,
+        raw = await self.client.complete(
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": prompt}],
+            max_tokens=4096,
         )
-
-        raw = response.content[0].text
         data = json.loads(raw)
 
         case = Case(

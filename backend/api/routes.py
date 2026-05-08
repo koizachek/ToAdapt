@@ -1,19 +1,19 @@
 """Session- und Submission-Endpunkte."""
 
 import json
-import os
 import uuid
 from datetime import datetime
 from pathlib import Path
 
 import structlog
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from backend.agents.orchestrator import AgentOrchestrator
 from backend.cases.manager import case_manager
 from backend.config.tp_configs import current_tp_phase
 from backend.evaluator.rubric_evaluator import RubricEvaluator
+from backend.llm import get_openrouter_key
 from backend.models.session import Session, SessionCreate, SessionResponse
 from backend.models.submission import (
     AnswerSubmit,
@@ -86,7 +86,9 @@ async def chat(session_id: str, body: ChatRequest):
     if not case:
         raise HTTPException(status_code=404, detail="Case nicht gefunden")
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = get_openrouter_key()
+    if not api_key:
+        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
     orchestrator = AgentOrchestrator(api_key=api_key)
 
     case_context = f"{case.title}\n{case.tagline}\n" + "\n".join(
@@ -149,7 +151,9 @@ async def submit_and_evaluate(submission_id: str):
     if not case:
         raise HTTPException(status_code=404, detail="Case nicht gefunden")
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = get_openrouter_key()
+    if not api_key:
+        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
     evaluator = RubricEvaluator(api_key=api_key)
 
     sub.status = SubmissionStatus.SUBMITTED

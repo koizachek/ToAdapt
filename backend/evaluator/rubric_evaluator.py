@@ -7,12 +7,10 @@ Prinzipien:
 """
 
 import json
-import uuid
-from datetime import datetime
 
-import anthropic
 import structlog
 
+from backend.llm import OpenRouterClient
 from backend.models.case import Case, CaseQuestion
 from backend.models.submission import QuestionScore, Submission, SubmissionResult
 
@@ -65,7 +63,7 @@ Vergabe-Leitlinien:
 
 class RubricEvaluator:
     def __init__(self, api_key: str):
-        self.client = anthropic.AsyncAnthropic(api_key=api_key)
+        self.client = OpenRouterClient(api_key=api_key)
 
     def _make_tags(self, question: CaseQuestion) -> list[str]:
         base = {
@@ -103,14 +101,12 @@ class RubricEvaluator:
                 low_points=low,
             )
 
-            response = self.client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=512,
+            text = await self.client.complete(
                 system=EVALUATOR_SYSTEM,
                 messages=[{"role": "user", "content": prompt}],
+                max_tokens=512,
             )
-
-            data = json.loads(response.content[0].text)
+            data = json.loads(text)
 
             scores.append(QuestionScore(
                 question_id=question_id,
