@@ -282,6 +282,8 @@ async def submit_and_evaluate(submission_id: str):
         "canvas_alignment_pct": sub.canvas_alignment_pct,
         "rubric_fit_pct": sub.rubric_fit_pct,
         "canvas_exemplar_candidate": sub.canvas_exemplar_candidate,
+        "submitted_at": sub.submitted_at,
+        "evaluated_at": sub.evaluated_at,
         "scores": [s.model_dump() for s in sub.scores],
         "experiment": (
             sub.experiment.model_dump(mode="json", exclude_none=True)

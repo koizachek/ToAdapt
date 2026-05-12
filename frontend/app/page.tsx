@@ -1,19 +1,25 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 
-export default function LoginPage() {
+interface LoginPageContentProps {
+  prolificPid?: string
+  studyId?: string
+  prolificSessionId?: string
+}
+
+function LoginPageContent({
+  prolificPid = '',
+  studyId = '',
+  prolificSessionId = '',
+}: LoginPageContentProps) {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [matrikel, setMatrikel] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const prolificPid = searchParams.get('PROLIFIC_PID') ?? searchParams.get('prolific_pid') ?? ''
-  const studyId = searchParams.get('STUDY_ID') ?? searchParams.get('study_id') ?? ''
-  const prolificSessionId = searchParams.get('SESSION_ID') ?? searchParams.get('session_id') ?? ''
   const prolificMode = Boolean(prolificPid || studyId || prolificSessionId)
 
   useEffect(() => {
@@ -125,5 +131,25 @@ export default function LoginPage() {
         Deine Antworten werden anonym ausgewertet. Chat-Logs bleiben aus dem Dozierenden-Dashboard ausgeschlossen.
       </p>
     </main>
+  )
+}
+
+function LoginPageInner() {
+  const searchParams = useSearchParams()
+
+  return (
+    <LoginPageContent
+      prolificPid={searchParams.get('PROLIFIC_PID') ?? searchParams.get('prolific_pid') ?? ''}
+      studyId={searchParams.get('STUDY_ID') ?? searchParams.get('study_id') ?? ''}
+      prolificSessionId={searchParams.get('SESSION_ID') ?? searchParams.get('session_id') ?? ''}
+    />
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageContent />}>
+      <LoginPageInner />
+    </Suspense>
   )
 }

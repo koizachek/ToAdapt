@@ -1,6 +1,7 @@
 """Instructor Dashboard — Matrikelnummer + Scores, keine Chat-Logs."""
 
 from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
 import json
 
@@ -31,6 +32,14 @@ class StudentRow(BaseModel):
     matrikelnummer: str
     submissions_count: int
     avg_percentage: float
+    avg_canvas_alignment_pct: float = 0.0
+    avg_rubric_fit_pct: float = 0.0
+    exemplar_submissions_count: int = 0
+    latest_percentage: float | None = None
+    latest_canvas_alignment_pct: float | None = None
+    latest_rubric_fit_pct: float | None = None
+    latest_target_tp: int | None = None
+    latest_evaluated_at: str | None = None
     by_tp: dict[int, float]           # TP → avg %
     by_bloom: dict[int, float]        # Bloom-Stufe → avg %
     by_objective: list[LearningObjectiveScore]
@@ -40,6 +49,9 @@ class DashboardOverview(BaseModel):
     total_students: int
     total_submissions: int
     avg_percentage: float
+    avg_canvas_alignment_pct: float = 0.0
+    avg_rubric_fit_pct: float = 0.0
+    exemplar_submissions_count: int = 0
     by_tp: dict[int, float]
     by_bloom: dict[int, float]
     top_objectives: list[LearningObjectiveScore]   # top 5 by weakness
@@ -77,6 +89,22 @@ def _aggregate_objectives(scores_list: list[dict]) -> list[LearningObjectiveScor
     return sorted(out, key=lambda x: x.avg_pct)   # weakest first
 
 
+def _result_timestamp(result: dict) -> datetime:
+    value = result.get("evaluated_at") or result.get("submitted_at") or ""
+    if isinstance(value, str) and value:
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            pass
+    return datetime.min
+
+
+def _latest_result(results: list[dict]) -> dict | None:
+    if not results:
+        return None
+    return max(results, key=_result_timestamp)
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -87,6 +115,9 @@ async def get_overview():
     if not results:
         return DashboardOverview(
             total_students=0, total_submissions=0, avg_percentage=0,
+            avg_canvas_alignment_pct=0,
+            avg_rubric_fit_pct=0,
+            exemplar_submissions_count=0,
             by_tp={}, by_bloom={}, top_objectives=[],
         )
 
@@ -109,11 +140,25 @@ async def get_overview():
     }
 
     avg_pct = round(sum(r["percentage"] for r in results) / len(results), 1)
+    avg_canvas_alignment_pct = round(
+        sum(r.get("canvas_alignment_pct", 0) for r in results) / len(results),
+        1,
+    )
+    avg_rubric_fit_pct = round(
+        sum(r.get("rubric_fit_pct", 0) for r in results) / len(results),
+        1,
+    )
+    exemplar_submissions_count = sum(
+        1 for r in results if r.get("canvas_exemplar_candidate")
+    )
 
     return DashboardOverview(
         total_students=len(students),
         total_submissions=len(results),
         avg_percentage=avg_pct,
+        avg_canvas_alignment_pct=avg_canvas_alignment_pct,
+        avg_rubric_fit_pct=avg_rubric_fit_pct,
+        exemplar_submissions_count=exemplar_submissions_count,
         by_tp=by_tp,
         by_bloom=by_bloom,
         top_objectives=_aggregate_objectives(all_scores)[:5],
@@ -142,11 +187,28 @@ async def get_student(matrikelnummer: str):
     }
 
     avg_pct = round(sum(r["percentage"] for r in results) / len(results), 1)
+    latest = _latest_result(results)
 
     return StudentRow(
         matrikelnummer=matrikelnummer,
         submissions_count=len(results),
         avg_percentage=avg_pct,
+        avg_canvas_alignment_pct=round(
+            sum(r.get("canvas_alignment_pct", 0) for r in results) / len(results),
+            1,
+        ),
+        avg_rubric_fit_pct=round(
+            sum(r.get("rubric_fit_pct", 0) for r in results) / len(results),
+            1,
+        ),
+        exemplar_submissions_count=sum(
+            1 for r in results if r.get("canvas_exemplar_candidate")
+        ),
+        latest_percentage=latest.get("percentage") if latest else None,
+        latest_canvas_alignment_pct=latest.get("canvas_alignment_pct") if latest else None,
+        latest_rubric_fit_pct=latest.get("rubric_fit_pct") if latest else None,
+        latest_target_tp=latest.get("target_tp") if latest else None,
+        latest_evaluated_at=latest.get("evaluated_at") if latest else None,
         by_tp=by_tp,
         by_bloom=by_bloom,
         by_objective=_aggregate_objectives(all_scores),
@@ -163,6 +225,7 @@ async def list_students():
     rows = []
     for matrikel, student_results in by_student.items():
         all_scores = [s for r in student_results for s in r.get("scores", [])]
+        latest = _latest_result(student_results)
         tp_buckets: dict[int, list[float]] = defaultdict(list)
         for r in student_results:
             tp_buckets[r["target_tp"]].append(r["percentage"])
@@ -180,6 +243,22 @@ async def list_students():
             matrikelnummer=matrikel,
             submissions_count=len(student_results),
             avg_percentage=round(sum(r["percentage"] for r in student_results) / len(student_results), 1),
+            avg_canvas_alignment_pct=round(
+                sum(r.get("canvas_alignment_pct", 0) for r in student_results) / len(student_results),
+                1,
+            ),
+            avg_rubric_fit_pct=round(
+                sum(r.get("rubric_fit_pct", 0) for r in student_results) / len(student_results),
+                1,
+            ),
+            exemplar_submissions_count=sum(
+                1 for r in student_results if r.get("canvas_exemplar_candidate")
+            ),
+            latest_percentage=latest.get("percentage") if latest else None,
+            latest_canvas_alignment_pct=latest.get("canvas_alignment_pct") if latest else None,
+            latest_rubric_fit_pct=latest.get("rubric_fit_pct") if latest else None,
+            latest_target_tp=latest.get("target_tp") if latest else None,
+            latest_evaluated_at=latest.get("evaluated_at") if latest else None,
             by_tp=by_tp,
             by_bloom=by_bloom,
             by_objective=_aggregate_objectives(all_scores),
