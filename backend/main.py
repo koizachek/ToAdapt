@@ -14,6 +14,7 @@ from backend.api.routes import router as session_router
 from backend.admin.routes import router as admin_router
 from backend.dashboard.routes import router as dashboard_router
 from backend.config.tp_configs import current_tp_phase
+from backend.db.experiment_logger import experiment_logger
 from backend.llm import DEFAULT_OPENROUTER_MODEL
 
 logger = structlog.get_logger(__name__)
@@ -30,6 +31,10 @@ async def lifespan(app: FastAPI):
         tp_phase=current_tp_phase(),
         llm_provider="openrouter",
         llm_model=os.environ.get("OPENROUTER_MODEL", DEFAULT_OPENROUTER_MODEL),
+        mongo_logging_enabled=experiment_logger.enabled,
+        mongo_connection_mode=experiment_logger.connection_mode,
+        mongo_database=os.environ.get("MONGODB_DATABASE", "toadapt"),
+        mongo_collection=os.environ.get("MONGODB_COLLECTION", "experiment_events"),
         api_key_len=len(key),
         api_key_prefix=key[:12] if key else "MISSING",
         matching_env_keys=all_keys,

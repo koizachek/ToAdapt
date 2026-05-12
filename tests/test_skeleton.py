@@ -20,12 +20,24 @@ def test_health():
 
 
 def test_create_session():
-    response = client.post("/sessions", json={"group_id": "group-01", "user_id": "user-42"})
+    response = client.post(
+        "/sessions",
+        json={
+            "user_id": "user-42",
+            "case_id": "alpes-bank-genai-001",
+            "experiment": {
+                "prolific_pid": "pid-123",
+                "prolific_study_id": "study-456",
+                "prolific_session_id": "session-789",
+            },
+        },
+    )
     assert response.status_code == 201
     data = response.json()
-    assert data["group_id"] == "group-01"
+    assert data["user_id"] == "user-42"
+    assert data["case_id"] == "alpes-bank-genai-001"
     assert data["tp_phase"] in [1, 2, 3, 4]
-    assert "/ws/group-01/user-42" in data["websocket_url"]
+    assert data["websocket_url"].startswith("/ws/")
 
 
 def test_current_tp_phase_within_window():

@@ -21,6 +21,16 @@ interface Case {
   questions: CaseQuestion[]
 }
 interface ChatMsg { role: 'user' | 'agent'; content: string; agent_type?: string }
+interface ExperimentContext {
+  provider?: string
+  experiment_name?: string
+  run_id?: string
+  condition?: string
+  prolific_pid?: string
+  prolific_study_id?: string
+  prolific_session_id?: string
+  metadata?: Record<string, string>
+}
 interface GlossaryTerm {
   term: string
   explanation: string
@@ -107,6 +117,16 @@ function getAnswerRequirement(questionIndex: number): AnswerRequirement {
 
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length
+}
+
+function readExperimentContext(): ExperimentContext | null {
+  if (typeof window === 'undefined') return null
+
+  try {
+    return JSON.parse(sessionStorage.getItem('experiment_context') ?? 'null')
+  } catch {
+    return null
+  }
 }
 
 function hasSentenceStructure(text: string): boolean {
@@ -325,6 +345,7 @@ export default function CasePage() {
 
   const matrikel = typeof window !== 'undefined' ? sessionStorage.getItem('matrikelnummer') ?? '' : ''
   const userId = typeof window !== 'undefined' ? sessionStorage.getItem('user_id') ?? 'u_anon' : 'u_anon'
+  const experimentContext = useMemo(() => readExperimentContext(), [])
 
   useEffect(() => {
     apiFetch<Case>(`/admin/cases/${id}`).then(setCase)
@@ -335,18 +356,24 @@ export default function CasePage() {
 
     apiFetch<{ submission_id: string }>('/submissions', {
       method: 'POST',
-      body: JSON.stringify({ user_id: userId, matrikelnummer: matrikel, case_id: id, target_tp: 1 }),
+      body: JSON.stringify({
+        user_id: userId,
+        matrikelnummer: matrikel,
+        case_id: id,
+        target_tp: 1,
+        experiment: experimentContext,
+      }),
     }).then(r => setSubmissionId(r.submission_id))
 
     apiFetch<{ session_id: string }>('/sessions', {
       method: 'POST',
-      body: JSON.stringify({ user_id: userId, case_id: id }),
+      body: JSON.stringify({ user_id: userId, case_id: id, experiment: experimentContext }),
     }).then(r => {
       setSessionId(r.session_id)
       historyRef.current = []
       setChat([{ role: 'agent', content: INITIAL_AGENT_MESSAGE, agent_type: 'metacognitive' }])
     }).catch(console.error)
-  }, [id, matrikel, userId])
+  }, [experimentContext, id, matrikel, userId])
 
   useEffect(() => {
     const node = chatScrollRef.current
@@ -411,7 +438,7 @@ export default function CasePage() {
   }
 
   const handleSubmit = async () => {
-    if (!submissionId) return
+    if (!submissionId || !caseData) return
     const invalidQuestion = caseData.questions.find((question, index) => {
       const requirement = getAnswerRequirement(index)
       const wordCount = countWords(answers[question.question_id] ?? '')

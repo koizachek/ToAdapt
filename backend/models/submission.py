@@ -4,6 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from backend.models.experiment import ExperimentContext
+
 
 class QuestionScore(BaseModel):
     question_id: str
@@ -26,6 +28,7 @@ class Submission(BaseModel):
     matrikelnummer: str                  # Denormalisiert für Dashboard-Queries
     case_id: str
     target_tp: int
+    experiment: ExperimentContext | None = None
 
     answers: dict[str, str] = Field(default_factory=dict)   # question_id → Antwort-Text
     scores: list[QuestionScore] = Field(default_factory=list)
@@ -43,9 +46,10 @@ class Submission(BaseModel):
 
 class SubmissionCreate(BaseModel):
     user_id: str
-    matrikelnummer: str
+    matrikelnummer: str | None = None
     case_id: str
     target_tp: int
+    experiment: ExperimentContext | None = None
 
 
 class AnswerSubmit(BaseModel):

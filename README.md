@@ -60,6 +60,7 @@ Dozent → POST /admin/cases/generate  (Branche, Land, TP-Ziel)
 | LLM | Anthropic API (claude-sonnet-4-6) |
 | Case Pool | JSON-Dateien (pool/) |
 | Scoring Storage | JSON (db/submissions/) |
+| Experiment Logging | Optional MongoDB (`MONGODB_URI`) |
 | Deployment | Railway (Backend), Vercel (Frontend) |
 
 ## Setup
@@ -71,6 +72,28 @@ cp .env.example .env  # API Keys eintragen
 pip install -r requirements.txt
 uvicorn backend.main:app --reload
 ```
+
+### Optional: Prolific + MongoDB Logging
+
+Für Experimental-Runs kann das Backend strukturierte Events nach MongoDB schreiben. Dafür genügen diese Env-Variablen:
+
+```bash
+MONGODB_URI=mongodb+srv://...
+MONGODB_DATABASE=toadapt
+MONGODB_COLLECTION=experiment_events
+```
+
+Alternativ kann die Verbindung aus bestehenden Credentials aufgebaut werden:
+
+```bash
+MONGODB_MAS_NAME=...
+MONGODB_MAS_KEY=...
+MONGODB_HOST=cluster0.xxxxx.mongodb.net
+MONGODB_DATABASE=toadapt
+MONGODB_COLLECTION=experiment_events
+```
+
+Wenn Prolific die Landing-Page mit `PROLIFIC_PID`, `STUDY_ID` und `SESSION_ID` aufruft, werden diese Werte automatisch ins Backend durchgereicht und zusammen mit Session-, Chat- und Submission-Events geloggt.
 
 ## Guardrails
 
