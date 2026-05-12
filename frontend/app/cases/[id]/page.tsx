@@ -31,6 +31,10 @@ interface ParsedExhibitTable {
   rows: string[][]
   notes: string[]
 }
+interface AnswerRequirement {
+  minWords: number
+  maxWords: number
+}
 
 const AGENT_LABEL: Record<string, string> = {
   metacognitive: 'Reflexion',
@@ -93,6 +97,20 @@ function buildGlossaryMatcher(terms: GlossaryTerm[]) {
   if (!terms.length) return null
   const sortedTerms = [...terms].sort((a, b) => b.term.length - a.term.length)
   return new RegExp(`(${sortedTerms.map(({ term }) => escapeRegExp(term)).join('|')})`, 'gi')
+}
+
+function getAnswerRequirement(questionIndex: number): AnswerRequirement {
+  if (questionIndex <= 1) return { minWords: 50, maxWords: 200 }
+  if (questionIndex <= 3) return { minWords: 100, maxWords: 200 }
+  return { minWords: 150, maxWords: 200 }
+}
+
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length
+}
+
+function hasSentenceStructure(text: string): boolean {
+  return /[.!?]/.test(text.trim())
 }
 
 function parseExhibitTable(content: string): ParsedExhibitTable | null {
@@ -301,6 +319,7 @@ export default function CasePage() {
   const [chatInput, setChatInput] = useState('')
   const [sending, setSending] = useState(false)
   const [activeTerm, setActiveTerm] = useState<string | null>(null)
+  const [submissionError, setSubmissionError] = useState<string | null>(null)
   const chatScrollRef = useRef<HTMLDivElement>(null)
   const historyRef = useRef<{ role: string; content: string }[]>([])
 
@@ -393,6 +412,22 @@ export default function CasePage() {
 
   const handleSubmit = async () => {
     if (!submissionId) return
+    const invalidQuestion = caseData.questions.find((question, index) => {
+      const requirement = getAnswerRequirement(index)
+      const wordCount = countWords(answers[question.question_id] ?? '')
+      return wordCount < requirement.minWords || wordCount > requirement.maxWords
+    })
+
+    if (invalidQuestion) {
+      const questionIndex = caseData.questions.findIndex(q => q.question_id === invalidQuestion.question_id)
+      const requirement = getAnswerRequirement(questionIndex)
+      setSubmissionError(
+        `Frage ${questionIndex + 1} muss zwischen ${requirement.minWords} und ${requirement.maxWords} Wörtern liegen.`,
+      )
+      return
+    }
+
+    setSubmissionError(null)
     const result = await apiFetch<any>(`/submissions/${submissionId}/submit`, { method: 'POST' })
     sessionStorage.setItem(`result_${submissionId}`, JSON.stringify(result))
     router.push(`/results/${submissionId}`)
@@ -501,8 +536,24 @@ export default function CasePage() {
 
             {tab === 'questions' && (
               <div className="flex max-w-3xl flex-col gap-8 pr-0 xl:pr-4">
+                <div
+                  className="rounded-2xl px-5 py-4 text-sm leading-7"
+                  style={{ background: 'rgba(21,99,61,0.08)', color: 'var(--ink)' }}
+                >
+                  Schreibe in ganzen Sätzen. Für Frage 1–2 gilt 50–200 Wörter, für Frage 3–4 100–200 Wörter, für Frage 5–6 150–200 Wörter.
+                </div>
+
                 {caseData.questions.map((question, index) => (
                   <div key={question.question_id}>
+                    {(() => {
+                      const requirement = getAnswerRequirement(index)
+                      const answerText = answers[question.question_id] ?? ''
+                      const wordCount = countWords(answerText)
+                      const isWithinRange = wordCount >= requirement.minWords && wordCount <= requirement.maxWords
+                      const sentenceHintVisible = answerText.trim().length > 0 && !hasSentenceStructure(answerText)
+
+                      return (
+                        <>
                     <div className="mb-3 flex items-start justify-between gap-4">
                       <div className="flex items-start gap-4">
                         <span className="mt-0.5 shrink-0 font-mono text-xs" style={{ color: 'var(--muted)' }}>
@@ -519,20 +570,49 @@ export default function CasePage() {
                     </div>
 
                     <textarea
-                      value={answers[question.question_id] ?? ''}
+                      value={answerText}
                       onChange={event => setAnswers(current => ({ ...current, [question.question_id]: event.target.value }))}
                       onBlur={event => saveAnswer(question.question_id, event.target.value)}
                       rows={6}
-                      placeholder="Deine Antwort…"
+                      placeholder={`Deine Antwort in ganzen Sätzen (${requirement.minWords}–${requirement.maxWords} Wörter)…`}
                       className="ml-8 w-full resize-none rounded-2xl bg-transparent px-4 py-3 text-sm outline-none transition-all"
-                      style={{ border: '1px solid rgba(53,40,30,0.2)', color: 'var(--ink)' }}
+                      style={{
+                        border: `1px solid ${answerText.trim().length > 0 && !isWithinRange ? 'rgba(173,63,43,0.45)' : 'rgba(53,40,30,0.2)'}`,
+                        color: 'var(--ink)',
+                      }}
                       onFocus={event => { event.currentTarget.style.borderColor = 'var(--accent)' }}
-                      onBlurCapture={event => { event.currentTarget.style.borderColor = 'rgba(53,40,30,0.2)' }}
+                      onBlurCapture={event => {
+                        event.currentTarget.style.borderColor = answerText.trim().length > 0 && !isWithinRange
+                          ? 'rgba(173,63,43,0.45)'
+                          : 'rgba(53,40,30,0.2)'
+                      }}
                     />
+                    <div className="ml-8 mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                      <span style={{ color: 'var(--muted)' }}>
+                        Vorgabe: {requirement.minWords}–{requirement.maxWords} Wörter, ganze Sätze
+                      </span>
+                      <span style={{ color: answerText.trim().length === 0 || isWithinRange ? 'var(--accent)' : '#ad3f2b' }}>
+                        {wordCount} Wörter
+                      </span>
+                      {sentenceHintVisible && (
+                        <span style={{ color: '#ad3f2b' }}>
+                          Bitte in ganzen Sätzen formulieren.
+                        </span>
+                      )}
+                    </div>
+                        </>
+                      )
+                    })()}
                   </div>
                 ))}
 
                 <div className="divider" />
+
+                {submissionError && (
+                  <p className="text-sm" style={{ color: '#ad3f2b' }}>
+                    {submissionError}
+                  </p>
+                )}
 
                 <button
                   type="button"
