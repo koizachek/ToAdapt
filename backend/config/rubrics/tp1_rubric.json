@@ -1,0 +1,36 @@
+{
+  "questions": {
+    "q1": {
+      "evaluation_focus": [
+        "Identifiziert die kritischsten Herausforderungen der Bank statt nur Symptome aufzuzählen.",
+        "Verknüpft jede Herausforderung sichtbar mit dem Geschäftsmodell von Alpes Bank.",
+        "Zeigt mindestens bei einer Herausforderung das Zusammenspiel von externem Druck und internen Gegebenheiten."
+      ],
+      "required_canvas_blocks": [
+        {
+          "block": "customer_relationships",
+          "label": "Customer Relationships",
+          "accepted_keywords": ["customer relationships", "kundenbeziehung", "persönliche beratung", "service", "vertrauen", "betreuung"],
+          "expectation": "Erkennt, wie KI-Druck und Serviceversprechen die Kundenbeziehung und das Premium-Beratungsmodell tangieren.",
+          "weight": 1.0
+        },
+        {
+          "block": "channels",
+          "label": "Channels",
+          "accepted_keywords": ["channels", "kanäle", "filiale", "app", "online-banking", "e-mail", "telefon"],
+          "expectation": "Zeigt, dass die Herausforderung mit der Kanalstruktur und dem Spannungsfeld Filiale versus digitale Kanäle zusammenhängt.",
+          "weight": 1.0
+        },
+        {
+          "block": "revenue_streams",
+          "label": "Revenue Streams",
+          "accepted_keywords": ["revenue streams", "erlös", "marge", "preis", "profitabel", "premiumisierung"],
+          "expectation": "Macht deutlich, warum die Herausforderung für Erträge, Zahlungsbereitschaft oder Profitabilität des Modells relevant ist.",
+          "weight": 1.0
+        }
+      ],
+      "exemplar_threshold_pct": 80.0,
+      "score_floor_pct": 75.0
+    }
+  }
+}

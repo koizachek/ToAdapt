@@ -14,6 +14,13 @@ class QuestionScore(BaseModel):
     awarded_points: float
     feedback: str                        # Scaffolded, kein direktes Lösung-Reveal
     learning_objective_tags: list[str]   # z.B. ["analyse", "stakeholder", "wirkungskette"]
+    rubric_reference: str | None = None
+    canvas_alignment_score: float = 0.0
+    canvas_alignment_pct: float = 0.0
+    required_canvas_blocks: list[str] = Field(default_factory=list)
+    addressed_canvas_blocks: list[str] = Field(default_factory=list)
+    missing_canvas_blocks: list[str] = Field(default_factory=list)
+    canvas_rationale: str | None = None
 
 
 class SubmissionStatus(str):
@@ -36,6 +43,9 @@ class Submission(BaseModel):
     total_points: float = 0.0
     max_points: float = 0.0
     percentage: float = 0.0
+    canvas_alignment_pct: float = 0.0
+    rubric_fit_pct: float = 0.0
+    canvas_exemplar_candidate: bool = False
 
     status: str = SubmissionStatus.IN_PROGRESS
 
@@ -64,5 +74,9 @@ class SubmissionResult(BaseModel):
     total_points: float
     max_points: float
     percentage: float
+    canvas_alignment_pct: float = 0.0
+    rubric_fit_pct: float = 0.0
+    canvas_exemplar_candidate: bool = False
+    canvas_summary: str | None = None
     scores: list[QuestionScore]
     overall_feedback: str

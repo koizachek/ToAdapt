@@ -1,0 +1,43 @@
+{
+  "questions": {
+    "q4": {
+      "evaluation_focus": [
+        "Integriert die früheren Entscheidungen zu einer konsistenten strategischen Stossrichtung.",
+        "Identifiziert die riskanteste Entscheidung und erklärt die Interdependenzen bei einer Revision.",
+        "Denkt in Wertschöpfung über Silos hinweg statt isoliert nach Funktionen."
+      ],
+      "required_canvas_blocks": [
+        {
+          "block": "value_propositions",
+          "label": "Value Propositions",
+          "accepted_keywords": ["value proposition", "wertversprechen", "kundennutzen", "premium", "serviceversprechen"],
+          "expectation": "Verankert die strategische Stossrichtung sichtbar im zukünftigen Leistungsversprechen der Bank.",
+          "weight": 1.0
+        },
+        {
+          "block": "key_activities",
+          "label": "Key Activities",
+          "accepted_keywords": ["key activities", "wertschöpfungskette", "prozesse", "governance", "rollout", "steuerung"],
+          "expectation": "Zeigt, welche Aktivitäten oder Prozessketten priorisiert umgebaut werden müssen.",
+          "weight": 1.0
+        },
+        {
+          "block": "key_resources",
+          "label": "Key Resources",
+          "accepted_keywords": ["key resources", "ressourcen", "kompetenzen", "daten", "mitarbeitende", "fähigkeiten"],
+          "expectation": "Benennt die kritischen Fähigkeiten oder Ressourcen, die für die strategische Richtung aufgebaut oder geschützt werden müssen.",
+          "weight": 1.0
+        },
+        {
+          "block": "cost_structure",
+          "label": "Cost Structure",
+          "accepted_keywords": ["cost structure", "kostenstruktur", "kosten", "effizienz", "investition", "risko", "risiko"],
+          "expectation": "Macht die Kosten-, Risiko- oder Governance-Folgen der priorisierten Richtung transparent.",
+          "weight": 1.0
+        }
+      ],
+      "exemplar_threshold_pct": 82.0,
+      "score_floor_pct": 75.0
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "questions": {
+    "q2": {
+      "evaluation_focus": [
+        "Empfiehlt einen der drei Use Cases klar und begründet die Wahl mit langfristiger Wettbewerbslogik.",
+        "Zeigt, welche internen Stärken den Vorteil tragen und warum sie schwer imitierbar sind.",
+        "Benannt einen echten Zielkonflikt statt nur Chancen aufzuzählen."
+      ],
+      "required_canvas_blocks": [
+        {
+          "block": "value_propositions",
+          "label": "Value Propositions",
+          "accepted_keywords": ["value proposition", "wertversprechen", "kundennutzen", "servicequalität", "geschwindigkeit", "qualität"],
+          "expectation": "Leitet her, welchen konkreten Kundennutzen der priorisierte Use Case schafft und wie er das Leistungsversprechen verändert.",
+          "weight": 1.0
+        },
+        {
+          "block": "key_resources",
+          "label": "Key Resources",
+          "accepted_keywords": ["key resources", "ressourcen", "daten", "wissen", "mitarbeitende", "kompetenzen", "marke"],
+          "expectation": "Verbindet den empfohlenen Vorteil mit tragenden internen Ressourcen oder Fähigkeiten von Alpes Bank.",
+          "weight": 1.0
+        },
+        {
+          "block": "cost_structure",
+          "label": "Cost Structure",
+          "accepted_keywords": ["cost structure", "kostenstruktur", "kosten", "effizienz", "investition", "betriebskosten"],
+          "expectation": "Adressiert den Zielkonflikt zwischen Nutzen, Aufwand, Risiko oder Effizienz des gewählten Use Cases.",
+          "weight": 1.0
+        }
+      ],
+      "exemplar_threshold_pct": 82.0,
+      "score_floor_pct": 75.0
+    }
+  }
+}

@@ -268,6 +268,9 @@ async def submit_and_evaluate(submission_id: str):
     sub.total_points = result.total_points
     sub.max_points = result.max_points
     sub.percentage = result.percentage
+    sub.canvas_alignment_pct = result.canvas_alignment_pct
+    sub.rubric_fit_pct = result.rubric_fit_pct
+    sub.canvas_exemplar_candidate = result.canvas_exemplar_candidate
 
     # Persistieren für Dashboard
     out = {
@@ -276,6 +279,9 @@ async def submit_and_evaluate(submission_id: str):
         "case_id": sub.case_id,
         "target_tp": sub.target_tp,
         "percentage": sub.percentage,
+        "canvas_alignment_pct": sub.canvas_alignment_pct,
+        "rubric_fit_pct": sub.rubric_fit_pct,
+        "canvas_exemplar_candidate": sub.canvas_exemplar_candidate,
         "scores": [s.model_dump() for s in sub.scores],
         "experiment": (
             sub.experiment.model_dump(mode="json", exclude_none=True)
@@ -295,5 +301,21 @@ async def submit_and_evaluate(submission_id: str):
             if sub.experiment else None
         ),
     )
+
+    if result.canvas_exemplar_candidate:
+        _log_experiment_event(
+            "canvas_exemplar_candidate",
+            submission_id=sub.submission_id,
+            case_id=sub.case_id,
+            participant_id=sub.matrikelnummer,
+            percentage=result.percentage,
+            canvas_alignment_pct=result.canvas_alignment_pct,
+            rubric_fit_pct=result.rubric_fit_pct,
+            experiment=(
+                sub.experiment.model_dump(mode="json", exclude_none=True)
+                if sub.experiment else None
+            ),
+            scores=[score.model_dump(mode="json", exclude_none=True) for score in result.scores],
+        )
 
     return result

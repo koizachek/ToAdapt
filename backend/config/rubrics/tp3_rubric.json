@@ -1,0 +1,36 @@
+{
+  "questions": {
+    "q3": {
+      "evaluation_focus": [
+        "Trifft eine klare Make-or-Buy-Entscheidung für den E-Mail-Assistenten.",
+        "Diskutiert Spezifität, Häufigkeit und Unsicherheit nachvollziehbar.",
+        "Leitet ein konkretes Risiko und eine passende Gegenmassnahme ab."
+      ],
+      "required_canvas_blocks": [
+        {
+          "block": "key_partners",
+          "label": "Key Partners",
+          "accepted_keywords": ["key partners", "partner", "ailabs", "extern", "lieferant", "outsourcing"],
+          "expectation": "Bewertet die Rolle des externen Partners explizit als Teil der Wertschöpfungslogik und Governance der Bank.",
+          "weight": 1.0
+        },
+        {
+          "block": "key_activities",
+          "label": "Key Activities",
+          "accepted_keywords": ["key activities", "entwicklung", "betrieb", "integration", "training", "überwachung"],
+          "expectation": "Zeigt, welche kritischen Aktivitäten intern bleiben sollten und welche extern erbracht werden können.",
+          "weight": 1.0
+        },
+        {
+          "block": "key_resources",
+          "label": "Key Resources",
+          "accepted_keywords": ["key resources", "ressourcen", "daten", "know-how", "compliance", "bankwissen"],
+          "expectation": "Begründet die Entscheidung mit Blick auf schwer ersetzbare interne Ressourcen oder Wissen der Bank.",
+          "weight": 1.0
+        }
+      ],
+      "exemplar_threshold_pct": 80.0,
+      "score_floor_pct": 72.0
+    }
+  }
+}
