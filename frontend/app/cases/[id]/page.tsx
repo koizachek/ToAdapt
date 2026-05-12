@@ -46,12 +46,30 @@ interface AnswerRequirement {
   maxWords: number
 }
 
+interface CanvasBlock {
+  key: string
+  label: string
+  hint: string
+}
+
 const AGENT_LABEL: Record<string, string> = {
   metacognitive: 'Reflexion',
   strategic: 'Strategie',
   conceptual: 'Konzept',
   procedural: 'Format',
 }
+
+const BUSINESS_MODEL_CANVAS_BLOCKS: CanvasBlock[] = [
+  { key: 'value_propositions', label: 'Value Propositions', hint: 'Welchen konkreten Nutzen verspricht Alpes Bank ihren Kundinnen und Kunden?' },
+  { key: 'customer_segments', label: 'Customer Segments', hint: 'Welche Kundengruppen sind besonders relevant oder betroffen?' },
+  { key: 'channels', label: 'Channels', hint: 'Über welche Kanäle wird Leistung erbracht oder verändert sich der Zugang?' },
+  { key: 'customer_relationships', label: 'Customer Relationships', hint: 'Wie verändert sich die Kundenbeziehung, Beratung oder das Vertrauen?' },
+  { key: 'revenue_streams', label: 'Revenue Streams', hint: 'Welche Ertragslogik wird gestärkt, bedroht oder verändert?' },
+  { key: 'key_resources', label: 'Key Resources', hint: 'Welche Ressourcen, Fähigkeiten, Daten oder Kompetenzen tragen die Lösung?' },
+  { key: 'key_activities', label: 'Key Activities', hint: 'Welche zentralen Aktivitäten oder Prozesse müssen neu gestaltet werden?' },
+  { key: 'key_partners', label: 'Key Partners', hint: 'Welche Partner spielen eine tragende Rolle für Umsetzung oder Risiko?' },
+  { key: 'cost_structure', label: 'Cost Structure', hint: 'Welche Kosten-, Effizienz- oder Investitionsfolgen sind zentral?' },
+]
 
 const CASE_GLOSSARY: Record<string, GlossaryTerm[]> = {
   'alpes-bank-genai-001': [
@@ -226,6 +244,65 @@ function ExhibitTable({ content }: { content: string }) {
         </p>
       ))}
     </div>
+  )
+}
+
+function BusinessModelCanvasGuide() {
+  return (
+    <section
+      className="rounded-[28px] border p-6"
+      style={{
+        background: 'linear-gradient(135deg, rgba(21,99,61,0.09), rgba(184,134,11,0.08))',
+        borderColor: 'rgba(53,40,30,0.14)',
+      }}
+    >
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <p className="mb-2 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
+            Verbindlicher Analyserahmen
+          </p>
+          <h2 className="font-display text-2xl leading-tight">Business Model Canvas</h2>
+        </div>
+        <span
+          className="shrink-0 rounded-full px-3 py-1 text-xs font-medium tracking-wide"
+          style={{ background: 'rgba(21,99,61,0.14)', color: 'var(--accent)' }}
+        >
+          Pflicht für die Bearbeitung
+        </span>
+      </div>
+
+      <p className="mb-5 text-sm leading-7" style={{ color: 'var(--ink)' }}>
+        Bearbeite die Fragen auf Basis des Business Model Canvas. Strukturiere deine Antwort entlang der
+        relevanten Canvas-Bausteine und zeige, wie sich Entscheidung, Risiko und Wirkung auf das
+        Geschäftsmodell von Alpes Bank auswirken.
+      </p>
+
+      <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {BUSINESS_MODEL_CANVAS_BLOCKS.map(block => (
+          <div
+            key={block.key}
+            className="rounded-2xl px-4 py-4"
+            style={{ background: 'rgba(250,250,248,0.72)', border: '1px solid rgba(53,40,30,0.1)' }}
+          >
+            <p className="mb-2 text-xs font-semibold tracking-[0.08em] uppercase" style={{ color: 'var(--accent)' }}>
+              {block.label}
+            </p>
+            <p className="text-sm leading-6" style={{ color: 'var(--ink)' }}>
+              {block.hint}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div
+        className="rounded-2xl px-4 py-4 text-sm leading-7"
+        style={{ background: 'rgba(53,40,30,0.05)', color: 'var(--ink)' }}
+      >
+        Gute Antworten nennen nicht nur Begriffe, sondern wenden die passenden Canvas-Bausteine konkret auf
+        den Fall an. Entscheidend ist, wie sauber du den Zusammenhang zwischen Geschäftsmodell,
+        Wettbewerb, Umsetzung und Risiko erklärst.
+      </div>
+    </section>
   )
 }
 
@@ -563,6 +640,8 @@ export default function CasePage() {
 
             {tab === 'questions' && (
               <div className="flex max-w-3xl flex-col gap-8 pr-0 xl:pr-4">
+                <BusinessModelCanvasGuide />
+
                 <div
                   className="rounded-2xl px-5 py-4 text-sm leading-7"
                   style={{ background: 'rgba(21,99,61,0.08)', color: 'var(--ink)' }}
