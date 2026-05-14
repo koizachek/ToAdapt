@@ -27,18 +27,24 @@ BUILD_MARKER = "mongo-log-unconditional-2026-05-14"
 async def lifespan(app: FastAPI):
     key = os.environ.get("OPENROUTER_API_KEY", "")
     all_keys = [k for k in os.environ.keys() if "OPENROUTER" in k.upper()]
+    mongo = experiment_logger.diagnostics
     logger.info(
         "toadapt_startup",
         tp_phase=current_tp_phase(),
         llm_provider="openrouter",
         llm_model=os.environ.get("OPENROUTER_MODEL", DEFAULT_OPENROUTER_MODEL),
-        mongo_logging_enabled=experiment_logger.enabled,
-        mongo_connection_mode=experiment_logger.connection_mode,
-        mongo_database=os.environ.get("MONGODB_DATABASE", "toadapt"),
-        mongo_collection=os.environ.get("MONGODB_COLLECTION", "experiment_events"),
+        mongo_logging_enabled=mongo["enabled"],
+        mongo_connection_mode=mongo["connection_mode"],
+        mongo_database=mongo["database"],
+        mongo_collection=mongo["collection"],
+        mongo_env_keys=mongo["mongo_env_keys"],
+        mongodb_host_len=mongo["mongodb_host_len"],
+        mongodb_mas_name_len=mongo["mongodb_mas_name_len"],
+        mongodb_mas_key_len=mongo["mongodb_mas_key_len"],
+        mongodb_uri_len=mongo["mongodb_uri_len"],
         api_key_len=len(key),
         api_key_prefix=key[:12] if key else "MISSING",
-        matching_env_keys=all_keys,
+        openrouter_env_keys=all_keys,
     )
     yield
     logger.info("toadapt_shutdown")
@@ -90,5 +96,10 @@ async def health() -> dict:
         "mongo_database": mongo["database"],
         "mongo_collection": mongo["collection"],
         "mongo_has_uri": mongo["has_uri"],
+        "mongo_env_keys": mongo["mongo_env_keys"],
+        "mongodb_host_len": mongo["mongodb_host_len"],
+        "mongodb_mas_name_len": mongo["mongodb_mas_name_len"],
+        "mongodb_mas_key_len": mongo["mongodb_mas_key_len"],
+        "mongodb_uri_len": mongo["mongodb_uri_len"],
         "mongo_last_connection_failure": mongo["last_connection_failure"],
     }

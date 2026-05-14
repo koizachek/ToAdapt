@@ -52,6 +52,7 @@ class MongoExperimentLogger:
 
     @property
     def diagnostics(self) -> dict[str, Any]:
+        mongo_env_keys = sorted(key for key in os.environ if key.startswith("MONGODB_"))
         return {
             "enabled": self.enabled,
             "connection_mode": self.connection_mode,
@@ -59,6 +60,11 @@ class MongoExperimentLogger:
             "collection": self.collection_name,
             "last_connection_failure": self._last_connection_failure,
             "has_uri": bool(self.uri),
+            "mongo_env_keys": mongo_env_keys,
+            "mongodb_host_len": len(os.environ.get("MONGODB_HOST", "")),
+            "mongodb_mas_name_len": len(os.environ.get("MONGODB_MAS_NAME", "")),
+            "mongodb_mas_key_len": len(os.environ.get("MONGODB_MAS_KEY", "")),
+            "mongodb_uri_len": len(os.environ.get("MONGODB_URI", "")),
             "has_client": self._client is not None,
             "has_collection": self._collection is not None,
         }
