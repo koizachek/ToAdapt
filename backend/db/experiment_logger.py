@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import os
-from urllib.parse import quote_plus
+import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
+from urllib.parse import quote_plus
 
 import structlog
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 try:
     from pymongo import MongoClient
@@ -28,6 +33,7 @@ class MongoExperimentLogger:
         self.collection_name = os.environ.get("MONGODB_COLLECTION", "experiment_events")
         self._client: MongoClient | None = None
         self._collection: Collection | None = None
+        self._last_connection_failure = 0.0
 
         if self.uri and MongoClient is None:
             logger.warning("mongo_logger_unavailable", reason="pymongo_not_installed")
@@ -76,10 +82,22 @@ class MongoExperimentLogger:
     def _get_collection(self) -> Collection | None:
         if not self.enabled:
             return None
+        if self._last_connection_failure and time.monotonic() - self._last_connection_failure < 30:
+            return None
 
         if self._collection is None:
-            self._client = MongoClient(self.uri, serverSelectionTimeoutMS=2000)
-            self._collection = self._client[self.database_name][self.collection_name]
+            try:
+                self._client = MongoClient(self.uri, serverSelectionTimeoutMS=2000)
+                self._collection = self._client[self.database_name][self.collection_name]
+            except Exception as exc:  # pragma: no cover - external service failure
+                self._last_connection_failure = time.monotonic()
+                logger.warning(
+                    "mongo_log_connection_failed",
+                    error=str(exc),
+                    database=self.database_name,
+                    collection=self.collection_name,
+                )
+                return None
 
         return self._collection
 

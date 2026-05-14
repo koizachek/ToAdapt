@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from pathlib import Path
 from urllib.parse import quote_plus
 
 import structlog
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 try:
     from pymongo import MongoClient
@@ -36,6 +40,7 @@ class SubmissionStore:
         )
         self._client: MongoClient | None = None
         self._collection = None
+        self._last_connection_failure = 0.0
 
     @property
     def mongo_enabled(self) -> bool:
@@ -57,9 +62,21 @@ class SubmissionStore:
     def _get_collection(self):
         if not self.mongo_enabled:
             return None
+        if self._last_connection_failure and time.monotonic() - self._last_connection_failure < 30:
+            return None
         if self._collection is None:
-            self._client = MongoClient(self._mongo_uri(), serverSelectionTimeoutMS=2000)
-            self._collection = self._client[self.database_name][self.collection_name]
+            try:
+                self._client = MongoClient(self._mongo_uri(), serverSelectionTimeoutMS=2000)
+                self._collection = self._client[self.database_name][self.collection_name]
+            except Exception as exc:  # pragma: no cover - external service failure
+                self._last_connection_failure = time.monotonic()
+                logger.warning(
+                    "submission_store_connection_failed",
+                    error=str(exc),
+                    database=self.database_name,
+                    collection=self.collection_name,
+                )
+                return None
         return self._collection
 
     def save(self, submission: Submission) -> None:

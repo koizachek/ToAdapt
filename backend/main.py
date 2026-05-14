@@ -10,6 +10,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
 from backend.api.routes import router as session_router
 from backend.admin.routes import router as admin_router
 from backend.dashboard.routes import router as dashboard_router
@@ -18,8 +20,6 @@ from backend.db.experiment_logger import experiment_logger
 from backend.llm import DEFAULT_OPENROUTER_MODEL
 
 logger = structlog.get_logger(__name__)
-
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
 @asynccontextmanager
@@ -78,4 +78,12 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.get("/health", tags=["meta"])
 async def health() -> dict:
-    return {"status": "ok", "tp_phase": current_tp_phase(), "version": "0.2.0"}
+    return {
+        "status": "ok",
+        "tp_phase": current_tp_phase(),
+        "version": "0.2.0",
+        "mongo_logging_enabled": experiment_logger.enabled,
+        "mongo_connection_mode": experiment_logger.connection_mode,
+        "mongo_database": os.environ.get("MONGODB_DATABASE", "toadapt"),
+        "mongo_collection": os.environ.get("MONGODB_COLLECTION", "experiment_events"),
+    }
