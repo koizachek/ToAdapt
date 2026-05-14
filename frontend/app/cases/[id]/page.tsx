@@ -646,7 +646,7 @@ export default function CasePage() {
                   className="rounded-2xl px-5 py-4 text-sm leading-7"
                   style={{ background: 'rgba(21,99,61,0.08)', color: 'var(--ink)' }}
                 >
-                  Schreibe in ganzen Sätzen. Für Frage 1–2 gilt 50–200 Wörter, für Frage 3–4 100–200 Wörter, für Frage 5–6 150–200 Wörter.
+                  Schreibe in ganzen Sätzen. Für Frage 1–2 gilt 50–200 Wörter, für Frage 3–4 100–200 Wörter.
                 </div>
 
                 {caseData.questions.map((question, index) => (
