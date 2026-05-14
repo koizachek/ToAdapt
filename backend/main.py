@@ -20,7 +20,7 @@ from backend.db.experiment_logger import experiment_logger
 from backend.llm import DEFAULT_OPENROUTER_MODEL
 
 logger = structlog.get_logger(__name__)
-BUILD_MARKER = "mongo-log-unconditional-2026-05-14"
+BUILD_MARKER = "railway-mongo-env-diagnostics-2026-05-14-1809z"
 
 
 @asynccontextmanager
