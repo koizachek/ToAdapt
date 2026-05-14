@@ -534,7 +534,7 @@ export default function CasePage() {
     setSubmissionError(null)
     const result = await apiFetch<any>(`/submissions/${submissionId}/submit`, { method: 'POST' })
     sessionStorage.setItem(`result_${submissionId}`, JSON.stringify(result))
-    router.push(`/results/${submissionId}`)
+    router.push('/goodbye')
   }
 
   if (!caseData) {
