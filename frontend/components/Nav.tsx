@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
+import { useEffect, useState } from 'react'
 
 const links = [
   { href: '/cases', label: 'Cases' },
@@ -12,6 +13,20 @@ const links = [
 
 export default function Nav() {
   const path = usePathname()
+  const [isExperimentalRun, setIsExperimentalRun] = useState(false)
+
+  useEffect(() => {
+    try {
+      const experimentContext = JSON.parse(sessionStorage.getItem('experiment_context') ?? 'null')
+      setIsExperimentalRun(experimentContext?.provider === 'prolific')
+    } catch {
+      setIsExperimentalRun(false)
+    }
+  }, [])
+
+  const visibleLinks = isExperimentalRun
+    ? links.filter(link => link.href === '/cases')
+    : links
 
   return (
     <header
@@ -25,7 +40,7 @@ export default function Nav() {
 
       {/* Nav links */}
       <nav className="flex items-center gap-8">
-        {links.map(l => (
+        {visibleLinks.map(l => (
           <Link
             key={l.href}
             href={l.href}
