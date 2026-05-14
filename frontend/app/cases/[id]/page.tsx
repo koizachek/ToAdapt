@@ -45,6 +45,11 @@ interface AnswerRequirement {
   minWords: number
   maxWords: number
 }
+interface ClientIdentity {
+  userId: string
+  participantId: string
+  experiment: ExperimentContext | null
+}
 
 interface CanvasBlock {
   key: string
@@ -145,6 +150,26 @@ function readExperimentContext(): ExperimentContext | null {
   } catch {
     return null
   }
+}
+
+function readClientIdentity(): ClientIdentity {
+  const participantId = sessionStorage.getItem('matrikelnummer') ?? ''
+  const userId = sessionStorage.getItem('user_id') ?? (participantId ? `prolific_${participantId}` : 'u_anon')
+  const storedExperiment = readExperimentContext()
+  const experiment = storedExperiment ?? (participantId
+    ? {
+      provider: 'prolific',
+      experiment_name: 'prolific_experimental_run',
+      run_id: participantId,
+      prolific_pid: participantId,
+    }
+    : null)
+
+  if (participantId && !storedExperiment) {
+    sessionStorage.setItem('experiment_context', JSON.stringify(experiment))
+  }
+
+  return { userId, participantId, experiment }
 }
 
 function hasSentenceStructure(text: string): boolean {
@@ -418,40 +443,43 @@ export default function CasePage() {
   const [submitting, setSubmitting] = useState(false)
   const [activeTerm, setActiveTerm] = useState<string | null>(null)
   const [submissionError, setSubmissionError] = useState<string | null>(null)
+  const [clientIdentity, setClientIdentity] = useState<ClientIdentity | null>(null)
   const chatScrollRef = useRef<HTMLDivElement>(null)
   const historyRef = useRef<{ role: string; content: string }[]>([])
+  const hasStartedExperimentRef = useRef(false)
 
-  const matrikel = typeof window !== 'undefined' ? sessionStorage.getItem('matrikelnummer') ?? '' : ''
-  const userId = typeof window !== 'undefined' ? sessionStorage.getItem('user_id') ?? 'u_anon' : 'u_anon'
-  const experimentContext = useMemo(() => readExperimentContext(), [])
+  useEffect(() => {
+    setClientIdentity(readClientIdentity())
+  }, [])
 
   useEffect(() => {
     apiFetch<Case>(`/admin/cases/${id}`).then(setCase)
   }, [id])
 
   useEffect(() => {
-    if (!id || !userId) return
+    if (!id || !clientIdentity || hasStartedExperimentRef.current) return
+    hasStartedExperimentRef.current = true
 
     apiFetch<{ submission_id: string }>('/submissions', {
       method: 'POST',
       body: JSON.stringify({
-        user_id: userId,
-        matrikelnummer: matrikel,
+        user_id: clientIdentity.userId,
+        matrikelnummer: clientIdentity.participantId,
         case_id: id,
         target_tp: 1,
-        experiment: experimentContext,
+        experiment: clientIdentity.experiment,
       }),
     }).then(r => setSubmissionId(r.submission_id))
 
     apiFetch<{ session_id: string }>('/sessions', {
       method: 'POST',
-      body: JSON.stringify({ user_id: userId, case_id: id, experiment: experimentContext }),
+      body: JSON.stringify({ user_id: clientIdentity.userId, case_id: id, experiment: clientIdentity.experiment }),
     }).then(r => {
       setSessionId(r.session_id)
       historyRef.current = []
       setChat([{ role: 'agent', content: INITIAL_AGENT_MESSAGE, agent_type: 'metacognitive' }])
     }).catch(console.error)
-  }, [experimentContext, id, matrikel, userId])
+  }, [clientIdentity, id])
 
   useEffect(() => {
     const node = chatScrollRef.current
@@ -507,9 +535,9 @@ export default function CasePage() {
     await sendChatMessage(term.starterPrompt)
   }
 
-  const saveAnswer = (qid: string, text: string) => {
+  const saveAnswer = async (qid: string, text: string) => {
     if (!submissionId) return
-    apiFetch(`/submissions/${submissionId}/answer`, {
+    await apiFetch(`/submissions/${submissionId}/answer`, {
       method: 'POST',
       body: JSON.stringify({ question_id: qid, answer_text: text }),
     })
@@ -536,6 +564,9 @@ export default function CasePage() {
     setSubmitting(true)
 
     try {
+      await Promise.all(caseData.questions.map(question =>
+        saveAnswer(question.question_id, answers[question.question_id] ?? ''),
+      ))
       const result = await apiFetch<any>(`/submissions/${submissionId}/submit`, { method: 'POST' })
       sessionStorage.setItem(`result_${submissionId}`, JSON.stringify(result))
       router.replace('/goodbye')
