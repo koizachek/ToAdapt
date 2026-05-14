@@ -415,6 +415,7 @@ export default function CasePage() {
   const [chat, setChat] = useState<ChatMsg[]>([])
   const [chatInput, setChatInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [activeTerm, setActiveTerm] = useState<string | null>(null)
   const [submissionError, setSubmissionError] = useState<string | null>(null)
   const chatScrollRef = useRef<HTMLDivElement>(null)
@@ -515,7 +516,7 @@ export default function CasePage() {
   }
 
   const handleSubmit = async () => {
-    if (!submissionId || !caseData) return
+    if (!submissionId || !caseData || submitting) return
     const invalidQuestion = caseData.questions.find((question, index) => {
       const requirement = getAnswerRequirement(index)
       const wordCount = countWords(answers[question.question_id] ?? '')
@@ -532,9 +533,17 @@ export default function CasePage() {
     }
 
     setSubmissionError(null)
-    const result = await apiFetch<any>(`/submissions/${submissionId}/submit`, { method: 'POST' })
-    sessionStorage.setItem(`result_${submissionId}`, JSON.stringify(result))
-    router.push('/goodbye')
+    setSubmitting(true)
+
+    try {
+      const result = await apiFetch<any>(`/submissions/${submissionId}/submit`, { method: 'POST' })
+      sessionStorage.setItem(`result_${submissionId}`, JSON.stringify(result))
+      router.replace('/goodbye')
+    } catch (error: any) {
+      setSubmissionError(error?.message || 'Die Auswertung konnte nicht abgeschlossen werden.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (!caseData) {
@@ -720,15 +729,22 @@ export default function CasePage() {
                   </p>
                 )}
 
+                {submitting && (
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                    Auswertung laeuft. Bitte Seite nicht schliessen.
+                  </p>
+                )}
+
                 <button
                   type="button"
                   onClick={handleSubmit}
+                  disabled={submitting}
                   className="self-start rounded-full px-6 py-3 text-sm font-medium tracking-wide transition-all duration-200"
-                  style={{ background: 'var(--ink)', color: 'var(--white)' }}
-                  onMouseEnter={event => { event.currentTarget.style.background = 'var(--accent)' }}
-                  onMouseLeave={event => { event.currentTarget.style.background = 'var(--ink)' }}
+                  style={{ background: submitting ? 'var(--muted)' : 'var(--ink)', color: 'var(--white)' }}
+                  onMouseEnter={event => { if (!submitting) event.currentTarget.style.background = 'var(--accent)' }}
+                  onMouseLeave={event => { if (!submitting) event.currentTarget.style.background = 'var(--ink)' }}
                 >
-                  Abgeben & auswerten
+                  {submitting ? 'Wird ausgewertet…' : 'Abgeben & auswerten'}
                 </button>
               </div>
             )}
