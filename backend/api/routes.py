@@ -64,13 +64,13 @@ def _log_experiment_event(event_type: str, **payload: Any) -> None:
             (session or {}).get("experiment")
             or (submission or {}).get("experiment")
         )
-    if not experiment:
-        return
 
-    experiment_logger.log_event(
-        event_type,
-        {key: value for key, value in payload.items() if value is not None},
-    )
+    event_payload = {key: value for key, value in payload.items() if value is not None}
+    event_payload["experiment_context_present"] = bool(experiment)
+    if not experiment:
+        event_payload["experiment_context_missing"] = True
+
+    experiment_logger.log_event(event_type, event_payload)
 
 
 def _get_submission(submission_id: str) -> Submission | None:

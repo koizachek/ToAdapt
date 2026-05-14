@@ -50,6 +50,19 @@ class MongoExperimentLogger:
             return "mas_credentials"
         return "disabled"
 
+    @property
+    def diagnostics(self) -> dict[str, Any]:
+        return {
+            "enabled": self.enabled,
+            "connection_mode": self.connection_mode,
+            "database": self.database_name,
+            "collection": self.collection_name,
+            "last_connection_failure": self._last_connection_failure,
+            "has_uri": bool(self.uri),
+            "has_client": self._client is not None,
+            "has_collection": self._collection is not None,
+        }
+
     def _resolve_uri(self) -> str:
         explicit_uri = os.environ.get("MONGODB_URI", "").strip()
         if explicit_uri:

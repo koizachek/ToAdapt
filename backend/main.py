@@ -20,6 +20,7 @@ from backend.db.experiment_logger import experiment_logger
 from backend.llm import DEFAULT_OPENROUTER_MODEL
 
 logger = structlog.get_logger(__name__)
+BUILD_MARKER = "mongo-log-unconditional-2026-05-14"
 
 
 @asynccontextmanager
@@ -78,12 +79,16 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.get("/health", tags=["meta"])
 async def health() -> dict:
+    mongo = experiment_logger.diagnostics
     return {
         "status": "ok",
         "tp_phase": current_tp_phase(),
         "version": "0.2.0",
-        "mongo_logging_enabled": experiment_logger.enabled,
-        "mongo_connection_mode": experiment_logger.connection_mode,
-        "mongo_database": os.environ.get("MONGODB_DATABASE", "toadapt"),
-        "mongo_collection": os.environ.get("MONGODB_COLLECTION", "experiment_events"),
+        "build_marker": BUILD_MARKER,
+        "mongo_logging_enabled": mongo["enabled"],
+        "mongo_connection_mode": mongo["connection_mode"],
+        "mongo_database": mongo["database"],
+        "mongo_collection": mongo["collection"],
+        "mongo_has_uri": mongo["has_uri"],
+        "mongo_last_connection_failure": mongo["last_connection_failure"],
     }
