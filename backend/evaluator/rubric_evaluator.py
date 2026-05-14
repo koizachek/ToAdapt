@@ -7,6 +7,7 @@ Prinzipien:
 """
 
 import json
+import re
 
 import structlog
 
@@ -78,6 +79,10 @@ Canvas-Scoring:
 - 0.5: Einige passende Bausteine werden angesprochen, aber nur teilweise oder oberflächlich.
 - 0.0: Keine belastbare Canvas-Logik erkennbar."""
 
+REPAIR_PROMPT = """Deine letzte Antwort war kein valides JSON.
+
+Gib jetzt ausschliesslich ein valides JSON-Objekt zurueck, ohne Markdown, ohne Code-Fences, ohne Erklaerungen."""
+
 
 class RubricEvaluator:
     def __init__(self, api_key: str):
@@ -123,6 +128,60 @@ class RubricEvaluator:
         score_threshold = min(score_floors) if score_floors else 75.0
         return percentage >= score_threshold and canvas_alignment_pct >= canvas_threshold
 
+    def _extract_json_candidates(self, text: str) -> list[str]:
+        stripped = text.strip()
+        candidates: list[str] = []
+
+        if stripped:
+            candidates.append(stripped)
+
+        fenced = re.sub(r"^```(?:json)?\s*|\s*```$", "", stripped, flags=re.IGNORECASE | re.DOTALL).strip()
+        if fenced and fenced not in candidates:
+            candidates.append(fenced)
+
+        start = stripped.find("{")
+        end = stripped.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            json_slice = stripped[start:end + 1].strip()
+            if json_slice and json_slice not in candidates:
+                candidates.append(json_slice)
+
+        return candidates
+
+    def _fallback_payload(self, tags: list[str]) -> dict:
+        return {
+            "awarded_points": 0.0,
+            "feedback": "Die automatische Auswertung konnte technisch nicht vollstaendig verarbeitet werden. Welche Kernargumente und Konsequenzen kannst du noch klarer strukturieren?",
+            "learning_objective_tags": tags,
+            "canvas_alignment_score": 0.0,
+            "addressed_canvas_blocks": [],
+            "missing_canvas_blocks": [],
+            "canvas_rationale": "Technischer Fallback wegen ungueltiger Modellantwort.",
+        }
+
+    def _parse_evaluation_payload(self, text: str, tags: list[str]) -> dict:
+        for candidate in self._extract_json_candidates(text):
+            try:
+                data = json.loads(candidate)
+            except json.JSONDecodeError:
+                continue
+
+            if isinstance(data, dict):
+                return data
+
+        raise ValueError("LLM evaluation response was not valid JSON")
+
+    async def _request_repair(self, prompt: str, raw_text: str) -> str:
+        return await self.client.complete(
+            system=EVALUATOR_SYSTEM,
+            messages=[
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": raw_text},
+                {"role": "user", "content": REPAIR_PROMPT},
+            ],
+            max_tokens=512,
+        )
+
     async def evaluate_submission(self, submission: Submission, case: Case) -> SubmissionResult:
         scores: list[QuestionScore] = []
         used_rubrics: list[QuestionRubric | None] = []
@@ -159,7 +218,26 @@ class RubricEvaluator:
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=512,
             )
-            data = json.loads(text)
+            try:
+                data = self._parse_evaluation_payload(text, tags)
+            except ValueError:
+                logger.warning(
+                    "evaluation_json_parse_failed",
+                    submission_id=submission.submission_id,
+                    question_id=question_id,
+                    raw_preview=text[:500],
+                )
+                try:
+                    repaired_text = await self._request_repair(prompt, text)
+                    data = self._parse_evaluation_payload(repaired_text, tags)
+                except ValueError:
+                    logger.error(
+                        "evaluation_json_repair_failed",
+                        submission_id=submission.submission_id,
+                        question_id=question_id,
+                    )
+                    data = self._fallback_payload(tags)
+
             canvas_alignment_score = max(0.0, min(float(data.get("canvas_alignment_score", 0.0)), 1.0))
             required_canvas_blocks = [
                 block.block for block in rubric.required_canvas_blocks
@@ -177,8 +255,8 @@ class RubricEvaluator:
                 question_id=question_id,
                 bloom_level=question.bloom_level,
                 max_points=question.max_points,
-                awarded_points=min(data["awarded_points"], question.max_points),
-                feedback=data["feedback"],
+                awarded_points=min(float(data.get("awarded_points", 0.0)), question.max_points),
+                feedback=data.get("feedback", self._fallback_payload(tags)["feedback"]),
                 learning_objective_tags=data.get("learning_objective_tags", tags),
                 rubric_reference=question.rubric_reference,
                 canvas_alignment_score=canvas_alignment_score,
