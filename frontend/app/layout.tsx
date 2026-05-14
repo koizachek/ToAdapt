@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'ToAdapt — Transfer-Trainer BWL A',
-  description: 'Individueller Transfer-Trainer für BWL A, Universität St. Gallen',
+  title: 'ToAdapt — Studie',
+  description: 'Business Case Study mit Business Model Canvas',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

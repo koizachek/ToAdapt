@@ -76,7 +76,7 @@ function LoginPageContent({
           ToAdapt
         </h1>
         <p className="mt-3 text-sm tracking-[0.2em] uppercase" style={{ color: 'var(--muted)' }}>
-          Transfer-Trainer · BWL A · Universität St. Gallen
+          Willkommen zur Studie
         </p>
       </div>
 
