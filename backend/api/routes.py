@@ -14,6 +14,7 @@ from backend.agents.orchestrator import AgentOrchestrator
 from backend.cases.manager import case_manager
 from backend.config.tp_configs import current_tp_phase
 from backend.db.experiment_logger import experiment_logger
+from backend.db.submission_store import submission_store
 from backend.evaluator.rubric_evaluator import RubricEvaluator
 from backend.llm import get_openrouter_key
 from backend.models.experiment import ExperimentContext
@@ -70,6 +71,19 @@ def _log_experiment_event(event_type: str, **payload: Any) -> None:
         event_type,
         {key: value for key, value in payload.items() if value is not None},
     )
+
+
+def _get_submission(submission_id: str) -> Submission | None:
+    sub = _submissions.get(submission_id)
+    if sub is not None:
+        return sub
+
+    persisted = submission_store.load(submission_id)
+    if persisted is not None:
+        _submissions[submission_id] = persisted
+        return persisted
+
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -196,6 +210,7 @@ async def create_submission(body: SubmissionCreate):
         experiment=experiment,
     )
     _submissions[sub_id] = submission
+    submission_store.save(submission)
 
     _log_experiment_event(
         "submission_created",
@@ -208,12 +223,13 @@ async def create_submission(body: SubmissionCreate):
 
 @router.post("/submissions/{submission_id}/answer")
 async def submit_answer(submission_id: str, body: AnswerSubmit):
-    sub = _submissions.get(submission_id)
+    sub = _get_submission(submission_id)
     if not sub:
         raise HTTPException(status_code=404, detail="Submission nicht gefunden")
     if sub.status == SubmissionStatus.SUBMITTED:
         raise HTTPException(status_code=400, detail="Submission bereits abgeschlossen")
     sub.answers[body.question_id] = body.answer_text
+    submission_store.save(sub)
 
     _log_experiment_event(
         "submission_answer_saved",
@@ -235,7 +251,7 @@ async def submit_answer(submission_id: str, body: AnswerSubmit):
 
 @router.post("/submissions/{submission_id}/submit", response_model=SubmissionResult)
 async def submit_and_evaluate(submission_id: str):
-    sub = _submissions.get(submission_id)
+    sub = _get_submission(submission_id)
     if not sub:
         raise HTTPException(status_code=404, detail="Submission nicht gefunden")
 
@@ -250,6 +266,7 @@ async def submit_and_evaluate(submission_id: str):
 
     sub.status = SubmissionStatus.SUBMITTED
     sub.submitted_at = datetime.utcnow()
+    submission_store.save(sub)
 
     _log_experiment_event(
         "submission_submitted",
@@ -271,6 +288,7 @@ async def submit_and_evaluate(submission_id: str):
     sub.canvas_alignment_pct = result.canvas_alignment_pct
     sub.rubric_fit_pct = result.rubric_fit_pct
     sub.canvas_exemplar_candidate = result.canvas_exemplar_candidate
+    submission_store.save(sub)
 
     # Persistieren für Dashboard
     out = {
