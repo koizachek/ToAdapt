@@ -1,0 +1,2619 @@
+[
+  {
+    "_id": "6a0610b93a2a661811b8f22d",
+    "submission_id": "b6fecfaf-333e-4da9-94d7-51f9e634a286",
+    "user_id": "prolific_dianatest",
+    "matrikelnummer": "dianatest",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "dianatest",
+      "prolific_pid": "dianatest",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Alpes Bank ist eine der gr\u00f6ssten Universalbanken der Schweiz. Seit \u00fcber hundert Jahren steht sie f\u00fcr pers\u00f6nliche Beratung, Verl\u00e4sslichkeit und den direkten Kontakt mit Kundinnen und Kunden in ihren Filialen. Das Unternehmen besch\u00e4ftigt 4'000 Mitarbeitende und betreut rund eine Million Kundinnen und Kunden schweizweit.\nW\u00e4hrend viele Konkurrenten in den letzten Jahren massiv in digitale Kan\u00e4le investierten, hat Alpes Bank bewusst an ihrem Filialnetz festgehalten. Ihre Kundschaft ist im Schnitt 51 Jahre alt, einkommensstark und legt grossen Wert auf pers\u00f6nliche Betreuung. F\u00fcr guten Service ist sie bereit, h\u00f6here Preise zu zahlen. Die Filiale bleibt das profitabelste Gesch\u00e4ftsfeld \u2014 weit vor Online-Banking oder der App (siehe Exhibit 1).\nDoch pl\u00f6tzlich ger\u00e4t dieses bew\u00e4hrte Modell unter Druck: Konkurrenzbanken beginnen, KI-gest\u00fctzte Beratungstools anzubieten \u2014 zu einem Bruchteil der Kosten eines menschlichen Beraters. Der Verwaltungsrat reagiert mit einer Frage, die sich niemand laut zu stellen wagte: 'Wenn eine KI Finanzberatung f\u00fcr wenige Rappen \u00fcbernimmt \u2014 wie lange k\u00f6nnen wir noch unser teures Filialmodell rechtfertigen?'",
+      "q2": "Alpes Bank ist eine der gr\u00f6ssten Universalbanken der Schweiz. Seit \u00fcber hundert Jahren steht sie f\u00fcr pers\u00f6nliche Beratung, Verl\u00e4sslichkeit und den direkten Kontakt mit Kundinnen und Kunden in ihren Filialen. Das Unternehmen besch\u00e4ftigt 4'000 Mitarbeitende und betreut rund eine Million Kundinnen und Kunden schweizweit.\nW\u00e4hrend viele Konkurrenten in den letzten Jahren massiv in digitale Kan\u00e4le investierten, hat Alpes Bank bewusst an ihrem Filialnetz festgehalten. Ihre Kundschaft ist im Schnitt 51 Jahre alt, einkommensstark und legt grossen Wert auf pers\u00f6nliche Betreuung. F\u00fcr guten Service ist sie bereit, h\u00f6here Preise zu zahlen. Die Filiale bleibt das profitabelste Gesch\u00e4ftsfeld \u2014 weit vor Online-Banking oder der App (siehe Exhibit 1).\nDoch pl\u00f6tzlich ger\u00e4t dieses bew\u00e4hrte Modell unter Druck: Konkurrenzbanken beginnen, KI-gest\u00fctzte Beratungstools anzubieten \u2014 zu einem Bruchteil der Kosten eines menschlichen Beraters. Der Verwaltungsrat reagiert mit einer Frage, die sich niemand laut zu stellen wagte: 'Wenn eine KI Finanzberatung f\u00fcr wenige Rappen \u00fcbernimmt \u2014 wie lange k\u00f6nnen wir noch unser teures Filialmodell rechtfertigen?'",
+      "q3": "Alpes Bank ist eine der gr\u00f6ssten Universalbanken der Schweiz. Seit \u00fcber hundert Jahren steht sie f\u00fcr pers\u00f6nliche Beratung, Verl\u00e4sslichkeit und den direkten Kontakt mit Kundinnen und Kunden in ihren Filialen. Das Unternehmen besch\u00e4ftigt 4'000 Mitarbeitende und betreut rund eine Million Kundinnen und Kunden schweizweit.\nW\u00e4hrend viele Konkurrenten in den letzten Jahren massiv in digitale Kan\u00e4le investierten, hat Alpes Bank bewusst an ihrem Filialnetz festgehalten. Ihre Kundschaft ist im Schnitt 51 Jahre alt, einkommensstark und legt grossen Wert auf pers\u00f6nliche Betreuung. F\u00fcr guten Service ist sie bereit, h\u00f6here Preise zu zahlen. Die Filiale bleibt das profitabelste Gesch\u00e4ftsfeld \u2014 weit vor Online-Banking oder der App (siehe Exhibit 1).\nDoch pl\u00f6tzlich ger\u00e4t dieses bew\u00e4hrte Modell unter Druck: Konkurrenzbanken beginnen, KI-gest\u00fctzte Beratungstools anzubieten \u2014 zu einem Bruchteil der Kosten eines menschlichen Beraters. Der Verwaltungsrat reagiert mit einer Frage, die sich niemand laut zu stellen wagte: 'Wenn eine KI Finanzberatung f\u00fcr wenige Rappen \u00fcbernimmt \u2014 wie lange k\u00f6nnen wir noch unser teures Filialmodell rechtfertigen?'",
+      "q4": "Alpes Bank ist eine der gr\u00f6ssten Universalbanken der Schweiz. Seit \u00fcber hundert Jahren steht sie f\u00fcr pers\u00f6nliche Beratung, Verl\u00e4sslichkeit und den direkten Kontakt mit Kundinnen und Kunden in ihren Filialen. Das Unternehmen besch\u00e4ftigt 4'000 Mitarbeitende und betreut rund eine Million Kundinnen und Kunden schweizweit.\nW\u00e4hrend viele Konkurrenten in den letzten Jahren massiv in digitale Kan\u00e4le investierten, hat Alpes Bank bewusst an ihrem Filialnetz festgehalten. Ihre Kundschaft ist im Schnitt 51 Jahre alt, einkommensstark und legt grossen Wert auf pers\u00f6nliche Betreuung. F\u00fcr guten Service ist sie bereit, h\u00f6here Preise zu zahlen. Die Filiale bleibt das profitabelste Gesch\u00e4ftsfeld \u2014 weit vor Online-Banking oder der App (siehe Exhibit 1).\nDoch pl\u00f6tzlich ger\u00e4t dieses bew\u00e4hrte Modell unter Druck: Konkurrenzbanken beginnen, KI-gest\u00fctzte Beratungstools anzubieten \u2014 zu einem Bruchteil der Kosten eines menschlichen Beraters. Der Verwaltungsrat reagiert mit einer Frage, die sich niemand laut zu stellen wagte: 'Wenn eine KI Finanzberatung f\u00fcr wenige Rappen \u00fcbernimmt \u2014 wie lange k\u00f6nnen wir noch unser teures Filialmodell rechtfertigen?'"
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 0.0,
+        "feedback": "Die Antwort wiederholt lediglich den Case-Kontext, ohne eine eigene Analyse zu liefern. Es fehlen: (1) zwei konkret identifizierte Herausforderungen, (2) Erl\u00e4uterung ihrer Relevanz f\u00fcr das Gesch\u00e4ftsmodell, (3) das geforderte Zusammenspiel von extern und intern. Welche zwei kritischsten Herausforderungen ergeben sich aus dem beschriebenen Druck \u2013 und warum gef\u00e4hrden sie genau dieses Gesch\u00e4ftsmodell von Alpes Bank?",
+        "learning_objective_tags": [],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.0,
+        "canvas_alignment_pct": 0.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [],
+        "missing_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "canvas_rationale": "Keine Canvas-Bausteine wurden angewendet. Die Antwort paraphrasiert nur die Fallbeschreibung, ohne Gesch\u00e4ftsmodell-Logik zu analysieren oder Wirkungsketten auf Customer Relationships, Channels oder Revenue Streams aufzuzeigen."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 0.0,
+        "feedback": "Die Antwort wiederholt ausschlie\u00dflich den Case-Kontext, ohne eine eigene Empfehlung zu entwickeln. Es fehlt vollst\u00e4ndig: Welcher der drei GenAI-Use-Cases soll priorisiert werden? Worauf basiert der Wettbewerbsvorteil? Welche internen St\u00e4rken tragen ihn? Warum ist er schwer imitierbar? Welcher Zielkonflikt entsteht? Ohne eigene Analyse kann keine Punktzahl vergeben werden.",
+        "learning_objective_tags": [],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.0,
+        "canvas_alignment_pct": 0.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [],
+        "missing_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Keine Canvas-Bausteine adressiert. Es wird weder Value Proposition eines Use Cases hergeleitet, noch werden Key Resources oder Cost Structure/Trade-offs analysiert."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 0.0,
+        "feedback": "Die Antwort reproduziert nur den Case-Kontext, ohne die Frage zu beantworten. Es fehlt vollst\u00e4ndig: Eine Make-or-Buy-Entscheidung, die Diskussion von Spezifit\u00e4t/H\u00e4ufigkeit/Unsicherheit, ein konkretes Risiko und eine Massnahme. Haben Sie die Frage \u00fcbersehen? Was w\u00fcrde f\u00fcr oder gegen AILabs als Partner sprechen \u2013 und welche kritischen Aktivit\u00e4ten sollte die Bank selbst kontrollieren?",
+        "learning_objective_tags": [],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.0,
+        "canvas_alignment_pct": 0.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [],
+        "missing_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "canvas_rationale": "Keine Canvas-Bausteine wurden angewendet. Die Antwort zeigt keine Auseinandersetzung mit Partner-Governance, Aktivit\u00e4tsaufteilung oder Ressourcen-Logik der Make-or-Buy-Entscheidung."
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 0.0,
+        "feedback": "Die Antwort wiederholt lediglich den Case-Kontext, ohne eine eigene strategische Stossrichtung zu entwickeln oder eine riskante Entscheidung zu identifizieren. Es fehlt jegliche Analyse, Empfehlung oder Reflexion \u00fcber fr\u00fchere Entscheidungen. Welche konkrete Richtung sollte Alpes Bank einschlagen \u2013 und welche Ihrer fr\u00fcheren Entscheidungen k\u00f6nnte diese gef\u00e4hrden? Was w\u00fcrde passieren, wenn Sie diese Entscheidung revidieren m\u00fcssten?",
+        "learning_objective_tags": [],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.0,
+        "canvas_alignment_pct": 0.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [],
+        "missing_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Keine Canvas-Bausteine werden angewendet. Die Antwort ist eine reine Wiedergabe des Case-Texts ohne strategische Analyse oder Gesch\u00e4ftsmodell-\u00dcberlegungen."
+      }
+    ],
+    "total_points": 0.0,
+    "max_points": 101.0,
+    "percentage": 0.0,
+    "canvas_alignment_pct": 0.0,
+    "rubric_fit_pct": 0.0,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-14T18:13:12.506026",
+    "submitted_at": "2026-05-14T18:13:29.446126",
+    "evaluated_at": "2026-05-14T18:13:53.883945"
+  },
+  {
+    "_id": "6a0613a63a2a661811b8f2a9",
+    "submission_id": "230a1a69-aa2f-4875-a0c6-b475dbd2925a",
+    "user_id": "prolific_6a0071d824778ec147340c4e",
+    "matrikelnummer": "6a0071d824778ec147340c4e",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "6a0071d824778ec147340c4e",
+      "prolific_pid": "6a0071d824778ec147340c4e",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Die zwei gr\u00f6\u00dften Herausforderungen der Alpes Bank sind es sich an ihre alten Werte zu halten um bei der Kundenzufriedenheit nicht nachzulassen trotz der Hilfe des Piloten. Dazu wird es sehr schwierig f\u00fcr alle in der Bank die internen Prozesse zu ver\u00e4ndern und sich dem Piloten anzupassen. Vor allem f\u00fcr die Kundenzufriedenheit wird es sehr schwierig da man Gedanken von Kunden schlecht einsch\u00e4tzen kann und Mitarbeiter der Bank alle Interaktionen zwischen Kunden und K.I Piloten \u00fcberpr\u00fcfen m\u00fcssen. ",
+      "q2": "Ich denke dass die Effizienzsteigerung in der Kreditsachbearbeitung priorisiert werden sollte da die pers\u00f6nliche Beratung und Kundenkontakt die St\u00e4rke der Alpes Bank ist. Da es sich um eine Universalbank handelt ist die Sachbearbeitung ein ziemlich gro\u00dfer und umfangreicher Teil, welcher sehr viel  Aufwand in Anspruch nimmt. Es wird auf alle F\u00e4lle kritisch den Piloten in solch einem komplexen Aufgabenfeld einzubringen aber dies lohnt sich mehr f\u00fcr Alpes Bank als bei Konkurrenten welche wahrscheinlich viel mehr auf K.I f\u00fcr Kundenservice aufbauen werden.",
+      "q3": "Ich spreche gegen einer fremden Leistung da dies eine Abh\u00e4ngigkeit ausl\u00f6st und den inneren Wachstum weniger f\u00f6rdert als wenn man dies intern selbst entwickeln w\u00fcrde. Man m\u00fcsste jedes mal bei Qualit\u00e4tsfehlern oder technischen Problemen den Partner aufsuchen, welche zwar effizienter damit umgehen w\u00fcrden als das eigene Unternehmen aber auch die eigenen Kosten erheblich erh\u00f6hen w\u00fcrde. Die Risiken ohne die K.I Entwicklung ohne einen Partner durchzuf\u00fchren sind jedoch auch nicht gering, zumal wird die Arbeit schwieriger und langfristiger aber dies wird die eigenen Mitarbeiter f\u00f6rdern damit diese n\u00fctzliche Erfahrungen gewinnen. Als Sicherheitsma\u00dfnahme k\u00f6nnte man individuelle Spezialisten kurzfristig bezahlen um das eigene Team darin besser auszubilden und um die gr\u00f6\u00dften H\u00fcrden zu \u00fcberstehen.",
+      "q4": "Ich denke dass die Alpes Bank nach wie vor die Kreditsachbearbeitung auf h\u00f6chste Stelle platzieren sollte um den K.I Piloten so zu programmieren damit diese Prozesse deutlich effizienter und schneller ablaufen. 12-24 Monate sind genug Zeit um dieses komplexe Projekt zu behandeln, da es auch ein schwieriges Thema ist als die E-Mail-Beantwortung mit K.I. Es ist jedoch ziemlich riskant dies ohne fremde Partner zu bew\u00e4ltigen weshalb die Bank darauf angewiesen ist die Mitarbeiter darin fortzubilden und Zeit zu investieren damit sich dies f\u00fcr die Zukunft lohnt. Falls es dazu kommt, dass man diese Wahl abbricht und sich doch auf die Beantwortung der E-Mails und den allgemeinen Kundenkontakt mit K.I Piloten entscheidet dann w\u00fcrde ich trotzdem dabei bleiben dies ohne fremde Partner zu machen, da man trotzdem das eigene Team verbessern m\u00f6chte um bei K.I Angelegenheiten keine externe Hilfe zu brauchen."
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 0.0,
+        "feedback": "Die automatische Auswertung konnte technisch nicht vollstaendig verarbeitet werden. Welche Kernargumente und Konsequenzen kannst du noch klarer strukturieren?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette",
+          "stakeholder"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.0,
+        "canvas_alignment_pct": 0.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [],
+        "missing_canvas_blocks": [],
+        "canvas_rationale": "Technischer Fallback wegen ungueltiger Modellantwort."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 10.5,
+        "feedback": "Gut: Sie treffen eine klare Entscheidung und begr\u00fcnden sie mit der Differenzierung (pers\u00f6nliche Beratung sch\u00fctzen). Was fehlt: Welche konkreten internen Ressourcen der Alpes Bank (Daten? Prozesswissen? Mitarbeitende?) tragen diesen Vorteil \u2013 und warum k\u00f6nnen Wettbewerber das nicht einfach kopieren? Welchen echten Zielkonflikt bringt Ihre Wahl mit sich (z. B. Kosten vs. Nutzen, Risiko vs. Geschwindigkeit)?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.3,
+        "canvas_alignment_pct": 30.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "value_propositions"
+        ],
+        "missing_canvas_blocks": [
+          "key_resources",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Value Proposition wird implizit ber\u00fchrt (Beratung sch\u00fctzen). Key Resources (welche St\u00e4rken tragen?) und Cost Structure (Zielkonflikt) fehlen nahezu vollst\u00e4ndig."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 8.5,
+        "feedback": "Sie treffen eine klare Make-Entscheidung und nennen Abh\u00e4ngigkeit sowie Lerneffekte. Gut: Sie denken an eine Zwischenl\u00f6sung (Spezialisten). Was fehlt: Welche der drei Faktoren \u2014 Spezifit\u00e4t der Leistung, H\u00e4ufigkeit des Bedarfs, Unsicherheit der Qualit\u00e4tsanforderungen \u2014 sprechen konkret f\u00fcr oder gegen AILabs im E-Mail-Kontext der Alpes Bank? Welches spezifische Risiko entsteht aus Ihrer Make-Entscheidung (z. B. Time-to-Market, Regulatorik), und wie w\u00fcrde Ihre Massnahme dieses Risiko adressieren?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.3,
+        "canvas_alignment_pct": 30.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities",
+          "key_resources"
+        ],
+        "canvas_rationale": "Partnerabh\u00e4ngigkeit wird oberfl\u00e4chlich erw\u00e4hnt, aber die Logik der internen vs. externen Aktivit\u00e4ten und kritischen Bankressourcen (Daten, Compliance-Know-how) bleibt unausgef\u00fchrt."
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 9.5,
+        "feedback": "**Gut:** Sie w\u00e4hlen eine klare Priorit\u00e4t (Kreditsachbearbeitung) und benennen ein Risiko (fehlende Partner). **Verbesserungspotenzial:** Welche *konkreten Auswirkungen* h\u00e4tte die Kreditsachbearbeitung auf das Kundenversprechen der Alpes Bank \u2014 und was w\u00fcrde sich am Gesch\u00e4ftsmodell \u00e4ndern, wenn Sie diese Entscheidung revidieren? Ihre Begr\u00fcndung bleibt technisch; wie ver\u00e4ndert sich die *Wertsch\u00f6pfung* f\u00fcr Kunden und Bank, wenn Kredite schneller laufen?",
+        "learning_objective_tags": [
+          "synthese",
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.3,
+        "canvas_alignment_pct": 30.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "key_activities"
+        ],
+        "missing_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Key Activities wird implizit ber\u00fchrt (Prozesseffizienz). Value Propositions, Key Resources und Cost Structure fehlen: Kein Kundennutzen, keine Ressourcen-Analyse, keine Kosten-/Risiko-Konsequenzen benannt."
+      }
+    ],
+    "total_points": 28.5,
+    "max_points": 101.0,
+    "percentage": 28.2,
+    "canvas_alignment_pct": 22.6,
+    "rubric_fit_pct": 26.5,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-14T18:25:41.957072",
+    "submitted_at": "2026-05-14T19:27:42.758740",
+    "evaluated_at": "2026-05-14T19:28:14.273681"
+  },
+  {
+    "_id": "6a0618793a2a661811b8f36a",
+    "submission_id": "0cacb8aa-d127-4e56-9c5c-625c2a2b1c48",
+    "user_id": "prolific_63ba24688ddfd5e20503907d",
+    "matrikelnummer": "63ba24688ddfd5e20503907d",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "63ba24688ddfd5e20503907d",
+      "prolific_pid": "63ba24688ddfd5e20503907d",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Eine der zwei kritischsten Herausforderungen ist die Transformation des traditionellen Filialmodells durch KI. Extern ver\u00e4ndern KI-Gest\u00fctzte Beratungstools den Markt, weil Konkurrenten \u00e4hnliche Leistungen zu deutlich g\u00fcnstigeren Preisen anbieten k\u00f6nnen. Das Gesch\u00e4ftsmodell basiert stark auf profitablen Filialen und pers\u00f6nlicher Betreuung von \u00e4lteren, Einkommensstarken Kunden, wenn KI-Beratung g\u00fcnstiger und ausreichend gut wird, ger\u00e4t die Zahlungsbereitschaft f\u00fcr pers\u00f6nliche (und teurere) Beratung unter Druck. Dies betrifft vor allem die Canvas-Steine Value Proposition, Channels, Customer Relationship und Revenue Streams. Das zweite kritische Problem liegt intern, beim organisatorischen Umbau der Bank. Gen-AI ver\u00e4ndert Prozesse und Verantwortlichkeiten entlang der gesamten Wertsch\u00f6pfungskette. Mitarbeitende sind traditionell und risikoavers, wodurch Ver\u00e4nderung langsam verl\u00e4uft. Ohne neue Kompetenzen und abteilungs\u00fcbergreifende Zusammenarbeit bleibt Gen-AI bei kleinen Effizienzsteigerungen anstatt das Modell nachhaltig zu ver\u00e4ndern. Dies betrifft vor allem die Bausteine Key Activities, Key Resources und Key Partners. ",
+      "q2": "Die Bank sollte zuerst den E-Mail-Assistenten priorisieren. Er verbindet schnellen Nutzen, geringe Implementierungszeit und \u00fcberschaubares Risiko mit erfolgreicher und direkter Effizienzsteigerung, als bewiesene Methode. Langfristig sollte der Wettbewerbsvorteil aus einer Kombination aus Kundenbeziehungen, hochwertigen Beratungsdiensten und mensch-kontrollierter KI-Implementierung liegen. Menschlicher Berater sollen unterst\u00fctzt und entlastet werden und somit das starke, etablierte Filialnetz, langj\u00e4hrige, loyale Kunden und Kompetenz als unmittelbaren, schwer imitierbaren Vorteil vollstens ausgesch\u00f6pft werden. Der Zielkonflik liegt dabei zwischen Effizienzsteigerung durch KI, den Erhalt der pers\u00f6nlichen Ebene als Kern des Kundengesch\u00e4fts. ",
+      "q3": "F\u00fcr den E-Mail-Assistenten spricht zun\u00e4chst eine BUY-Entscheidung mit AILabs aus einigen wichtigen Gr\u00fcnden. Die Technologie entwickelt sich sehr schnell, die Anforderungen sind unsicher und die Bank besitzt wenig Know-How im Bereich Gen-AI. Die Anwendung befindet sich au\u00dferdem noch in der Testphase, wo sie eher wenig genutzt wird, was eine hohe Investition f\u00fcr die eigene Entwicklung nicht rechtfertigt. Gegen eine externe L\u00f6sung sprechen die hohen regulatorischen Anforderungen und die Verwaltung von sensiblen Kundendaten. Das gr\u00f6\u00dfte Risiko ist daher eine Abh\u00e4ngigkeit des Technologiepartners sowie ein Kontrollverlust von Daten. Die Bank sollte daher kritische Daten und Governance intern behalten und eigenes Know-How aufbauen. ",
+      "q4": "Die Bank sollte in den n\u00e4chsten 12-24 Monaten definitiv die Integration von Gen-AI entlang der gesamten Wertsch\u00f6pfungskette priorisieren, statt nur einzelne Prozesse zu automatisieren. Das Ziel sollte aus einer Kombination aus Effizienz, personalisierter Beratung und menschlicher Kontrolle bestehen. Die riskanteste Entscheidung ist der experimentelle Rollout trotz unvollst\u00e4ndiger Qualit\u00e4t, mit mangelnder Kontrolle \u00fcber dessen Output. Es k\u00f6nnen Fehler passieren, die Vertrauen und Reputation direkt gef\u00e4hrden. Konsequenz einer Revision w\u00e4re definitiv dass eine Partnerschaft mit dem Technologiepartner deutlich vorsichtiger und langsamer erfolge, da vermehrt auf Sicherheit als Geschwindigkeit gesetzt werden w\u00fcrde. Folgende Skalierungen von neueren Modellen oder Ans\u00e4tzen w\u00e4ren zudem ebenfalls stark davon betroffen. "
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 21.5,
+        "feedback": "Sehr gut: Beide Herausforderungen sind klar benannt, das externe/interne Zusammenspiel wird deutlich (KI-Druck + Filialmodell), und der Gesch\u00e4ftsmodell-Bezug ist greifbar. Was noch fehlt: Bei der zweiten Herausforderung bleibt unklar, wie genau sich externes und internes verzahnen \u2013 ist der organisatorische Umbau nur intern getrieben, oder gibt es auch externen Druck (z. B. Regulierung, Wettbewerb um Talente)? Und: Welche konkrete Wirkung hat die langsame Transformation auf das Ertragsmodell oder die Kundenbindung?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette",
+          "stakeholder"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.75,
+        "canvas_alignment_pct": 75.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "missing_canvas_blocks": [],
+        "canvas_rationale": "Alle drei verbindlichen Canvas-Bausteine werden angesprochen. Customer Relationships und Channels sind gut verkn\u00fcpft mit der Filial-KI-Spannung, Revenue Streams wird im Kontext der Zahlungsbereitschaft genannt. Die Tiefe der Anwendung ist solide, aber teilweise noch implizit."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 16.5,
+        "feedback": "Gut: Klare Priorisierung (E-Mail-Assistent), sinnvolle Begr\u00fcndung (Effizienz + geringes Risiko), erkennbarer Zielkonflikt (Effizienz vs. pers\u00f6nliche Beziehung). Schw\u00e4chen: Warum ist genau dieser Vorteil schwer imitierbar \u2013 k\u00f6nnen nicht auch andere Banken Filialen + KI kombinieren? Welche spezifischen Ressourcen von Alpes Bank (z. B. Daten, Kundenstruktur, Kultur) machen den Unterschied? Der Zielkonflikt bleibt vage: Was bedeutet er konkret f\u00fcr Kosten, Umsetzung oder strategische Risiken?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.6,
+        "canvas_alignment_pct": 60.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "missing_canvas_blocks": [],
+        "canvas_rationale": "Value Proposition (Effizienz, Beratung) und Key Resources (Filialnetz, Mitarbeitende) werden genannt, aber nur oberfl\u00e4chlich mit dem Fall verkn\u00fcpft. Cost Structure (Zielkonflikt) wird angerissen, aber nicht konkretisiert."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 17.5,
+        "feedback": "Gut: Sie treffen eine klare BUY-Entscheidung und begr\u00fcnden diese mit Unsicherheit, fehlendem Know-how und geringer Nutzung in der Testphase. Das Risiko (Abh\u00e4ngigkeit, Datenkontrolle) ist relevant benannt. Entwicklungspotenzial: Wie genau \u00e4u\u00dfert sich Spezifit\u00e4t in diesem Fall \u2013 ist der E-Mail-Assistent bankspezifisch oder generisch? Welche konkrete Ma\u00dfnahme (z. B. vertragliche Regelung, Dual Sourcing, interne Kompetenzteams) w\u00fcrden Sie implementieren, um das Risiko aktiv zu managen?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette",
+          "stakeholder"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.7,
+        "canvas_alignment_pct": 70.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners",
+          "key_resources"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities"
+        ],
+        "canvas_rationale": "Key Partners (AILabs) und Key Resources (Daten, Know-how) werden angesprochen. Key Activities (welche Entwicklungs-/Integrationsschritte intern bleiben) fehlt als explizite Diskussion der Arbeitsteilung."
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 14.5,
+        "feedback": "Sie benennen eine klare strategische Richtung (Gen-AI-Integration) und identifizieren das Qualit\u00e4tsrisiko beim Rollout als kritisch \u2013 das ist ein guter Ausgangspunkt. Was fehlt: Welche konkreten Wertversprechen oder Prozesse w\u00fcrden Sie priorisieren? Welche Ressourcen (Daten, Kompetenzen, Governance) sind daf\u00fcr entscheidend? Und welche Kosten-/Risiko-Logik rechtfertigt die gew\u00e4hlte Geschwindigkeit? Die Revision bleibt vage: Welche Ihrer anderen Empfehlungen (z. B. Partnerwahl, Pilotdesign, Governance) w\u00fcrden konkret anders ausfallen \u2013 und warum?",
+        "learning_objective_tags": [
+          "synthese",
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.3,
+        "canvas_alignment_pct": 30.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "key_activities"
+        ],
+        "missing_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Key Activities wird implizit angesprochen (Rollout, Integration). Value Propositions, Key Resources und Cost Structure bleiben unausgef\u00fchrt \u2013 keine Verkn\u00fcpfung zu Kundennutzen, kritischen F\u00e4higkeiten oder Kosten-/Risiko-Logik erkennbar."
+      }
+    ],
+    "total_points": 70.0,
+    "max_points": 101.0,
+    "percentage": 69.3,
+    "canvas_alignment_pct": 57.0,
+    "rubric_fit_pct": 65.6,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-14T18:46:17.850880",
+    "submitted_at": "2026-05-14T19:45:19.537418",
+    "evaluated_at": "2026-05-14T19:46:21.242737"
+  },
+  {
+    "_id": "6a0621373a2a661811b8f4a1",
+    "submission_id": "bf6c8f42-fb73-456c-88f0-f4e81711b953",
+    "user_id": "prolific_66700529397b4513db9397b8",
+    "matrikelnummer": "66700529397b4513db9397b8",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "66700529397b4513db9397b8",
+      "prolific_pid": "66700529397b4513db9397b8",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Herausforderung eins ist es, dass die Alpes Bank abgeh\u00e4ngt wird von Konkurrenten, welche alle auf die GenAI Modelle setzten und somit effizienter und kosteng\u00fcnstiger arbeiten. Zugleich k\u00f6nnen Sie besser skalieren und mehr Kunden gleichzeitig betreuen. Gleichzeitig k\u00f6nnte hier ein Problem liegen, sich von dem abzuwenden, was einen bisher stark gemacht hat. Bei der Aufnahme von GenAI w\u00fcrde sich das Gesch\u00e4ftsmodell drastisch \u00e4ndern. Weg von Filialen und hin zu mehr digitalem Banking. ",
+      "q2": "Der E-Mail Assistent erscheint als gute L\u00f6sung zum Start. Er kann sehr gut in der vorgegebenen Zeit fertig gestellt und implementiert werden. Zudem schafft er h\u00f6here Kosteneinsparungen als der Website Chatbot und kann somit besser an die Gesch\u00e4ftsleitung verkauft werden. Langfristig sollte man den internen Wissens-Copilot aufbauen. Hier kann man sich St\u00e4rken aufbauen, welche die Konkurrenz nicht erkennt. Der Zielkonflikt ist es, dass man den Punkt bestimmen muss, wie viel dieser interne Copilot machen soll. W\u00fcrde er zu massiven Stelleneinbr\u00fcchen f\u00fchren? Damit muss man sich auseinandersetzen.",
+      "q3": "Der Mail Client erscheint als eine sehr gut begr\u00fcndbare Buy Entscheidung. Jede Bank wird ein \u00e4hnliches Tool benutzen und aufbauen, wobei die F\u00e4higkeiten sich ebenso sehr \u00e4hneln werden. Das Risiko ist begrenzt, da ein E-Mail Client nicht allzu viel in das Tagesgesch\u00e4ft eingreift. Es sollte eine gewisse Testphase und eine Mitarbeiterschulung geben, damit der Client ordentlich in die Abl\u00e4ufe der Arbeiter integriert wird. Kritisch kann man sehen, ob der externe Partner eine gute Qualit\u00e4t liefert und inwiefern man sich hier abh\u00e4ngig macht und eventuell auf einem Program oder einem Partner sitzen bleibt, welcher nicht ausreichend ist. Eine interne L\u00f6sung w\u00e4re dahingehend gut, da man sie einfacher an das Unternehmen anpassen kann und keine Abh\u00e4ngigkeiten besitzt. ",
+      "q4": "Ich w\u00fcrde den E-Mail Clienten extern auslagern. Hier verbirgt sich auch das gr\u00f6\u00dfte Risiko, da man sich abh\u00e4ngig macht. Es ist unklar, inwiefern die Alpes Bank diesen Clienten selbst aufbauen k\u00f6nnte, daher macht eine externe Buy Entscheidung aus diesem Blickwinkel Sinn. Desweiteren soll Tamara und ihr Team den E-Mail Clienten priorisieren. Laut Prognosen kann dieser schnell eingef\u00fchrt werden, greift nicht zu sehr ins Tagesgesch\u00e4ft ein und verspricht ordentliche Kosteneinsparungen. Falls dieser Client der Gesch\u00e4ftsf\u00fchrung zusagt, kann man die restliche Zeit nutzen um den Clienten zu verbessern und weitere Tools aufzubauen. Insbesondere der interne Bot kann langfristig die Alpes Bank konkurrenzf\u00e4higer und zukunfssicherer gestalten und sollte daher ordentlich implementiert werden."
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 10.5,
+        "feedback": "Sie benennen eine relevante Herausforderung (GenAI-Druck) und deuten das Spannungsfeld zwischen Effizienz und Tradition an. Was gut ist: Sie sehen, dass sich das Gesch\u00e4ftsmodell \u00e4ndern w\u00fcrde. Was fehlt: Worin besteht die zweite Herausforderung konkret? Und: Warum ist GenAI f\u00fcr *Alpes Banks* Ertragskraft oder Kundenbeziehung wirklich kritisch \u2013 was droht konkret zu passieren, wenn die Bank nicht handelt? Wie spielt das Zusammen von externem Druck (welche Entwicklung genau?) und internen Gegebenheiten (welche St\u00e4rken/Schw\u00e4chen der Bank)?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [
+          "channels"
+        ],
+        "missing_canvas_blocks": [
+          "customer_relationships",
+          "revenue_streams"
+        ],
+        "canvas_rationale": "Kanalwechsel (Filiale \u2192 digital) wird angedeutet. Customer Relationships (Premium-Beratung, Vertrauen) und Revenue Streams (Profitabilit\u00e4t, Zahlungsbereitschaft) bleiben unverbunden mit der Herausforderung."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 10.5,
+        "feedback": "Sie empfehlen zwei Use Cases nacheinander \u2013 das ist strategisch nachvollziehbar. Gut: Sie nennen Zeitrahmen und Kostenargument. Schw\u00e4cher: Welche *interne St\u00e4rke* von Alpes Bank macht den Copilot schwer imitierbar \u2013 Daten? Vertrauen? Regulatorisches Wissen? Und: Wie ver\u00e4ndert der E-Mail-Assistent konkret das Leistungsversprechen f\u00fcr Kunden? Der Zielkonflikt (Stellenabbau) ist relevant, bleibt aber unaufgel\u00f6st: Wie w\u00fcrden Sie damit umgehen?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "cost_structure"
+        ],
+        "missing_canvas_blocks": [
+          "value_propositions",
+          "key_resources"
+        ],
+        "canvas_rationale": "Kosteneffizienz wird angesprochen. Value Propositions (Kundennutzen) und Key Resources (welche St\u00e4rken tragen den Vorteil?) fehlen oder bleiben generisch."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 13.5,
+        "feedback": "Gut: Klare Buy-Entscheidung mit Begr\u00fcndung (Standardisierung, geringes Risiko). Testphase und Schulung als Massnahmen genannt. Was fehlt: Wie begr\u00fcnden Sie Ihre Entscheidung mit Blick auf *Spezifit\u00e4t* (bankspezifisch?), *H\u00e4ufigkeit* (Nutzungsintensit\u00e4t?) und *Unsicherheit* (sich \u00e4ndernde Anforderungen?) der Leistung? Welches *konkrete* Risiko entsteht aus Ihrer Buy-Wahl \u2014 und wie w\u00fcrde Ihre Massnahme dieses gezielt adressieren? Warum bleibt das kritische Bankwissen intern, wenn AILabs entwickelt?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities",
+          "key_resources"
+        ],
+        "canvas_rationale": "Key Partners wird implizit (externer Partner, Abh\u00e4ngigkeit) angesprochen. Key Activities (welche Aktivit\u00e4ten bleiben intern?) und Key Resources (bankspezifisches Wissen, Daten, Compliance) fehlen weitgehend. Keine Wertsch\u00f6pfungslogik erkennbar."
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 9.5,
+        "feedback": "Sie benennen eine Entscheidung (E-Mail-Client auslagern) und das Abh\u00e4ngigkeitsrisiko \u2013 das ist ein guter Anfang. Aber: Was ist Ihre *strategische Stossrichtung* f\u00fcr Alpes Bank insgesamt? Effizienz? Innovation? Hybrid? Und welche Ihrer *fr\u00fcheren* Entscheidungen ist die riskanteste \u2013 nicht nur die aktuelle? Was passiert konkret mit Kundenwert, Prozessen oder Ressourcen, wenn Sie diese Entscheidung revidieren? Zeigen Sie die Dominoeffekte auf andere Empfehlungen.",
+        "learning_objective_tags": [
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.2,
+        "canvas_alignment_pct": 20.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "key_activities"
+        ],
+        "missing_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Key Activities wird angerissen (Priorisierung E-Mail-Client, Bot-Implementierung). Value Proposition, kritische Ressourcen und Kostenfolgen/Risikoszenarien fehlen oder bleiben implizit. Keine Integration \u00fcber Canvas-Logik erkennbar."
+      }
+    ],
+    "total_points": 44.0,
+    "max_points": 101.0,
+    "percentage": 43.6,
+    "canvas_alignment_pct": 34.1,
+    "rubric_fit_pct": 40.8,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-14T19:23:35.850773",
+    "submitted_at": "2026-05-14T20:27:28.527517",
+    "evaluated_at": "2026-05-14T20:28:07.572106"
+  },
+  {
+    "_id": "6a0624373a2a661811b8f51c",
+    "submission_id": "796ff8b5-fc37-4dc3-82d9-ef8edcf21be3",
+    "user_id": "prolific_696a85c325dc398f87052fb4",
+    "matrikelnummer": "696a85c325dc398f87052fb4",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "696a85c325dc398f87052fb4",
+      "prolific_pid": "696a85c325dc398f87052fb4",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Die zwei kritischsten Herausforderungen\nHerausforderung 1: Erosion des Filialmodells durch g\u00fcnstigere KI-Konkurrenz\nDie profitabelste Einnahmequelle von Alpes Bank ist die pers\u00f6nliche Filialberatung sie generiert 2025 CHF 140 pro Kundin, weit \u00fcber dem Branchendurchschnitt von CHF 80. Gleichzeitig beginnen Konkurrenten, vergleichbare Beratungsleistungen durch KI-gest\u00fctzte Tools zu einem Bruchteil der Kosten anzubieten. Das bedroht direkt den zentralen Revenue Stream und die Value Proposition der Bank. Diese Herausforderung entsteht aus dem Zusammenspiel von externem Wettbewerbsdruck und einer internen Struktur, die bewusst auf teure pers\u00f6nliche Beratung setzt: Alpes Bank hat jahrelang das Filialnetz ausgebaut, w\u00e4hrend andere digitalisiert haben. Das macht einen schnellen Pivot schwierig und teuer.\nHerausforderung 2: Fehlende organisatorische Kompetenz f\u00fcr KI-Verantwortung\nDer CEO selbst benennt es: Die Gesch\u00e4ftsbereiche sind nicht gewohnt, Verantwortung f\u00fcr Technologie zu \u00fcbernehmen. Auch der Head of Customer Service weist darauf hin, dass seine Mitarbeitenden KI-Outputs beurteilen m\u00fcssen eine Kompetenz, die bisher nicht gefragt war. Ohne diese F\u00e4higkeit auf Mitarbeiterebene (Key Resources) ist ein skalierbares Governance-Modell nicht tragf\u00e4hig. Das hemmt nicht nur den aktuellen Rollout, sondern begrenzt die gesamte zuk\u00fcnftige Transformationsf\u00e4higkeit der Organisation.",
+      "q2": "\nIch empfehle den E-Mail-Assistenten als ersten Anwendungsfall. Mit CHF 160\u2019000 Initialkosten, einem MVP in 12 Wochen und einem j\u00e4hrlichen Bruttogewinn von CHF 270\u2019000 bietet er das beste Verh\u00e4ltnis aus Geschwindigkeit, Risiko und Nachweis was angesichts des dreimonatigen Mandats von Tamara entscheidend ist.\nDer langfristige Wettbewerbsvorteil basiert nicht auf der Technologie selbst, sondern auf der Kombination aus institutionellem Kundenwissen, bestehenden Beziehungen und der eingesetzten KI. Wettbewerber k\u00f6nnen \u00e4hnliche Modelle kaufen, aber nicht das \u00fcber Jahrzehnte aufgebaute Vertrauen der Kundschaft oder die spezifischen internen Wissensdatenbanken replizieren. Diese Key Resources sind der eigentliche Schutzwall.\nDer zentrale Zielkonflikt liegt darin, dass Schnelligkeit und Kontrollierbarkeit sich widersprechen: Wer schnell ausrollt, riskiert Qualit\u00e4tsprobleme wie das R\u00e4toromanisch-Problem in Sprint 4 zeigt. Wer zu lange wartet, verliert das Vertrauen des CEO und den strategischen Moment.",
+      "q3": "Make-or-Buy-Entscheidung: Externe Entwicklung mit AILabs\nDie Entscheidung f\u00fcr Buy, also die Zusammenarbeit mit AILabs, ist f\u00fcr diesen Fall nachvollziehbar und richtig aber nicht ohne Vorbehalt.\nF\u00fcr eine externe L\u00f6sung sprechen drei Faktoren: Erstens fehlt Alpes Bank die interne Kompetenz, ein LLM-basiertes System schnell zu entwickeln das ist kein Kerngesch\u00e4ft der Bank. Zweitens ist der Bedarf klar definiert: E-Mail-Verarbeitung in vier Sprachen mit Wissensdatenbankanbindung ist eine spezifische, aber handhabbare Aufgabe. Drittens reduziert ein erfahrener Partner die Zeit bis zum MVP erheblich, was dem Zeitdruck des Mandats entspricht.\nGegen eine rein externe L\u00f6sung spricht die Abh\u00e4ngigkeit: Wenn AILabs die Architektur kennt, aber Alpes Bank nicht, entsteht ein strategisches Risiko insbesondere bei Qualit\u00e4tsproblemen wie dem R\u00e4toromanisch-Bug, bei dem das externe Team und die Bank unterschiedliche Rollout-Einsch\u00e4tzungen hatten. Diese Asymmetrie in der Risikowahrnehmung ist gef\u00e4hrlich.\nMeine Massnahme: Wissenstransfer als vertragliche Pflicht. AILabs muss nicht nur liefern, sondern das interne Team aktiv aufbauen durch gemeinsame Sprints, Dokumentation und Schulungen. So bleibt die Bank langfristig handlungsf\u00e4hig, auch wenn die Partnerschaft endet.",
+      "q4": "\nAlpes Bank sollte in den n\u00e4chsten 12\u201324 Monaten eine gezielte Vertiefung entlang bestehender St\u00e4rken priorisieren, statt zu versuchen, die Digitalstrategie der Konkurrenz zu kopieren. KI dort einsetzen, wo die Bank bereits stark ist in der pers\u00f6nlichen, beratungsintensiven Kundenbeziehung. Der E-Mail-Assistent, der Wissens-Copilot und mittelfristig KI-gest\u00fctzte Beratungsunterst\u00fctzung in den Filialen bilden eine sinnvolle Sequenz, die bestehende Kan\u00e4le st\u00e4rkt statt ersetzt.\nDie riskanteste Entscheidung aus den vorigen Aufgaben ist die Empfehlung, den E-Mail-Assistenten zu priorisieren und schnell auszurollen insbesondere Tamaras Entschluss, trotz ungel\u00f6stem R\u00e4toromanisch-Problem in den Pilotbetrieb zu gehen.\nDas Risiko ist nicht technisch, sondern reputationsbezogen: Alpes Bank positioniert sich \u00fcber Vertrauen und Qualit\u00e4t. Eine fehlerhafte KI-Antwort an eine Kundin in Graub\u00fcnden in einem als \u00abexperimentell\u00bb deklarierten System kann kurzfristig toleriert werden. Wenn es aber systematisch passiert, untergr\u00e4bt es genau die Value Proposition, auf der das gesamte Premiummodell basiert.\nW\u00fcrde man diese Entscheidung revidieren und den Rollout verschieben, h\u00e4tte das direkte Folgen f\u00fcr Frage 2: Der E-Mail-Assistent verliert seinen Zeitvorteil, das Mandat des CEO w\u00e4re kaum einzuhalten, und der Wissens-Copilot trotz h\u00f6herem Bruttogewinn w\u00e4re vielleicht die bessere Wahl gewesen.Die St\u00e4rke der Empfehlung h\u00e4ngt stark davon ab, wie viel Qualit\u00e4tsrisiko die Bankkultur kurzfristig toleriert  und das ist letztlich eine F\u00fchrungsentscheidung, keine technische."
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 22.5,
+        "feedback": "Sehr starke Analyse mit klarem Gesch\u00e4ftsmodellbezug. Herausforderung 1 verkn\u00fcpft extern/intern \u00fcberzeugend und zeigt Revenue-Stream-Risiko pr\u00e4zise auf. Herausforderung 2 adressiert organisatorische Kapazit\u00e4t gut. Zwei Reflexionsfragen: Wie wirkt sich die fehlende KI-Kompetenz konkret auf die bestehenden Customer Relationships aus \u2013 ver\u00e4ndert sie das Vertrauensmodell? Und: Welche Rolle spielen die Kan\u00e4le (Filiale vs. digital) in der Transformationsf\u00e4higkeit?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette",
+          "stakeholder"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.75,
+        "canvas_alignment_pct": 75.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [
+          "revenue_streams",
+          "key_resources"
+        ],
+        "missing_canvas_blocks": [
+          "customer_relationships",
+          "channels"
+        ],
+        "canvas_rationale": "Revenue Streams klar adressiert (CHF 140 Filialertrag), Key Resources angesprochen (Mitarbeiterkompetenz). Customer Relationships und Channels werden impliziert (Filialberatung), aber nicht explizit als bedrohte Gesch\u00e4ftsmodellbausteine analysiert."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 21.5,
+        "feedback": "Starke Empfehlung mit klarer Begr\u00fcndung und konkretem Case-Bezug (Kosten, MVP-Zeit, Mandat). Die Verkn\u00fcpfung von institutionellem Wissen und Kundenbeziehungen als schwer imitierbare Ressourcen ist \u00fcberzeugend. Der Zielkonflikt Schnelligkeit vs. Kontrolle ist real und mit Sprint 4 belegt. Was fehlt: Wie ver\u00e4ndert der E-Mail-Assistent konkret das Wertversprechen gegen\u00fcber Kundinnen? Und: Welche Kostenstruktur-Implikationen entstehen langfristig nach dem MVP \u2014 Skalierung, Wartung, Training?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off",
+          "kpi"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.75,
+        "canvas_alignment_pct": 75.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "key_resources",
+          "cost_structure"
+        ],
+        "missing_canvas_blocks": [
+          "value_propositions"
+        ],
+        "canvas_rationale": "Key Resources (Kundenwissen, Beziehungen) und Cost Structure (Initialkosten, Effizienzlogik) sind klar adressiert. Value Propositions wird impliziert, aber nicht explizit ausgef\u00fchrt: Wie \u00e4ndert sich das Kundenversprechen durch den Assistenten?"
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 19.5,
+        "feedback": "Starke Antwort: Klare Buy-Entscheidung mit drei soliden Argumenten (fehlende Kompetenz, definierter Bedarf, Zeitdruck). R\u00e4toromanisch-Beispiel zeigt guten Case-Bezug. Wissenstransfer als Massnahme ist pr\u00e4zise. Was fehlt: Wie wirkt sich die H\u00e4ufigkeit des Bedarfs (einmalige vs. wiederkehrende Entwicklung) auf die Entscheidung aus? Und welche internen Aktivit\u00e4ten m\u00fcssen zwingend bei der Bank bleiben, um Kontrolle zu sichern?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette",
+          "stakeholder"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.7,
+        "canvas_alignment_pct": 70.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners",
+          "key_resources"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities"
+        ],
+        "canvas_rationale": "Key Partners (AILabs-Rolle) und Key Resources (fehlendes LLM-Know-how) werden gut adressiert. Key Activities fehlt: Welche kritischen Aktivit\u00e4ten (z.B. Compliance-\u00dcberwachung, Datengovernance) bleiben intern?"
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 24.5,
+        "feedback": "Sehr gut: Die strategische Stossrichtung ist klar, die Risiko-Identifikation ist pr\u00e4zise und reputationsbezogen argumentiert, und die Konsequenzen einer Revision werden explizit durchgespielt. Was fehlt: Wie w\u00fcrde sich eine Verschiebung des Rollouts auf die Kostenstruktur oder das ben\u00f6tigte Ressourcenprofil (z. B. Sprachexpertise, Governance-Kapazit\u00e4t) auswirken? Welche Prozess\u00e4nderungen in den Filialen m\u00fcssten vorgezogen werden, wenn der E-Mail-Assistent wegf\u00e4llt?",
+        "learning_objective_tags": [
+          "synthese",
+          "integration",
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.7,
+        "canvas_alignment_pct": 70.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "value_propositions",
+          "key_activities"
+        ],
+        "missing_canvas_blocks": [
+          "key_resources",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Value Proposition (Vertrauen, Premiummodell) und Key Activities (Sequenz, Rollout) werden fallbezogen angewendet. Key Resources (Sprachexpertise, Governance) und Cost Structure (Investitionsfolgen, Risiko-Kosten) bleiben implizit."
+      }
+    ],
+    "total_points": 88.0,
+    "max_points": 101.0,
+    "percentage": 87.1,
+    "canvas_alignment_pct": 72.4,
+    "rubric_fit_pct": 82.7,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-14T19:36:23.814331",
+    "submitted_at": "2026-05-14T19:44:22.355459",
+    "evaluated_at": "2026-05-14T19:45:11.118268"
+  },
+  {
+    "_id": "6a0625753a2a661811b8f559",
+    "submission_id": "6bad95bd-df8c-4d9d-b526-75850d2dee8e",
+    "user_id": "prolific_69fccc06ebce53642939ba88",
+    "matrikelnummer": "69fccc06ebce53642939ba88",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "69fccc06ebce53642939ba88",
+      "prolific_pid": "69fccc06ebce53642939ba88",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Die zwei kritischsten Herausforderungen f\u00fcr Alpes Bank betreffen vor allem die Bausteine Customer Relationships, Key Activities und Revenue Streams des Business Model Canvas. Erstens steht die Bank vor dem Problem, ihr traditionelles Gesch\u00e4ftsmodell trotz GenAI aufrechtzuerhalten. Alpes Bank sticht noch hervor durch pers\u00f6nliche Beratungen und enge Kundenbeziehungen, wodurch sie sich aktuell differenziert. Wenn KI generierte Antworten fehlerhaft oder unpers\u00f6nlich wirken, k\u00f6nnte das ihre Kundenbeziehung gef\u00e4hrden und somit auch ihr zentrales Wertversprechen. Kritisch ist besonders, dass Kunden viel Geld f\u00fcr die Zuverl\u00e4ssigkeit und pers\u00f6nlichen Service zahlen, weswegen das weiterhin gew\u00e4hrleistet sein muss.\n\nZweitens muss Alpes Bank grundlegend ihre internen Prozesse und Kompetenzen ver\u00e4ndern. Die Einf\u00fchrung von GenAi ver\u00e4ndert zentrale Aktivit\u00e4ten im Kundenservice, da Mitarbeiter KI Antworten kontrollieren, korrigieren und eventuell verantworten m\u00fcssen. Gleichzeitig besteht aber Druck auf bestehende Revenue Streams : Die Konkurrenz bietet g\u00fcnstigere digitale Beratungsmodelle an, w\u00e4hrend AlpesBank hohe kosten durch Fililialen und die pers\u00f6nliche Beratung hat. Die Herausforderung besteht also aus externem Wettbewerbsdruck und einer internen Unternehmenskultur, die eher vorsichtig mit Risiken umgeht. ",
+      "q2": "Ich w\u00fcrde den Email Assistenten priorisieren, weil er am besten zu den Canvas Bausteinen Value Proposition, Channels und Cost Structure passt. Der Assistent verbessert den bestehenden Kundenservice , ohne das Kerngesch\u00e4ftsmodell grundlegend zu ver\u00e4ndern. Kunden erhalten schneller Antworten in mehreren Sprachen, w\u00e4hrend die Servicequalit\u00e4t erhalten bleibt. Damit st\u00e4rken Sie ihr bestehendes Werteversprechen aus pers\u00f6nlichem und zuverl\u00e4ssigem Service. \nAuch wirtschaftlich ist der Use-Case attraktiv. Die MVP-Zeit betr\u00e4gt nur etwa 12 Wochen und der j\u00e4hrliche Bruttogewinn liegt bei rund 270.000 CHF. Gleichzeitig w\u00fcrde die L\u00f6sung bereits bestehende Systeme nutzen wie E-mail und  w\u00fcrde sich gut in den Kundenservice integrieren. Der Wettbewerbsvorteil entsteht vor allem durch die interne Wissendatenbank, die Mehrsprachigkeit und die Erfahrung der Mitarbeiter im Umgang mit Kunden. \nDer zentrale Konflikt liegt zwischen Effizienz und customer Relationships. Alpes Bank w\u00fcrde gerne Prozesse automatisieren und Kosten senken, aber ohne das Vertrauen und die pers\u00f6nliche Qualit\u00e4t zu verlieren, dass sie bisher erfolgreich gemacht hat.",
+      "q3": "Die Entscheidung f\u00fcr die Zusammenarbeit mit AILabs ist aus Sicht der Canvas Bausteine Key Partners, Key Resources und Cost Structure sinnvoll. Alpes Bank hat bisher nicht gen\u00fcgend interne KI-Kompetenzen, muss aber innerhalb von weniger Monate einen funktionierenden Pilot abliefern. Durch den externen Partner kann die Bank sich schnell technisches Wissen aneignen und die Entwicklungszeit deutlich verk\u00fcrzen. F\u00fcr einen ersten MVP w\u00e4re das effizienter und kosteng\u00fcnstiger als alles intern zu bauen. \nGleichzeitig w\u00fcrden Risiken entstehen. Besonders kritisch w\u00e4re die Abh\u00e4ngigkeit vom Partner bei sensiblen Ressourcen wie Kundendaten, internen Prozessen und technologischem Wissen. Wenn Alpes Bank langfristig zu abh\u00e4ngig von AILabs wird, verliert sie die Kontrolle \u00fcber zentrale F\u00e4higkeiten ihres Gesch\u00e4ftsmodells. Au\u00dferdem bestehen Qualit\u00e4ts und Governance Risiken, wie zum Beispiel bei fehlerhaften KI Antworten oder Datenschutzproblemen. Deshalb w\u00fcrde ich die Partnerschaft bewusst begrenzen. Die technische Entwicklung k\u00f6nnte extern erfolgen, w\u00e4hrend Governance, Qualit\u00e4tskontrolle und Kundenerlebnis intern gel\u00f6st werden. Mitarbeiter aus dem Kundenservice sollten eingebunden bleiben als Kontrollinstanz mit klaren KPIs wie Fehlerquote, Kundenzufriedenheit und Bearbeitungszeit.",
+      "q4": "Strategisch sollte Alpes Bank in den n\u00e4chsten 12-14 Monaten ihre GenAi Initiativen entlang der gesamten Wertsch\u00f6pfungskette ausbauen, statt einfach nur einzelne Prozesse effizienter zu machen. Besonders betroffen sind die Canvas Bausteine Key Activities, Key Resources und Customer Relationships. GenAi sollte nicht nur Kosten senken, sondern auch Mitarbeiter unterst\u00fctzen, das Wissen nutzbar machen und die Beratungsqualit\u00e4t langfristig verbessern. \nDie riskanteste Entscheidung war r\u00fcckblinden das hohe Umsetzungstempo in Kombination mit einem externen Technologiepartner . Zwar war Geschwindigkeit wichtig, um schnell einen Gesch\u00e4ftsnutzen zu beweisen aber zur selben Zeit wurden interne Kompetenzen und Governance Strukturen erst nachgelagert aufgebaut. \nDadurch entstand das Risiko, dass die Technologie schneller skaliert als die Organisation sie kontrollieren kann. \n\nEine alternative Entscheidung w\u00e4re gewesen, langsamer zu starten und fr\u00fcher in Mitarbeiterschulung, Governance und interne KI Kompetenzen zu investieren. Kurzfristig h\u00e4tte das die Einf\u00fchrung verz\u00f6gert und m\u00f6glicherweise weniger Gewinne in der Effizienz gemacht. Langfristig h\u00e4tte Alpes Bank aber stabilere Key Resources aufgebaut und mehr Kontrolle \u00fcber Qualit\u00e4t, Verantwortung und Vertrauen gewonnen. Alles Faktoren, auf denen ihr Gesch\u00e4ftsmodell basiert. "
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 19.5,
+        "feedback": "Gut: Sie identifizieren zwei zentrale Herausforderungen (Tradition vs. KI, interne Transformation) und verkn\u00fcpfen diese sauber mit Customer Relationships und Revenue Streams. Das Zusammenspiel extern/intern wird bei Herausforderung 2 sichtbar. Verbesserungspotenzial: Wie konkret tangiert die GenAI-Einf\u00fchrung die Kanalstruktur (Filiale vs. digital)? Und: Welche Wirkung hat die 'vorsichtige Unternehmenskultur' auf die F\u00e4higkeit, schnell auf Wettbewerbsdruck zu reagieren?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette",
+          "stakeholder"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.75,
+        "canvas_alignment_pct": 75.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [
+          "customer_relationships",
+          "revenue_streams"
+        ],
+        "missing_canvas_blocks": [
+          "channels"
+        ],
+        "canvas_rationale": "Customer Relationships und Revenue Streams werden fallbezogen adressiert. Channels wird nur implizit erw\u00e4hnt ('Filialen', 'digitale Beratungsmodelle'), aber nicht als eigenst\u00e4ndige Herausforderung der Kanalstruktur ausgearbeitet."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 16.5,
+        "feedback": "Gut: Klare Empfehlung mit Zahlen unterlegt, Canvas-Bausteine genannt, Zielkonflikt identifiziert. Schw\u00e4che: Warum ist die interne Wissensdatenbank f\u00fcr Wettbewerber schwer imitierbar? Jede Bank hat Kundenwissen. Was macht Alpes' Ressourcen einzigartig verteidigbar? Und: Ist 'Effizienz vs. Vertrauen' wirklich der Trade-off dieses Use Cases \u2013 oder g\u00e4be es einen spezifischeren Konflikt beim E-Mail-Assistenten?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.6,
+        "canvas_alignment_pct": 60.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "value_propositions",
+          "cost_structure"
+        ],
+        "missing_canvas_blocks": [
+          "key_resources"
+        ],
+        "canvas_rationale": "Value Proposition und Cost Structure werden angesprochen. Key Resources genannt, aber Imitationsbarriere bleibt unklar \u2013 keine Erkl\u00e4rung, warum Wettbewerber die Ressourcen nicht replizieren k\u00f6nnen."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 18.5,
+        "feedback": "Gut: Sie treffen eine klare Buy-Entscheidung und begr\u00fcnden sie mit Zeitdruck, fehlenden Kompetenzen und Effizienz. Die Risikoanalyse (Abh\u00e4ngigkeit, Governance) ist nachvollziehbar, ebenso die Massnahme (interne Kontrolle, KPIs). Was fehlt: Spezifit\u00e4t, H\u00e4ufigkeit und Unsicherheit \u2014 die drei in der Frage genannten Dimensionen \u2014 werden nicht explizit diskutiert. Wie einzigartig ist der E-Mail-Assistent f\u00fcr Alpes Bank? Wie oft wird die Leistung ben\u00f6tigt, und ist das Anforderungsprofil stabil genug f\u00fcr einen externen Partner?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette",
+          "stakeholder"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.75,
+        "canvas_alignment_pct": 75.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners",
+          "key_resources"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities"
+        ],
+        "canvas_rationale": "Key Partners und Key Resources werden fallbezogen diskutiert (AILabs, interne Kompetenzen, Daten). Key Activities wird angedeutet (Governance intern, Entwicklung extern), aber nicht systematisch durchdacht: Welche Aktivit\u00e4ten sind strategisch kritisch und m\u00fcssen intern bleiben?"
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 21.0,
+        "feedback": "Gut: Sie benennen eine riskante Entscheidung (Tempo + externer Partner) und zeigen die Trade-offs zwischen Geschwindigkeit und organisationaler Reife auf. Die Revision wird nachvollziehbar durchdacht. Was fehlt: Wie konkret w\u00fcrde die Revision Ihr Value Proposition ver\u00e4ndern \u2013 wird der Kundennutzen anders, sp\u00e4ter oder schw\u00e4cher? Welche Cost-Structure-Effekte (nicht nur Effizienz, sondern Risiko-, Compliance-, Investitionslogik) ergeben sich aus der langsameren, intern getriebenen Variante?",
+        "learning_objective_tags": [
+          "synthese",
+          "integration",
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.6,
+        "canvas_alignment_pct": 60.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "key_activities",
+          "key_resources",
+          "customer_relationships"
+        ],
+        "missing_canvas_blocks": [
+          "value_propositions",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Key Activities und Key Resources werden angewendet, Customer Relationships erw\u00e4hnt. Value Propositions und Cost Structure werden nicht explizit auf die strategische Stossrichtung oder Revision bezogen \u2013 nur implizit angedeutet."
+      }
+    ],
+    "total_points": 75.5,
+    "max_points": 101.0,
+    "percentage": 74.8,
+    "canvas_alignment_pct": 67.0,
+    "rubric_fit_pct": 72.5,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-14T19:41:41.553371",
+    "submitted_at": "2026-05-14T20:42:55.180160",
+    "evaluated_at": "2026-05-14T20:43:23.910679"
+  },
+  {
+    "_id": "6a063b5d3a2a661811b8f951",
+    "submission_id": "fdefe8de-403d-4c0b-85a0-dd8f9c6dda86",
+    "user_id": "prolific_6a05b65b1773d2e7ddf20252",
+    "matrikelnummer": "6a05b65b1773d2e7ddf20252",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "6a05b65b1773d2e7ddf20252",
+      "prolific_pid": "6a05b65b1773d2e7ddf20252",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Bei der ersten Herausforderung handelt es sich um die Restrukturierung der sogenannten \"Key Activities\" der Alpes Bank. Um die neuen KI Tools wirklich effizient abteilungs\u00fcbergreifend einzusetzen, muss herausgefunden werden, wie die Organisation der Gesch\u00e4ftsprozesse der Alpes Bank umstrukturiert werden muss. Diese erste Herausforderung steht auch in direkter Beziehung zu der zweiten Herausforderung, der Frage, welche \"Key Partner des Unternehmens f\u00fcr die notwendige Zusammenarbeit eine wichtige Rolle spielen. Um die Oragnisation\" im Rahmen der Anwendung der KI Tools zu gew\u00e4hrleisten, ist eine interdisziplin\u00e4re Zusammenarbeit zwischen den Teams wie in diesem Fall IT, Kundenservice und Compliance verbessert wird und welche Mitarbeiter und F\u00fchrungskr\u00e4fte f\u00fcr diesen Prozess verantwortlich sind.\n",
+      "q2": "Meiner Meinung nach sollte die Alpes Bank zuerst den internen Wissensbot umsetzen. Dieser hat in der Einsch\u00e4tzung deutlich mehr Einsparungen erzielt als die beiden anderen Anwendungsf\u00e4lle. Durch die gro\u00dfen Kosteneinsparungen von rund 830 Tausend SF kann die Bank am ende h\u00f6here Gewinne erziehlen, was ihr einen Wettbewerbsvorteil verschafft. Die gr\u00f6\u00dfte St\u00e4rke dieser Anwendung ist, dass sie von allen Abteilungen im Unternehmen genutzt werden k\u00f6nnen. Da das Tool nur intern genutzt wird, hat die externe Konkurrenz im Vergleich zu den beiden anderen \u00f6ffentlichen Anwendungen keine Einsicht und kann diese deswegen schwieriger bis garnicht imitieren. Jedoch ergibt sich auch ein Konflikt, da es dadurch kein Tool gibt, welches die Kunden nutzen k\u00f6nnen, was auch zu einer Kundenwahrnehmung von fehlender Innovation der Alpes Bank f\u00fchren kann. ",
+      "q3": "Meiner Meinung nach spricht die mangelnde Erfahrung der Alpes Bank mit KI Anwendungen gegen eine Make Entscheidung. Bei einem Email Assistenten handelt es sich zwar nicht um ein super spezifisches KI Tool, da viele Unternehmen so eine Anwendung bereits nutzen. Jedoch w\u00fcrde der Email Assistent laut Sch\u00e4tzung rund 300.000 mal genutzt werden. Da die Kunden ihn so oft nutzen w\u00fcrden, ist es essentiell, dass der Assistent reibungslos und fehlerfrei funktioniert. Da bei der Nutzung dieses Tools auch sensible Kundendaten in Verbindung zu Bankkonten und \u00e4hnlichem aufkommen k\u00f6nnen, ist es auch hier essentiell, das eine sehr hohe Qualit\u00e4t an Datenschutz gew\u00e4hrleistet wird, die einfacher mit einem externen und erfahrenem Team wie AILabs meiner meinung nach zu erreichen ist. Ein weiterer Vorteil bei einer Buy Entscheidung ist auch, dass Kapital- und Personalressourcen, die f\u00fcr eine Make Entscheidung verwendet h\u00e4tten werden m\u00fcssen, nun anderweitig eingesetzt werden k\u00f6nnen, und so nun Gewinne erbringen k\u00f6nnen. Jedoch entsteht bei der von. mir gew\u00e4hlten Buy Entscheidung immer das Risiko, dass die erbrachte externe leistung unzureichend ist und somit Zeit und finanzielle Mittel verloren gehen. ",
+      "q4": "Meiner Meinung nach sollte die Alpes Bank in den n\u00e4chsten ein bis zwei Jahren dem Rat des CEOs folgen und vor der Einf\u00fchrung mehrerer KI Tools erst die, f\u00fcr eine wirkliche innovative Anwendung dieser, notwendigen strukturellen Ma\u00dfnahmen unternehmen. Um die Anwendungen wirklich zu einem Marktvorteil zu entwickeln, ist es notwendig, eine funktionierende abteilungs\u00fcbergreifende Zusammenarbeit zu erreichen, um den Prozess der Innovationen zu verschnellern und Verschwendungen von Ressourcen zu vermeiden. Die Entscheidung, zuerst den internen Wissensbot umzusetzen, halte ich f\u00fcr die riskanteste. Es kann meiner Meinung nach gut sein, dass es sich am Ende doch mehr f\u00fcr das Unternehmen lohnt, eine, von den Kunden nutzbare KI Anwendung zu priorisieren und die notwendige interne Restrukturierung der Prozesse auch ohne den internen Wissensbot effizient m\u00f6glich ist. Vielleicht w\u00fcrde ich R\u00fcckblickend empfehlen, eine von den anderen zwei KI Anwendungen zuerst anzubieten, um den Kunden der Bank zu demonstrieren, dass das Unternehmen auf Innovation setzt und Ihnen kosteneffizientere und moderne Servicem\u00f6glichkeiten anzubieten, die auch unter der Konkurrenz stark verbreitet sind. Dadurch kann der teure Abfluss von Kunden zu der Konkurrenz meiner meinung nach mehr verhindert werden."
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 8.5,
+        "feedback": "Sie benennen zwei organisationsinterne Bausteine (Key Activities, Key Partners) und deren Zusammenhang mit KI-Einf\u00fchrung. Das ist ein Anfang. Aber: Wo ist der Konflikt zwischen externem Druck (z.B. FinTech-Wettbewerb, Kundenerwartungen) und internen Gegebenheiten? Und warum sind diese beiden Herausforderungen f\u00fcr das Gesch\u00e4ftsmodell *kritischer* als etwa die Frage, ob die Kunden weiterhin bereit sind, f\u00fcr Premium-Beratung zu zahlen, oder wie die Filialstruktur zum digitalen Anspruch passt? Sie beschreiben interne Umstrukturierung, aber nicht, welche Ertrags- oder Kundenbeziehungslogik dadurch gef\u00e4hrdet oder erm\u00f6glicht wird.",
+        "learning_objective_tags": [
+          "analysieren"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.2,
+        "canvas_alignment_pct": 20.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [],
+        "missing_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "canvas_rationale": "Antwort fokussiert auf Key Activities und Key Partners, jedoch ohne Bezug zu den geforderten Bausteinen: Kundenbeziehung, Kanalstrategie oder Erl\u00f6slogik werden nicht thematisiert. Keine Verbindung zum Gesch\u00e4ftsmodellkern erkennbar."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 11.5,
+        "feedback": "**Gut:** Klare Entscheidung f\u00fcr Wissensbot, Zahlen genannt, Imitationsschutz durch Internalit\u00e4t erkannt, Trade-off benannt (fehlende externe Sichtbarkeit). **Verbesserungspotenzial:** Warum ist 830k f\u00fcr Alpes Bank strategisch relevanter als Kundenloyalit\u00e4t oder Neugesch\u00e4ft? Welche internen St\u00e4rken (z. B. Fachwissen, Dokumentationsqualit\u00e4t) tragen den Vorteil \u2013 oder kopiert jede Bank mit ChatGPT? Wie ver\u00e4ndert der Bot konkret das Leistungsversprechen gegen\u00fcber Kunden oder Beratern \u2013 und welcher Kostenfaktor wird aufgegeben (z. B. Lernzeit, Change-Widerstand)?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "cost_structure"
+        ],
+        "missing_canvas_blocks": [
+          "value_propositions",
+          "key_resources"
+        ],
+        "canvas_rationale": "Cost Structure wird durch Effizienznennung (830k) angerissen. Value Propositions bleibt unklar (Nutzen f\u00fcr wen?), Key Resources fehlt: Keine Verbindung zu Alpes-spezifischen Ressourcen, die Imitierbarkeit reduzieren."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 14.5,
+        "feedback": "Gut: Klare Buy-Entscheidung mit nachvollziehbarer Begr\u00fcndung (fehlende KI-Erfahrung, hohe Nutzungsfrequenz, Datenschutz). Der Fokus auf Ressourcenschonung ist sinnvoll. Entwicklungspotenzial: Wie spezifisch ist ein E-Mail-Assistent wirklich f\u00fcr die Alpes Bank \u2014 welches bankspezifische Wissen muss er haben? Das genannte Risiko bleibt vage (\u00abunzureichende Leistung\u00bb) \u2014 welches konkrete Governance- oder Abh\u00e4ngigkeitsrisiko entsteht bei AILabs, und welche Massnahme (z. B. Vertragsgestaltung, Wissenstransfer, Dual-Sourcing) w\u00fcrde es adressieren?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners",
+          "key_resources"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities"
+        ],
+        "canvas_rationale": "Key Partners (AILabs) wird implizit als Partner genannt, Key Resources (fehlende KI-Erfahrung, Kapital) erw\u00e4hnt. Key Activities (welche Aktivit\u00e4ten bleiben intern: Datenschutz-\u00dcberwachung, Integration?) fehlt fast vollst\u00e4ndig."
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 14.0,
+        "feedback": "Sie nennen eine Stossrichtung (interne Struktur vor KI) und identifizieren den internen Wissensbot als riskanteste Entscheidung. Gut. Was fehlt: Welche konkreten Key Activities (z. B. Prozesse, Governance) m\u00fcssen ge\u00e4ndert werden? Welche Key Resources (Daten, Kompetenzen) sind daf\u00fcr kritisch? Sie erw\u00e4hnen Kosteneffizienz f\u00fcr Kunden \u2013 aber wie ver\u00e4ndert eine Revision der Bot-Entscheidung Ihre Cost Structure oder Ihr Value Proposition intern vs. extern? Die Interdependenzen bleiben vage.",
+        "learning_objective_tags": [
+          "synthese",
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.3,
+        "canvas_alignment_pct": 30.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "value_propositions"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Value Proposition wird angedeutet (Kundennutzen, moderne Services). Key Activities, Key Resources und Cost Structure fehlen oder bleiben implizit \u2013 keine explizite Verkn\u00fcpfung zu Prozessen, F\u00e4higkeiten oder Kostenfolgen der strategischen Revision."
+      }
+    ],
+    "total_points": 48.5,
+    "max_points": 101.0,
+    "percentage": 48.0,
+    "canvas_alignment_pct": 32.1,
+    "rubric_fit_pct": 43.2,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-14T21:15:09.226629",
+    "submitted_at": "2026-05-14T22:10:15.590348",
+    "evaluated_at": "2026-05-14T22:10:46.169789"
+  },
+  {
+    "_id": "6a06429f3a2a661811b8fa70",
+    "submission_id": "811233fb-ac12-4444-a880-cdd2bd3959bc",
+    "user_id": "prolific_6973529abbf70b2ae67e93ab",
+    "matrikelnummer": "6973529abbf70b2ae67e93ab",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "6973529abbf70b2ae67e93ab",
+      "prolific_pid": "6973529abbf70b2ae67e93ab",
+      "metadata": {}
+    },
+    "answers": {
+      "q4": "In den n\u00e4chsten 12\u201324 Monaten sollte Alpes Bank vor allem darauf fokussieren, digitale Effizienz mit pers\u00f6nlicher Beratung zu verbinden. Die Bank sollte KI nicht einfach einsetzen, um m\u00f6glichst viele Stellen oder Prozesse zu automatisieren, sondern um Mitarbeitende gezielt zu unterst\u00fctzen. Der E-Mail-Assistent passt gut dazu, weil er repetitive Aufgaben reduziert, ohne die pers\u00f6nliche Beziehung komplett zu ersetzen.\nDie riskanteste Entscheidung bleibt f\u00fcr mich die Zusammenarbeit mit AILabs. Kurzfristig bringt sie viele Vorteile wie schnelleres Lernen und tiefere Entwicklungskosten. Langfristig besteht aber die Gefahr, dass Alpes Bank zu abh\u00e4ngig vom externen Partner wird. Falls Datenschutz-, Qualit\u00e4ts- oder Compliance-Probleme auftreten, m\u00fcsste die Bank m\u00f6glicherweise Teile der Entwicklung wieder intern aufbauen.\nDas h\u00e4tte grosse Auswirkungen auf die restliche Strategie. Kosten w\u00fcrden steigen, Projekte w\u00fcrden sich verz\u00f6gern und die geplanten Effizienzgewinne k\u00e4men sp\u00e4ter. Gleichzeitig m\u00fcsste Alpes Bank viel st\u00e4rker in eigene Kompetenzen und Infrastruktur investieren. Genau deshalb ist es wichtig, schon fr\u00fch internes Know-how parallel aufzubauen und nicht alles an den Partner auszulagern.",
+      "q1": "Die zwei gr\u00f6\u00dften Herausforderungen f\u00fcr Alpes Bank sind der richtige Umgang mit GenAI im Kundenkontakt und der Aufbau der n\u00f6tigen technologischen F\u00e4higkeiten. Ersteres meint, dass die Bank effizienter und digitaler werden muss, ohne das Vertrauen der KundenInnen zu verlieren. Die pers\u00f6nliche Beratung geh\u00f6rt klar zur Value Proposition. Wenn zu viel automatisiert wird oder KI fehlerhafte Antworten liefert, leidet die Kundenbeziehung. Gleichzeitig erwarten KundenInnen schnelle digitale Services, wo das Zielkonflikt zwischen Effizienz und pers\u00f6nlicher N\u00e4he entsteht. Die zweite Herausforderung betrifft die Key Resources und Key Activities. Die KI entwickelt sich sehr schnell und der Wettbewerbsdruck steigt. Jedoch fehlen intern wahrscheinlich noch viele KI-Kompetenzen. Wenn Alpes Bank hier zu langsam handelt, verliert sie langfristig an Wettbewerbsf\u00e4higkeit. ",
+      "q2": "Ich w\u00fcrde empfehlen, zuerst den KI-gest\u00fctzten E-Mail-Assistenten umzusetzen. Der Use Case bringt relativ schnell einen sichtbaren Nutzen. D.h. Kunden erhalten schneller Antworten und mitarbeitende werden bei repititiven Aufgaben entlastet. Das verbessert die Customer Relationships und macht interne Prozesse effizienter. Der Wettbewerbsvorteil sollte aber nicht einfach auf der KI selbst basieren, weil diese Technologie grunds\u00e4tzlich auch andere Banken nutzen k\u00f6nnen. Der eigentliche Vorteil liegt in den bestehenden Kundenbeziehungen, dem Vertrauen der Kundschaft und den internen Daten der Bank. Alpes Bank kennt ihre Kunden bereits gut und wei\u00df, wie sensible Kommunikation im Finanzbereich funktioniert.\nDer wichtigste Zielkonflikt ist f\u00fcr mich der zwischen Automatisierung und pers\u00f6nlicher Beratung. Wenn zu viel Kommunikation standardisiert wirkt, kann das Vertrauen schnell sinken. Deshalb sollte KI eher unterst\u00fctzend eingesetzt werden und nicht den direkten Kundenkontakt komplett ersetzen",
+      "q3": "Ich finde die Zusammenarbeit mit AILabs grunds\u00e4tzlich sinnvoll. F\u00fcr Alpes Bank w\u00e4re es sehr aufwendig und teuer, eine komplette GenAI-L\u00f6sung selbst aufzubauen. AILabs bringt wahrscheinlich genau die technischen F\u00e4higkeiten mit, die intern noch fehlen. Dadurch kann die Bank schneller starten und ihre Key Activities effizienter gestalten. Trotzdem gibt es auch klare Nachteile. Gerade im Banking sind Datenschutz und Qualit\u00e4t extrem wichtig. Ein E-Mail-Assistent muss zuverl\u00e4ssig funktionieren, weil Fehler direkt das Vertrauen der Kunden sch\u00e4digen k\u00f6nnen. Die Anforderungen sind also ziemlich spezifisch und die Qualit\u00e4t ist schwierig vorherzusagen. Das gr\u00f6sste Risiko sehe ich deshalb in einer zu starken Abh\u00e4ngigkeit von AILabs. Wenn die Bank sp\u00e4ter wichtige Teile der Technologie nicht selbst versteht oder kontrolliert, wird sie langfristig unflexibel. Deshalb w\u00fcrde ich darauf achten, dass sensibles Wissen und Kundendaten m\u00f6glichst intern bleiben. Zus\u00e4tzlich sollte es klare Regeln geben, wann Menschen die KI-Antworten kontrollieren oder freigeben m\u00fcssen."
+    },
+    "scores": [
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 0.0,
+        "feedback": "Die automatische Auswertung konnte technisch nicht vollstaendig verarbeitet werden. Welche Kernargumente und Konsequenzen kannst du noch klarer strukturieren?",
+        "learning_objective_tags": [
+          "synthese",
+          "integration",
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.0,
+        "canvas_alignment_pct": 0.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [],
+        "missing_canvas_blocks": [],
+        "canvas_rationale": "Technischer Fallback wegen ungueltiger Modellantwort."
+      },
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 16.5,
+        "feedback": "Gut: Sie identifizieren zwei relevante Herausforderungen und benennen das Spannungsfeld zwischen Effizienz und pers\u00f6nlicher N\u00e4he. Die Verbindung zur Value Proposition ist erkennbar. Was fehlt: Wie konkret zeigt sich das Zusammenspiel von externem Druck (z. B. FinTech-Wettbewerb, Kundenerwartungen) und internen Gegebenheiten (z. B. Filialnetz, bestehende Prozesse)? Warum ist die zweite Herausforderung gesch\u00e4ftsmodellrelevant \u2013 welche Erl\u00f6slogik oder welcher Kanal ist betroffen?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.5,
+        "canvas_alignment_pct": 50.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [
+          "customer_relationships"
+        ],
+        "missing_canvas_blocks": [
+          "channels",
+          "revenue_streams"
+        ],
+        "canvas_rationale": "Customer Relationships wird angesprochen (Vertrauen, pers\u00f6nliche Beratung). Channels (Filiale vs. digital) und Revenue Streams (Erl\u00f6srelevanz, Zahlungsbereitschaft) fehlen oder bleiben implizit."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 16.5,
+        "feedback": "Gut: Klare Empfehlung f\u00fcr E-Mail-Assistenten, saubere Trennung zwischen imitierbarer Technologie und schwer kopierbaren Assets (Kundenbeziehungen, Daten, Branchenwissen). Der Zielkonflikt Automatisierung vs. pers\u00f6nliche Beratung ist real und fallbezogen. Schw\u00e4che: Warum ist gerade dieser Use Case strategisch st\u00e4rker als die Alternativen? Welche konkreten Key Resources der Alpes Bank (z.B. historische Daten, Mitarbeiterwissen) werden wie aktiviert? Wie wirkt sich der Zielkonflikt auf die Cost Structure oder Skalierbarkeit aus?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.6,
+        "canvas_alignment_pct": 60.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "value_propositions",
+          "key_resources"
+        ],
+        "missing_canvas_blocks": [
+          "cost_structure"
+        ],
+        "canvas_rationale": "Value Proposition (schnellere Antworten, Entlastung) und Key Resources (Kundenbeziehungen, Daten) werden angesprochen. Cost Structure fehlt: Zielkonflikt wird nicht in Kosten/Effizienz-Logik \u00fcbersetzt, bleibt qualitativ."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 15.5,
+        "feedback": "Gut: Klare Buy-Entscheidung, Begr\u00fcndung \u00fcber Effizienz und fehlendes internes Know-how, Abh\u00e4ngigkeitsrisiko erkannt, Massnahme (Human-in-the-Loop) benannt. Fehlt: Wie oft wird der Assistent genutzt \u2013 beeinflusst das die Entscheidung? Welche konkreten Key Resources (z. B. Kundendaten, Bankwissen) m\u00fcssen intern bleiben, und warum sind sie nicht substituierbar? Wie ver\u00e4ndert die Partnerschaft die Wertsch\u00f6pfungslogik der Bank langfristig?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette",
+          "stakeholder"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.6,
+        "canvas_alignment_pct": 60.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_activities",
+          "key_partners"
+        ],
+        "missing_canvas_blocks": [
+          "key_resources"
+        ],
+        "canvas_rationale": "Key Activities und Key Partners werden angesprochen (Effizienz, Partner-Rolle). Key Resources bleibt vage: 'sensibles Wissen' wird nicht spezifiziert oder mit Banklogik verkn\u00fcpft. H\u00e4ufigkeit fehlt ganz."
+      }
+    ],
+    "total_points": 48.5,
+    "max_points": 101.0,
+    "percentage": 48.0,
+    "canvas_alignment_pct": 39.7,
+    "rubric_fit_pct": 45.5,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-14T21:46:07.534543",
+    "submitted_at": "2026-05-14T22:11:58.554239",
+    "evaluated_at": "2026-05-14T22:12:29.595551"
+  },
+  {
+    "_id": "6a06510e3a2a661811b8fea2",
+    "submission_id": "4c25d3c5-554f-40d9-a98b-a4e3bd43949c",
+    "user_id": "prolific_69f1317ad463b5d44d7f99bf",
+    "matrikelnummer": "69f1317ad463b5d44d7f99bf",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "69f1317ad463b5d44d7f99bf",
+      "prolific_pid": "69f1317ad463b5d44d7f99bf",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": ""
+    },
+    "scores": [],
+    "total_points": 0.0,
+    "max_points": 0.0,
+    "percentage": 0.0,
+    "canvas_alignment_pct": 0.0,
+    "rubric_fit_pct": 0.0,
+    "canvas_exemplar_candidate": false,
+    "status": "in_progress",
+    "started_at": "2026-05-14T22:47:42.923383"
+  },
+  {
+    "_id": "6a0653af3a2a661811b8fefb",
+    "submission_id": "74f41776-fc8e-4b09-a3a3-2f857b2cb386",
+    "user_id": "prolific_69f1317ad463b5d44d7f99bf",
+    "matrikelnummer": "69f1317ad463b5d44d7f99bf",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "69f1317ad463b5d44d7f99bf",
+      "prolific_pid": "69f1317ad463b5d44d7f99bf",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Einerseits muss die Bank zwischen der Kostensenkung (AI ersetzt Personal) und Kundenbindung (pers\u00f6nlicher Kontakt) w\u00e4hlen. Beides gleichzeitig geht nicht in 12 Wochen \u2014 jede Priorit\u00e4t ver\u00e4ndert die Value Proposition fundamental.\" 2. \"Bank muss zwischen externer Geschwindigkeit (AILabs, schnell, aber Kontrollverlust) und interner Kontrolle (langsam, aber Compliance/Differenzierung) entscheiden. Diese Wahl bestimmt, ob GenAI sp\u00e4ter strategisch oder nur kosmetisch wird.\" Anwendungsfall-Priorisierung: Nimm einen der drei Cases, sag kurz warum (z.B. Chatbot = sichtbar f\u00fcr Kunden, schnell umsetzbar), und benenne einen Zielkonflikt (z.B. \"Effizienz vs. pers\u00f6nliche Beratung\")",
+      "q2": "lekc",
+      "q3": "eire",
+      "q4": "du neger"
+    },
+    "scores": [],
+    "total_points": 0.0,
+    "max_points": 0.0,
+    "percentage": 0.0,
+    "canvas_alignment_pct": 0.0,
+    "rubric_fit_pct": 0.0,
+    "canvas_exemplar_candidate": false,
+    "status": "in_progress",
+    "started_at": "2026-05-14T22:58:55.063438"
+  },
+  {
+    "_id": "6a06d1a93a2a661811b91310",
+    "submission_id": "16641507-f109-47ef-892c-8fcc09ba86b1",
+    "user_id": "prolific_693c28e2b5c00f24adbe9d29",
+    "matrikelnummer": "693c28e2b5c00f24adbe9d29",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "693c28e2b5c00f24adbe9d29",
+      "prolific_pid": "693c28e2b5c00f24adbe9d29",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Es k\u00f6nnen herausforderungen aufgrund der Neu-Implemnetierung in allen bereichen dargestellt werden. Die zwei klaren Herausforderungen die sich f\u00fcr mich stellen sind: Value Proposition - was wird dem Kunden als Nutzen versprochen, wie kann dies die Bank darstellen und warum ist das besser oder anders als der Mitbewerbt und Key Ressources - wie ver\u00e4nderen sich die Ressourcen der Bank, werden Stellen abgebaut oder anders genutzt, in welchem Zusammenhang stehen Ressourcen zu Kosten.\nBesonders die Ressourcen ver\u00e4ndern sich ganz klar aus den exterenen Entwicklungen (KI, Wettbewerb) und internen Gegebenheiten (Premiumservice, Filialsystem, Human Ressourcen lastig). Nur dann wenn das Management einen klaren Weg und eine einheitliche Richtung vorgibt, kann Erfolg erreicht werden. Die Ressourcen m\u00fcssen gezielt allokiert werden. Die MItarbeiter m\u00fcssen neue bzw andere Aufgaben \u00fcbernehmen und anders mit der Situation umgehen. K\u00f6nnen die Mitarbeiter das und f\u00fchlen sie sich bef\u00e4higt?",
+      "q2": "Aus meiner Sicht gibt es einen klaren Vorteil sich auf den Anwendungsfall 2 (interner Wissens-Copilot). Die Priorisierung  liegt auf dem wirtschaftlichen Vorteil und begr\u00fcndet sich auf dem dargestellten Informationen zur Arbeitsweise und zum Umgang der Bank mit KI anwendungen. Die Bank ist noch nicht ge\u00fcbt und vertraut KI nicht vollst\u00e4ndig. Man will die eigene Kompetenz und die M\u00f6glichkeit der Kontrolle nicht abgegeben. Dieses Modell erm\u00f6glicht den KI EInsatz intern darzustellen und das Unternehmen mit dem Umgang von KI vertraut zu machen. Bei einem Proof of Conpect zur verbesserten Arbeitsweisen, steigt die erfolgreiche Umsetzungen der anderen Tools. Man behaltet sich dadurch den Wettbewerbsvorteil der pers\u00f6nlichen Premiumberatung und kann diese Kompetenz noch erweitern. Der Zielkonflikt ist die Dauer bis zu MVP, die Kosten des Anwendungsfalls und das inital nicht Arbeit automatisiert wird. ",
+      "q3": "Im Sinne der Make-or-Buy Entscheidung unter Ber\u00fccksichtigung des Business Modell Canvas ist inital zu sagen, dass eine Bank nicht ihre Kompetenz in der Entwicklung von KI Anwendungen hat, sondern im Bankgesch\u00e4ft. Die Alpes Bank positioniert sich als Premium Bank mit klarem Human-Kapital einsatz um ihre Leistungen auf einem hohen Niveau zu gew\u00e4hrleisten, hier fehlt bisher die KI Kompetenz.\nDer E Mail Assistent hat die besondere Anforderung der sehr diffizielen Sprache und Spracherkennung, die Anwendung von mehreren Sprachen und gemischten Sprachgebrauch erfordert eine sehr spezififische Programmierung und hohen Qualit\u00e4tsanspruch. Damit die unterschiedlichen Kunden bestm\u00f6glich bedient werden k\u00f6nnen, darf es keine Benachteiligung von Kundengruppen geben. Eine schwache Umsetzung des Tools hat ein klares Risiko der Kundenwahrnehmung des Premium Image der Bank. Die externe Umsetzung hat den Vorteil, dass ein darauf spezialisiertes Unternehmen die Umsetzung plant. Die klaren Risiken sind erh\u00f6hte Kosten, nicht einhaltung der Bankenstandards und Fehlinterpretation der erforderlichen Ma\u00dfnahmen. Die klare Empfehlung f\u00fcr Ma\u00dfnahmen sind daher, ein Kernteam intern der Bank f\u00fcr die Projektumsetzung mit dem externen Partner. Die klarem Vorgaben und enge Abstimmung mit dem Auftraggeber (Bank) erm\u00f6glicht eine zielgerechte Umsetzung.",
+      "q4": "Meine inital-empfehlung zum Business Modell Canvas lag auf der Value Proposition und den Key Ressources der Bank. Diese beiden Bereiche halte ich weiterhin f\u00fcr die relevantestesten. Man muss klar definieren, was beim Kunden ankommen soll und wie man sich differenziert und man muss wissen welche Ressourcen man hat bzw. nicht hat um diese entsprechend zu ver\u00e4nderen und steuern zu k\u00f6nen. Die Empfehlung des internen Wissensbot f\u00fchrt zu den h\u00f6chsten Kosten und der l\u00e4ngsten Dauer bis zum MVP. Dies sind nat\u00fcrlich Risiken, die auch in einer Revison dargelegt werden k\u00f6nnen. Ein vollumf\u00e4nglichen Zugriff auf alle Daten der Bank (auch die der Kunden) bringt einen enormen Fokus auf die Sicherheit des Systems mit. Ich bin trotzdem \u00fcberzeugt, dass aufgrund der Vorteile (Interne Anwendung, Wirtschaftlichkeit, grundlegender Aufbau von Vertrauen in KI durch die Mitarbeiter) diese Anwendung die richtige ist. Ganzheitlich ist eine Sto\u00dfrichtgung f\u00fcr die n\u00e4chsten 1-2 Jahre die implemtierung der Anwendungen ohne die Qualit\u00e4t dieser zu vernachl\u00e4ssigen. Der Wettbewerbsvorteil den die Bank aktuell noch hat, gibt den Spielraum, entscheidungen und Ma\u00dfnahmen durchdacht und ohne unn\u00f6tigen Zeitdruck umsetzen zu k\u00f6nnen, sodass die Value Proposition und die Key Ressources entsprechend angepasst werden an den neuen Business Case."
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 10.5,
+        "feedback": "Positiv: Sie identifizieren zwei Bereiche (Value Proposition, Key Resources) und deuten das Zusammenspiel extern/intern an. Schw\u00e4chen: Die Herausforderungen bleiben abstrakt \u2013 was genau ist das Problem bei der Value Proposition? Warum wird es zur Herausforderung? Die Verbindung zum Gesch\u00e4ftsmodell (Ertr\u00e4ge, Kundenbeziehung, Kanalstruktur) fehlt fast vollst\u00e4ndig. Entwicklungsfrage: Wie wirkt sich die Ressourcenver\u00e4nderung konkret auf das Premium-Beratungsmodell und die Profitabilit\u00e4t aus?",
+        "learning_objective_tags": [
+          "analysieren"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.3,
+        "canvas_alignment_pct": 30.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [],
+        "missing_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "canvas_rationale": "Value Proposition und Key Resources werden genannt, aber nicht die verbindlich geforderten Bausteine. Customer Relationships, Channels und Revenue Streams werden nicht fallbezogen thematisiert. Keine Analyse der Auswirkungen auf Kundenbeziehung, Kanalstruktur oder Ertragsmechanik."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 14.5,
+        "feedback": "Gut: Du triffst eine klare Entscheidung und verkn\u00fcpfst sie mit der Kultur und Risikoaversion der Bank \u2014 das ist ein starker Hebel. Der Lerneffekt als interne Ressource ist nachvollziehbar. Aber: Wie genau wird der Wissens-Copilot die Premiumberatung schwer imitierbar machen? Was unterscheidet Alpes Bank von anderen, die dasselbe Tool einsetzen? Und ist der benannte Zielkonflikt (Zeit, Kosten) wirklich spezifisch f\u00fcr diesen Use Case \u2014 oder gilt er \u00fcberall?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "key_resources"
+        ],
+        "missing_canvas_blocks": [
+          "value_propositions",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Key Resources (interne KI-Kompetenz) wird angedeutet. Value Propositions und Cost Structure bleiben generisch: Welcher konkrete Kundennutzen entsteht, und welcher echte Zielkonflikt (nicht nur Investitionskosten) ergibt sich aus der Wahl?"
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 14.5,
+        "feedback": "Gut: Sie treffen eine klare Buy-Entscheidung und benennen Spezifit\u00e4t (Mehrsprachigkeit) sowie Premiumanspruch nachvollziehbar. Das Kernteam als Gegenmassnahme ist praxisnah. Was fehlt: Wie h\u00e4ufig wird der Assistent genutzt \u2013 spricht das f\u00fcr oder gegen Buy? Welche internen Ressourcen (z. B. Kundendaten, Compliance-Wissen) muss die Bank behalten, um Kontrolle und Qualit\u00e4t zu sichern? Und: Welches konkrete Risiko folgt aus Buy \u2013 Abh\u00e4ngigkeit, Datenschutz, Lock-in?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities",
+          "key_resources"
+        ],
+        "canvas_rationale": "Key Partners wird implizit angesprochen (externes Unternehmen). Key Activities (welche bleiben intern?) und Key Resources (Daten, Bankwissen) fehlen als explizite Begr\u00fcndungsebenen der Make-or-Buy-Logik."
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 14.0,
+        "feedback": "Sie identifizieren Value Proposition und Key Resources als zentral \u2013 das ist richtig. Auch der Wissensbot wird als risikoreich benannt. Was fehlt: Welche konkrete strategische Stossrichtung leiten Sie daraus ab? \u00abImplementierung ohne Qualit\u00e4tsverlust\u00bb ist kein Strategie-Fokus. Und: Was passiert mit Ihren anderen Empfehlungen (z. B. Partnerschaften, Kundenschnittstellen), wenn Sie den Wissensbot revidieren? Die Interdependenzen bleiben unklar.",
+        "learning_objective_tags": [
+          "integration",
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities"
+        ],
+        "canvas_rationale": "Value Propositions und Key Resources werden benannt, aber nur paraphrasiert, nicht angewendet. Cost Structure (Kosten, Dauer, Sicherheit) wird angesprochen. Key Activities (Prozesse, Rollout-Logik) fehlen v\u00f6llig."
+      }
+    ],
+    "total_points": 53.5,
+    "max_points": 101.0,
+    "percentage": 53.0,
+    "canvas_alignment_pct": 37.5,
+    "rubric_fit_pct": 48.3,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-15T07:56:25.054255",
+    "submitted_at": "2026-05-15T08:35:43.590312",
+    "evaluated_at": "2026-05-15T08:36:16.175379"
+  },
+  {
+    "_id": "6a06d33f3a2a661811b91346",
+    "submission_id": "1417ed48-1275-44fc-8784-5a2e0c9219e1",
+    "user_id": "prolific_6978b3d23cf7b75b2ec389ba",
+    "matrikelnummer": "6978b3d23cf7b75b2ec389ba",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "6978b3d23cf7b75b2ec389ba",
+      "prolific_pid": "6978b3d23cf7b75b2ec389ba",
+      "metadata": {}
+    },
+    "answers": {},
+    "scores": [],
+    "total_points": 0.0,
+    "max_points": 0.0,
+    "percentage": 0.0,
+    "canvas_alignment_pct": 0.0,
+    "rubric_fit_pct": 0.0,
+    "canvas_exemplar_candidate": false,
+    "status": "in_progress",
+    "started_at": "2026-05-15T08:03:11.124119"
+  },
+  {
+    "_id": "6a06dad43a2a661811b9146e",
+    "submission_id": "7549b56b-707a-47d5-a102-f28e9209c74f",
+    "user_id": "prolific_627bc3c740c244bb5f70b145",
+    "matrikelnummer": "627bc3c740c244bb5f70b145",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "627bc3c740c244bb5f70b145",
+      "prolific_pid": "627bc3c740c244bb5f70b145",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Eine Herausforderung ist der demografische Wandel. Es ist wichtig f\u00fcr die Alpes Bank auch ein junges Publikum abzuholen, um das langfristige Bestehen der Bank zu gew\u00e4hrleisten. Im Zuge dessen ist auch die Digitalisierung innerhalb der Banks sehr wichtig. Extern werden immer neuere und modernere Konzepte un dTechnologien entwickelt, die die Welt ver\u00e4ndern. Intern muss man sich anpassen, um nicht von der Konkurrenz \u00fcberholt zu werden. Es ist somit ein Zusammenspiel aus externen neuen Entwicklungen und interner Anpassungsf\u00e4higkeit",
+      "q2": "Die Alpes Bank sollte sich initial mit dem E-Mail Assistenten beschaffen. Der ist innerhalb von 3 Monaten ein funktionierendes Produkt, dass einen echten Mehrwert den Kunden und der Bank bietet. Es ist zudem auch deutlich lukrativer als der Website-Chatbot. Langfristig sollten sie sich jedoch auf den Wissens-Copiloten basieren. Zwar dauert es deutlich l\u00e4nger bei diesem bis eher lukrtaiv ist, jedoch ist der Bruttogewinn bei ihm am h\u00f6chsten. \n",
+      "q3": "ICh bef\u00fcrworte eine externe L\u00f6sung, da das eigene Entwickeln eines KI- E-Mail Assistenten nicht leicht ist und gesodnertes Wissen erfordert. Dabei wird eine hohe Leistung von dem Computersystem gebraucht. Dazu w\u00e4re es leichter, die Qualit\u00e4tsanforderungen extern abgeben zu k\u00f6nnen, damit man sich intern mehr auf die eigentlichen Bankprozesse konzentrieren kann. Es ist zwar wichtig, dass das Governance-Modell eineghalten wird und intern kontrolliert wird. Aber das eigentliche Bauen des Aissstenten sollte dennoch extern passieren. Vielleicht kann man AILabs verhindenr, die komplette Kontrolle langfristig zu behalten und nur einen Vertrag zu haben, der nur \u00fcber die Kreation des Assistenten ist. Das erm\u00f6glicht es auch, dass die IT-Ateilung innerhlab 12 Wochen ein Endprodukt hat.",
+      "q4": "Alpesbank sollte am Ball bleiben und weiterhin sich mit der Modernisierung der eigenen Bankabl\u00e4ufe auseinandersetzen. Anhand der demografischen Eigenschaften der Kunden dr Bank,war es riskant, so viel Zeit und Energie und Geld in die Erneuerung mancher Gesch\u00e4ftsabl\u00e4ufe zu investieren. Es h\u00e4tte sein k\u00f6nnen, dass die KI Bots gar nicht effizient sind, oderr nicht genutzt werden, was zu sehr hihe Kosten f\u00fcr wenig Nutzen gef\u00fchrt h\u00e4tte. Jetzt woi sich jedoch herausgestellt hat, dass sie effizient und umsetzbar sind, sollte Alpes Bank daran arbeiten, sie zu perfketionieren, damit alle Kunden zufrieden sind. So sollte es zum Beispiel nicht mehr passieren, dass Menschne aus gewissen Regionen nicht verstanden werden. "
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 7.5,
+        "feedback": "**St\u00e4rken:** Du erkennst das Zusammenspiel extern-intern und nennst Digitalisierung und demografischen Wandel als relevante Themen.\n\n**Entwicklungspotenzial:** Worin genau besteht die Herausforderung f\u00fcr Alpes Bank \u2013 nicht f\u00fcr Banken allgemein? Wie tangiert der demografische Wandel konkret das Premium-Beratungsmodell oder die Filialstruktur? Welche Konsequenzen entstehen f\u00fcr Ertr\u00e4ge oder Kundenbeziehungen, wenn Alpes Bank junge Kunden gewinnen will? Deine Antwort bleibt generisch \u2013 verkn\u00fcpfe sie mit dem spezifischen Gesch\u00e4ftsmodell.",
+        "learning_objective_tags": [
+          "analysieren"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.2,
+        "canvas_alignment_pct": 20.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [],
+        "missing_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "canvas_rationale": "Keine explizite Verkn\u00fcpfung zu Kundenbeziehungen, Kanalstruktur oder Erl\u00f6smodell erkennbar. Digitalisierung wird nur allgemein erw\u00e4hnt, ohne Bezug zu Premium-Beratung, Filiale vs. Digital oder Profitabilit\u00e4t."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 7.5,
+        "feedback": "Du triffst eine Entscheidung (E-Mail-Assistent, dann Wissens-Copilot) und nennst Zeitrahmen und Bruttogewinn als Kriterien. Gut. Was fehlt: Warum schafft der E-Mail-Assistent einen schwer imitierbaren Wettbewerbsvorteil? Welche spezifischen St\u00e4rken der Alpes Bank (Daten, Wissen, Marke) tragen diesen Vorteil? Und welchen echten Zielkonflikt gehst du ein \u2013 z. B. zwischen Schnelligkeit und langfristiger Differenzierung, oder zwischen Effizienz und Risiko?",
+        "learning_objective_tags": [
+          "evaluieren"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.2,
+        "canvas_alignment_pct": 20.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [],
+        "missing_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Keine Canvas-Bausteine werden inhaltlich angewendet. Value Proposition, Key Resources und Cost Structure/Trade-off bleiben unbenannt. Bruttogewinn ist kein Wettbewerbsargument."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 10.5,
+        "feedback": "Gut: Sie treffen eine klare Buy-Entscheidung und nennen Ressourcen-Knappheit und Zeit als Gr\u00fcnde. Was fehlt: Spezifit\u00e4t, H\u00e4ufigkeit und Unsicherheit der Leistung werden nicht systematisch durchdacht. Welches konkrete Risiko entsteht aus der externen Entwicklung \u2013 und wie passt Ihre Vertragsl\u00f6sung dazu? Governance wird erw\u00e4hnt, aber nicht als Gegenmassnahme ausformuliert. Wie sichern Sie bankspezifisches Wissen und Datenkontrolle?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities",
+          "key_resources"
+        ],
+        "canvas_rationale": "AILabs als Partner wird erw\u00e4hnt, aber die Abgrenzung zwischen internen und externen Key Activities bleibt unklar. Key Resources (z.B. Kundendaten, Compliance-Wissen) werden nicht als Entscheidungsgrundlage genutzt."
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 9.5,
+        "feedback": "Sie nennen Modernisierung und Effizienz als Richtung \u2013 das ist ein Anfang. Aber: Welche konkrete strategische Stossrichtung folgt daraus f\u00fcr die n\u00e4chsten 12\u201324 Monate? Welche Ihrer fr\u00fcheren Entscheidungen halten Sie wirklich f\u00fcr die riskanteste \u2013 und warum genau? Was w\u00fcrde passieren, wenn Sie diese Entscheidung revidieren? Ihr Beispiel (Akzent-Erkennung) bleibt operativ. Denken Sie gr\u00f6sser: Welche Wertversprechen, Ressourcen oder Prozesse stehen auf dem Spiel?",
+        "learning_objective_tags": [
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.3,
+        "canvas_alignment_pct": 30.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "cost_structure",
+          "key_activities"
+        ],
+        "missing_canvas_blocks": [
+          "value_propositions",
+          "key_resources"
+        ],
+        "canvas_rationale": "Kosten/Nutzen-\u00dcberlegung vorhanden, Prozess-Perfektionierung angedeutet. Value Proposition und strategische Ressourcen-Priorisierung fehlen vollst\u00e4ndig. Keine Integration der Bausteine erkennbar."
+      }
+    ],
+    "total_points": 35.0,
+    "max_points": 101.0,
+    "percentage": 34.7,
+    "canvas_alignment_pct": 27.3,
+    "rubric_fit_pct": 32.5,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-15T08:35:32.254965",
+    "submitted_at": "2026-05-15T09:06:23.134481",
+    "evaluated_at": "2026-05-15T09:06:51.950598"
+  },
+  {
+    "_id": "6a06e71f3a2a661811b9161c",
+    "submission_id": "4fe087d9-fb2b-4737-84de-afea989a9f89",
+    "user_id": "prolific_692da1ea438bee1067e5ec59",
+    "matrikelnummer": "692da1ea438bee1067e5ec59",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "692da1ea438bee1067e5ec59",
+      "prolific_pid": "692da1ea438bee1067e5ec59",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Eine Herausforderung sehe ich in der Risikoaversion der Alpes Bank. Gleichzeitig wird eine GenAI gefordert, daiefehlerfrei funktioniert, \u00fcberwacht wird, einen klaren Gesch\u00e4ftsnutzen bietet, dabei Kosten einspart und letztendlich die \"Neugestaltung ganzer Gesch\u00e4ftsprozesse\" erm\u00f6glichen soll, aber auch traditionell und risikoavers ist, es d\u00fcrfen keine Fehler passieren, da klar ein Einschluss aus der Firma die Konsequenz ist \"Wer mit einem Misserfolg zur\u00fcckkommt, hat kaum eine zweite Chance.\" Key Partner wie die einzelnen Abteilungen sind es nicht gewohnt verantwortung, gleichwohl wird dies eingefordert und der Druck steigt, da extern Wettbewerbe AI Modelle ausgerollt und skaliert haben, w\u00e4hrend intern Strukturen fehlen.\nDie zweite Herausforderung sehe ich im \"kostenkampf\". Das Gesch\u00e4ftsmodell und Kerngesch\u00e4ft basiert auf Filialkunden und pers\u00f6nlichem Kontakt, w\u00e4hrend Wettbewerber duch AI und Onlinepr\u00e4senz einen \u00e4hnlichen Service zu geringern Kosten biete. Die Gefahr besteht in der Entwicklung der AI zu dem Punkt hin, dass sie einen fast/\u00e4hnlichen gleichwertigen Service bieten kann, wie die menschlichen BeraterInnen. Damit ist das Gesch\u00e4ftsmodell in Frage, denn so k\u00f6nnen diverse Customer Segments abwandern, da die Alpes Bank keinen ausreichenden Benefit zu Mehrkosten bringt. Externe Wettbewerber treten in den Markt ein und profitieren von dem Hinterherhinken der AB, da intern durch fehlendes Risiko nicht ausreichend Schnell ver\u00e4nderung erreicht werden kann",
+      "q2": "Der EMailassistenz ist als erster Anwendungsfall umszusetzen, da erst ein ROI von 7 Monaten hat, 12 Wochen bis MVP und auch vergleichweise gerine Initialkosten.\nDer Email assistent hat ebenso die Qualit\u00e4tssicherung durch Mitarbeiter, die Emails kontrollieren und bewerten, sodass die GenAI spezifisches Wissen \u00fcber die Alpes Bank erlernt. Darin liegt auch der Kernvorteil, durch den sich Alpes Bank langfristig von ihren Wettberwerbern abgrenzen kann und das Alleinstellungsmerkmal bildet.\nDie GenAi erlernt Daten und informationen \u00fcber Beratung, die Mehrsprachigkeit, somit Datentiefe die Antworten pr\u00e4zisierung und zum Kunden passen. Das k\u00f6nnen andere nicht. Zudem sigalisiert der Kontrolle durch Menschen, den Kunden immernoch Qualit\u00e4t und beruhight Skeptiker, da menschliche Kompetenz immernoch die letzte Instanz bleibt, was Vertrauen schafft bzw. bestehen bleiben l\u00e4sst.\nProblematisch bei dieser Entscheidung wird der zeitliche Ablauf und die Anspr\u00fcche des CEO. Ein gelaunchter Assistent der Fehler, wie die r\u00e4toromanische Spracherkennungsschwierigkeiten, kann langfristig das vertrauen von Kundengruppen schaden, gerade wenn das eigentlich Kern der Markenidentit\u00e4t ist.",
+      "q3": "Buy. Die Entwicklung sollte mit einem externen Partner durchgef\u00fchrt werden. Intern sind die n\u00f6tigen F\u00e4higkeiten, den Unterlagen zu Folge nicht vorhanden und die Zeitlinie von 3 Monaten schlie\u00dft einen internen Komperenzaufbau aus. Ein externer Partner kann helfen Unsicherheiten zu identifizieren und auch auszubessern, sollten diese erst im Verlauf auftreten. Qualit\u00e4tsanforderung k\u00f6nnen kommuniziert werden, auch sollte von Beginn an die Systemarchitektur klar geregelt sein, denn hier liegt das gr\u00f6\u00dfte Problemfeld. Wenn die Systemarchitektur in der Kontrolle von AllLabs bleibt, kann die Bank nur schwer selbstweiterentwickeln, wenn die Kompetenz in House aufgebaut wurde. Hier kann aber auch gegengesteuert werden. Auch muss sichergestellt sein, dass die Datensicherheit gew\u00e4hrleistet bleibt.",
+      "q4": "Die getroffenen Entscheidungen soll aufeinander aufbauen und so eine Strategie darstellen. GenAI soll die menschliche Beratung verst\u00e4rken, der MailAssistent als Value Proposition und konkrete umsetzung. Durch die Entscheidung f\u00fcr AllLabs soll die schnelle zeitliche Entwicklungsanforderung eingehalten werden k\u00f6nnen und das Pochen auf menschliche Kontrolle teil einer Governancestrategie, die intern legitimation schafft und extern Kundensorgen beruhigt, das immer noch menschliche beratung geliefert wird, die ja das Alleinstellungsmerkmal f\u00fcr Kunden und entscheidungsfaktor gegen\u00fcber anderen Banken ist. Ich glaube, am riskantesten ist die Entscheidung f\u00fcr eine externe Entwicklung. Um die Zeitplanung einzuhalten ist es die einzig richtige. Sorge um die Kundendaten und Beratungsabl\u00e4ufe bleibt weiterhin, da darin der Kernvorteil liegt, diese m\u00fcssen also bei der Aushandlung eines Deals besonders gesch\u00fctzt werden, genauso wie der sp\u00e4tere Einstieg selbst weiterentwickeln zu k\u00f6nne. Eine Revision stellt alle anderen Entscheidungen in Frage, denn ohne die zeitlich schnelle Entwicklung und Roll Out, wird der gesamte Weitere prozess fraglich, da das Mandat vom Verwaltungsrat entzogen werden kann."
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 16.5,
+        "feedback": "Gut: Du identifizierst zwei relevante Herausforderungen (Risikoaversion vs. AI-Druck; Kosteneffizienz vs. Filialmodell) und zeigst bei beiden das Zusammenspiel extern/intern. Was fehlt: Wie konkret tangiert die Risikoaversion die *Erl\u00f6slogik* der Bank \u2013 welche Revenue Streams sind bedroht? Und welche Rolle spielt die Filiale als *Channel* f\u00fcr das Premiumversprechen \u2013 warum k\u00f6nnte AI diesen Kanal nicht einfach ersetzen? Vertiefe die Wirkungskette vom Problem zur Gesch\u00e4ftsmodell-Konsequenz.",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette",
+          "stakeholder"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.6,
+        "canvas_alignment_pct": 60.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [
+          "channels",
+          "customer_relationships"
+        ],
+        "missing_canvas_blocks": [
+          "revenue_streams"
+        ],
+        "canvas_rationale": "Channels (Filiale vs. Online) und Customer Relationships (pers\u00f6nlicher Kontakt) werden angesprochen. Revenue Streams \u2013 warum Profitabilit\u00e4t konkret bedroht ist \u2013 bleibt implizit und wird nicht explizit am Gesch\u00e4ftsmodell festgemacht."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 14.5,
+        "feedback": "Gut: Klare Priorisierung mit Begr\u00fcndung \u00fcber ROI, MVP-Zeit und Lernschleife. Der Zielkonflikt (CEO-Druck vs. Qualit\u00e4tsrisiko R\u00e4toromanisch) ist erkennbar. Was fehlt: Warum genau ist die spezifische Lernschleife von Alpes Bank schwer imitierbar \u2013 haben Wettbewerber nicht auch Daten und Mitarbeitende? Welche interne St\u00e4rke (z. B. Marke, Kundenbeziehung, Beratungskultur) macht den Vorteil verteidigbar? Wie ver\u00e4ndert der Use Case konkret das Wertversprechen \u2013 wird Schnelligkeit oder Personalisierung zum neuen Kern?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off",
+          "kpi"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.6,
+        "canvas_alignment_pct": 60.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "key_resources",
+          "cost_structure"
+        ],
+        "missing_canvas_blocks": [
+          "value_propositions"
+        ],
+        "canvas_rationale": "Key Resources (Lerndaten, Mitarbeiterkontrolle) und Cost Structure (ROI, Initialkosten, Risiko) angesprochen. Value Propositions bleibt implizit \u2013 kein konkreter Kundennutzen oder Ver\u00e4nderung des Leistungsversprechens benannt."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 14.5,
+        "feedback": "Gut: Klare Buy-Entscheidung mit relevantem Zeitdruck-Argument (3 Monate) und Identifikation des Systemarchitektur-Risikos. Was fehlt: Wie genau sprechen Spezifit\u00e4t und H\u00e4ufigkeit f\u00fcr/gegen Buy? Ist ein E-Mail-Assistent bankspezifisch oder standardisierbar? Welche konkreten Key Activities sollten intern bleiben (z. B. Compliance-Pr\u00fcfung, Datenkontrolle)? Ihre Gegenmassnahme bleibt vage \u2013 wie genau w\u00fcrden Sie die Systemarchitektur-Kontrolle sicherstellen?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities",
+          "key_resources"
+        ],
+        "canvas_rationale": "Key Partners wird implizit angesprochen (externer Partner, Kontrollfrage). Key Activities und Key Resources fehlen weitgehend: Keine Differenzierung, welche kritischen Aktivit\u00e4ten intern bleiben oder welche bankeigenen Ressourcen gesch\u00fctzt werden m\u00fcssen."
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 18.5,
+        "feedback": "Die Antwort zeigt Integration: GenAI als Verst\u00e4rkung, MailAssistent als Umsetzung, AllLabs f\u00fcr Speed, Governance f\u00fcr Legitimation. Die riskanteste Entscheidung (externe Entwicklung) ist nachvollziehbar benannt. Was fehlt: Welche *konkrete* Kostenstruktur oder Ressourcen-Allokation folgt aus dieser Priorisierung? Und wenn AllLabs scheitert oder entzogen wird \u2013 welche *alternativen Aktivit\u00e4ten* k\u00f6nnten die Value Proposition (menschliche Beratung + AI) noch retten? Die Interdependenz ist angedeutet, aber nicht durchgespielt.",
+        "learning_objective_tags": [
+          "synthese",
+          "integration",
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.55,
+        "canvas_alignment_pct": 55.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "value_propositions",
+          "key_activities"
+        ],
+        "missing_canvas_blocks": [
+          "key_resources",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Value Proposition (GenAI + menschliche Beratung) und Key Activities (AllLabs, Governance) sind erkennbar. Key Resources (Daten, Kompetenzen) und Cost Structure (Investition, Risiko-Folgen) bleiben implizit oder fehlen."
+      }
+    ],
+    "total_points": 64.0,
+    "max_points": 101.0,
+    "percentage": 63.4,
+    "canvas_alignment_pct": 54.2,
+    "rubric_fit_pct": 60.6,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-15T09:27:59.566630",
+    "submitted_at": "2026-05-15T10:34:14.876682",
+    "evaluated_at": "2026-05-15T10:34:45.510843"
+  },
+  {
+    "_id": "6a06ea763a2a661811b91696",
+    "submission_id": "40bf5286-7d5a-409e-8de0-293efac1e118",
+    "user_id": "prolific_6981d691ca337a1504429781",
+    "matrikelnummer": "6981d691ca337a1504429781",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "6981d691ca337a1504429781",
+      "prolific_pid": "6981d691ca337a1504429781",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Die Alpes Bank nutzt GenAI bis jetzt nur manchmal, um bestehende Aufgaben zu erledigen, beispielsweise bei dem HR Chatbot. Die erste Challenge besteht darin, die gesamte Organisation umzubauen um echte Synergien zu schaffen. Die Herausforderung ist der Umbau der Gesch\u00e4ftsprozesse \u00fcber Abteilungsgrenzen hinweg, um die Technologie f\u00fcr Innovationen zu nutzen, anstatt nur f\u00fcr Kosteneinsparungen. Bei der 2. Herausforderung geht es darum, dass Konkurrenten KI Berater zu einem Bruchteil der Kosten eines menschlichen Mitarbeiters anbieten, was zu einem massiven Preisverfall f\u00fchrt. Die Alpes Bank hat eine sehr traditionelle Kostenstruktur mit 4.000 Mitarbeitenden und einem profitablen, aber teuren Filialnetz, die Kundschaft ist zwar einkommensstark und loyal , wird aber zunehmend mit den g\u00fcnstigeren Alternativen der Konkurrenz konfrontiert.",
+      "q2": "Ich denke obwohl der Wissens-Copilot das h\u00f6chste Einsparungspotenzial bietet, sollte sie den Email-Assistenten priorisieren. In einem risikoreichen Umfeld wie der Alpes Bank ist der Time to Market entscheidend. Der E-Mail-Assistent dient als Proof of Concept, der bei geringeren Initialkosten schnell sichtbare Ergebnisse liefert, ohne das hochsensible Beratungsgesch\u00e4ft in der Filiale direkt zu gef\u00e4hrden. Er erm\u00f6glicht es der Bank, die notwendige Governance-Kompetenz aufzubauen, bevor komplexere Systeme eingef\u00fchrt werden. Der Wettbewerbsvorteil sollte nicht auf reiner Kosteneffizienz basieren, sondern auf der Kombination aus menschlicher Empathie und KI-gest\u00fctzter Pr\u00e4zision.",
+      "q3": "F\u00fcr die Entwicklung des E-Mail-Assistenten bei der Alpes Bank ist eine Buy-Entscheidung, die Kooperation mit AILabs  erstmal sinnvoll. Die Spezifit\u00e4t der technologischen Basis ist hoch und entwickelt sich schnell, geh\u00f6rt aber nicht zum bankfachlichen Kerngesch\u00e4ft. Ein interner Aufbau w\u00e4re denke ich zu langsam und teuer. Da die H\u00e4ufigkeit der Entwicklung einmalig ist, bietet ein externer Partner die n\u00f6tige Agilit\u00e4t ohne langfristige Fixkosten. Zudem hilft die Expertise von AILabs, die hohe Unsicherheit bei Qualit\u00e4tsanforderungen, wie komplexen Dialekten, professionell zu managen. Das Hauptrisiko dieser Entscheidung ist die strategische Abh\u00e4ngigkeit und der m\u00f6gliche Verlust der Datenhoheit. Um dies zu verhindern, sollte die Alpes Bank als Ma\u00dfnahme eine strikte Hybrid-Governance einf\u00fchren, das hei\u00dft sie Bank beh\u00e4lt das Eigentum an den feinjustierten Modellen und baut ein internes Rumpfteam auf, das die KI-Outputs kritisch validieren kann. So bleibt die Kontrolle \u00fcber Kundendaten und Qualit\u00e4t im Haus, w\u00e4hrend die Innovationskraft au\u00dfen zugekauft wird.",
+      "q4": "Ich denke, die Alpes Bank sollte die eine ungef\u00e4hre Sto\u00dfrichtung Hybride Premium-Beratung priorisieren. Ziel ist es, GenAI nicht zur Entmenschlichung und zum billigermachen, sondern zur Befreiung der Berater von Administration zu nutzen, um die wertvolle pers\u00f6nliche Betreuung in den Filialen zu st\u00e4rken. Die riskanteste Entscheidung ist vermutlich dann die Wahl des externen Partners. Da Banken gew\u00f6hnlich vor allem auf absolutem Vertrauen und Datensicherheit basieren, wiegt die Abh\u00e4ngigkeit von einem Startup schwer. Sollte AILabs scheitern oder Sicherheitsl\u00fccken aufweisen, steht die Reputation der traditionsreichen Bank auf dem Spiel. Eine Revision dieser Entscheidung, hin zum Eigenbau, h\u00e4tte drastische Konsequenzen: Die Umsetzungszeit w\u00fcrde sich vervielfachen, was den First-Mover-Vorteil gegen\u00fcber der KI-Konkurrenz vernichtet. Zudem w\u00fcrde das Budget f\u00fcr die Mitarbeiter-Umschulung zugunsten der IT-Rekrutierung schrumpfen. Damit geriete die Akzeptanz des E-Mail-Assistenten ins Wanken, da das Personal nicht mehr kompetent als Kontrollinstanz arbeiten kann. Das gesamte Projekt droht dann an der risikovermeidenden internen Kultur zu scheitern."
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 15.5,
+        "feedback": "Gut: Sie identifizieren zwei relevante Herausforderungen und zeigen bei der zweiten klar das Zusammenspiel von externem Preisdruck und interner Kostenstruktur. Schw\u00e4che: Bei Herausforderung 1 bleibt unklar, *warum* Abteilungssilos f\u00fcr das Gesch\u00e4ftsmodell kritisch sind \u2013 welche Wertversprechen oder Kundenbeziehungen konkret gef\u00e4hrdet sind. Wie h\u00e4ngt die Prozess-Integration mit der Premium-Positionierung zusammen? Bei Herausforderung 2: Welche Rolle spielt das pers\u00f6nliche Beratungsmodell \u2013 wird es durch KI-Berater substituiert oder erg\u00e4nzt?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [
+          "revenue_streams"
+        ],
+        "missing_canvas_blocks": [
+          "customer_relationships",
+          "channels"
+        ],
+        "canvas_rationale": "Revenue Streams (Kostenstruktur, Preisverfall) wird angedeutet. Customer Relationships (pers\u00f6nliche Beratung vs. KI) und Channels (Filiale vs. digital) fehlen als explizite Argumentationselemente, obwohl Filiale erw\u00e4hnt wird."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 14.5,
+        "feedback": "Gute Entscheidung f\u00fcr E-Mail-Assistent mit nachvollziehbarer Logik (PoC, Time-to-Market, Governance-Aufbau). Die Kombination aus Empathie und KI-Pr\u00e4zision ist ein guter Ansatz \u2013 aber welche konkreten Ressourcen der Alpes Bank (Daten, Mitarbeitende, Marke) tragen diesen Vorteil und machen ihn schwer imitierbar? Welcher echte Zielkonflikt entsteht durch diese Priorisierung \u2013 nicht nur Risiken, sondern trade-offs zwischen konkurrierenden Zielen?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "value_propositions",
+          "cost_structure"
+        ],
+        "missing_canvas_blocks": [
+          "key_resources"
+        ],
+        "canvas_rationale": "Value Proposition wird implizit angedeutet (Empathie + Pr\u00e4zision), Cost Structure ansatzweise (Initialkosten, Risiko). Key Resources fehlen: Keine explizite Verbindung zu internen St\u00e4rken, die Imitationsschutz bieten."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 18.5,
+        "feedback": "Gut: Klare Buy-Entscheidung mit nachvollziehbarer Logik zu Spezifit\u00e4t, H\u00e4ufigkeit und Unsicherheit. Risiko (Abh\u00e4ngigkeit, Datenhoheit) und Massnahme (Hybrid-Governance, Rumpfteam) sind konkret und fallbezogen. Was k\u00f6nnte tiefer gehen: Welche bankspezifischen Aktivit\u00e4ten m\u00fcssen intern bleiben, um Compliance und Kundenvertrauen zu sichern? Wie genau sch\u00fctzt die Hybrid-Governance vor Lock-in bei AILabs \u2013 reicht Modell-Eigentum aus?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette",
+          "stakeholder"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.75,
+        "canvas_alignment_pct": 75.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners",
+          "key_resources"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities"
+        ],
+        "canvas_rationale": "Key Partners (AILabs-Rolle) und Key Resources (Datenhoheit, Know-how) werden substanziell behandelt. Key Activities fehlt: nicht explizit diskutiert, welche kritischen T\u00e4tigkeiten (z.B. Compliance-\u00dcberwachung, Kundenberatung) intern verbleiben m\u00fcssen."
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 21.0,
+        "feedback": "Gut: Sie definieren eine klare strategische Stossrichtung (Hybride Premium-Beratung) und identifizieren die Partner-Wahl als riskanteste Entscheidung mit durchdachten Konsequenzen (Zeitverlust, Budget-Reallokation, Akzeptanzproblem). Was fehlt: Wie ver\u00e4ndert sich konkret Ihr Leistungsversprechen f\u00fcr welches Kundensegment? Welche internen Prozesse und Ressourcen m\u00fcssen Sie daf\u00fcr priorisiert aufbauen \u2013 und welche Kosten oder Trade-offs entstehen dadurch f\u00fcr andere strategische Optionen?",
+        "learning_objective_tags": [
+          "synthese",
+          "integration",
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.5,
+        "canvas_alignment_pct": 50.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "value_propositions",
+          "key_activities"
+        ],
+        "missing_canvas_blocks": [
+          "key_resources",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Value Proposition (Befreiung von Admin, pers\u00f6nliche Betreuung) und Key Activities (Mitarbeiter-Umschulung, IT-Rekrutierung) implizit angesprochen. Key Resources und Cost Structure bleiben unterbelichtet \u2013 keine explizite Priorisierung kritischer F\u00e4higkeiten oder Kostenfolgen der Hybridstrategie."
+      }
+    ],
+    "total_points": 69.5,
+    "max_points": 101.0,
+    "percentage": 68.8,
+    "canvas_alignment_pct": 50.6,
+    "rubric_fit_pct": 63.3,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-15T09:42:14.869616",
+    "submitted_at": "2026-05-15T10:06:34.513277",
+    "evaluated_at": "2026-05-15T10:07:04.076664"
+  },
+  {
+    "_id": "6a06ec4a3a2a661811b916c9",
+    "submission_id": "b1720308-7342-4865-af7d-5dce3e3ef86c",
+    "user_id": "prolific_6a0346a0b48039c75a81f572",
+    "matrikelnummer": "6a0346a0b48039c75a81f572",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "6a0346a0b48039c75a81f572",
+      "prolific_pid": "6a0346a0b48039c75a81f572",
+      "metadata": {}
+    },
+    "answers": {},
+    "scores": [],
+    "total_points": 0.0,
+    "max_points": 0.0,
+    "percentage": 0.0,
+    "canvas_alignment_pct": 0.0,
+    "rubric_fit_pct": 0.0,
+    "canvas_exemplar_candidate": false,
+    "status": "in_progress",
+    "started_at": "2026-05-15T09:50:01.949381"
+  },
+  {
+    "_id": "6a06f4963a2a661811b9180e",
+    "submission_id": "995acf5b-6068-4279-9f4a-8935a6c24749",
+    "user_id": "prolific_69fb0e5f154f8501459bdf00",
+    "matrikelnummer": "69fb0e5f154f8501459bdf00",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "69fb0e5f154f8501459bdf00",
+      "prolific_pid": "69fb0e5f154f8501459bdf00",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Die erste gro\u00dfe Herausforderung besteht darin, den Einsatz von GenAI von der blo\u00dfen Effizienzsteigerung bestehender Aufgaben hin zu einer fundamentalen Neugestaltung der Key Activities \u00fcber die gesamte Wertsch\u00f6pfungskette hinweg zu entwickeln.\nDer CEO hat festgestellt, dass Alpes Bank  Gen Ai nur nutzt, um \u201calte Strukturen ein bisschen effizienter zu machen\u201c. Die Herausforderung liegt darin, die Silos zu \u00fcberwinden , die eine abteilungs\u00fcbergreifende Zusammenarbeit erschweren.\nAlpes Bank operiert mit einer sehr teuren Cost Structure , da sie bewusst am physischen Filialnetz festh\u00e4lt. Um dieses Modell langfristig zu rechtfertigen, muss die Bank im Backed effizienter werden, um die Margen ihrer Revenue Streamszu sch\u00fctzen, die durch die gezielte \u201ePremiumisierung\u201c erreicht werden.\nDiese Herausforderung ergibt sich aus dem Druck durch externe Marktentwicklungen  und den internen Gegebenheiten. W\u00e4hrend der Markt radikale Kosteneffizienz fordert, bremsen die internen Silos die notwendige Agilit\u00e4t, um das Gesch\u00e4ftsmodell umfassend zu transformieren.\n\nDie zweite Herausforderung betrifft die Entwicklung der Key Resources.\nDie Mitarbeitenden m\u00fcssen die neue F\u00e4higkeit entwickeln, KI-Outputs kritisch zu beurteilen. \nDas zentrale Value Proposition der Alpes Bank ist \u201eVerl\u00e4sslichkeit\u201c. Da GenAI zu Halluzinationen neigt, gef\u00e4hrdet jeder Fehler das Vertrauen der  Kundschaft, die h\u00f6here Preise f\u00fcr erstklassigen Service zahlt. Ein Scheitern bei der Qualit\u00e4tskontrolle w\u00fcrde die Customer Relationships besch\u00e4digen",
+      "q2": "Die Bank steht vor der zentralen Aufgabe, ihr hochprofitables, aber kostenintensives Filialmodell gegen den zunehmenden Druck durch g\u00fcnstige, KI-gest\u00fctzte Konkurrenzangebote zu verteidigen. Um diesen Wettbewerbsvorteil langfristig zu sichern, muss die Bank ihre internen Prozesse durch den Einsatz von Generative AI radikal effizienter gestalten. Dabei ist die \u00dcberwindung organisatorischer Silos entscheidend, damit die Technologie einen echten Mehrwert entlang der gesamten Wertsch\u00f6pfungskette generiert und nicht nur bestehende Strukturen optimiert.\nEin wesentlicher Erfolgsfaktor ist hierbei die Umsetzung des 3K-Modells, welches einen kompetenten, regelkonformen und kalkulierten Umgang mit der neuen Technologie vorschreibt. Die Mitarbeitenden m\u00fcssen lernen, als kritische Kontrollinstanz f\u00fcr KI-generierte Inhalte zu fungieren, um das fundamentale Kundenvertrauen trotz technischer Risiken wie Halluzinationen zu wahren. Der erfolgreiche Pilot des E-Mail-Assistenten hat bereits bewiesen, dass signifikante Zeitersparnisse bei gleichzeitigem Erhalt der Servicequalit\u00e4t m\u00f6glich sind. Letztlich h\u00e4ngt die Zukunft der Bank davon ab, ob die Fachbereiche bereit sind, technologische Verantwortung zu \u00fcbernehmen und den Wandel von der reinen Automatisierung zur echten Prozessinnovation mitzutragen.",
+      "q3": "Die Entscheidung f\u00fcr eine externe Zusammenarbeit mit AILabs war vor allem durch den massiven Zeitdruck von nur drei Monaten und das fehlende interne Fachwissen begr\u00fcndet. Zwar sprechen die hohe Nutzungsh\u00e4ufigkeit von 300.000 F\u00e4llen und die Spezifit\u00e4t der regionalen Dialekte eigentlich f\u00fcr eine interne Entwicklung, doch konnte die Bank die technologische Komplexit\u00e4t kurzfristig nicht allein bew\u00e4ltigen,. Das gr\u00f6sste Risiko dieser Entscheidung ist die technologische Abh\u00e4ngigkeit sowie die Gefahr von KI-Halluzinationen, da die Qualit\u00e4tsstandards des Startups nicht immer den strengen Bankanforderungen entsprechen. Als entscheidende Massnahme etablierte die Bank das \u201eHuman in the Loop\u201c-Prinzip, wodurch Mitarbeitende als letzte Kontrollinstanz die Verantwortung f\u00fcr die Qualit\u00e4t behalten",
+      "q4": "In den n\u00e4chsten 12 bis 24 Monaten sollte die Alpes Bank die Neugestaltung ganzer Gesch\u00e4ftsprozesse \u00fcber Abteilungsgrenzen hinweg priorisieren, um die bestehenden Silos aufzubrechen und echten Mehrwert entlang der gesamten Wertsch\u00f6pfungskette zu schaffen,.\nIm R\u00fcckblick war die Entscheidung f\u00fcr den experimentellen Rollout des E-Mail-Assistenten trotz technischer M\u00e4ngel die riskanteste. Diese Entscheidung birgt das gr\u00f6sste Risiko, da unentdeckte KI-Fehler oder Halluzinationen das fundamentale Kundenvertrauen gef\u00e4hrden, welches die Basis f\u00fcr das hochpreisige Premium-Gesch\u00e4ftsmodell der Bank bildet,. Eine Revision dieser Entscheidung \u2013 also ein Stopp des Piloten bis zur vollst\u00e4ndigen Fehlerfreiheit \u2013 h\u00e4tte jedoch dazu gef\u00fchrt, dass das Team das CEO Mandat nach Schnelligkeit verfehlt h\u00e4tte. Dies h\u00e4tte das interne Vertrauen in die Innovationsf\u00e4higkeit der Bank massiv geschw\u00e4cht und die Akzeptanz f\u00fcr das notwendige 3K-Governance-Modell sowie weitere geplante Investitionen wie den Wissens-Copiloten gef\u00e4hrdet."
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 19.5,
+        "feedback": "Sehr gut: Sie identifizieren zwei systemische Herausforderungen (GenAI-Transformation, Mitarbeiter-KI-Kompetenz) und verkn\u00fcpfen diese mit konkreten Canvas-Bausteinen (Cost Structure, Revenue Streams, Value Proposition, Customer Relationships). Das Zusammenspiel extern/intern ist bei Herausforderung 1 klar benannt. Was k\u00f6nnte tiefer gehen: Wie genau tangiert die Silostruktur die Channels (Filiale vs. digital)? Welche Rolle spielt das Premium-Beratungsmodell (Customer Relationships) konkret bei der GenAI-Integration \u2013 wird pers\u00f6nliche Beratung obsolet oder wertvoller?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette",
+          "stakeholder"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.75,
+        "canvas_alignment_pct": 75.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [
+          "revenue_streams",
+          "customer_relationships"
+        ],
+        "missing_canvas_blocks": [
+          "channels"
+        ],
+        "canvas_rationale": "Revenue Streams (Premiumisierung, Margen) und Customer Relationships (Vertrauen, Service) werden explizit und fallbezogen angesprochen. Channels (Filiale/digital-Spannungsfeld) fehlt trotz hoher Relevanz f\u00fcr beide Herausforderungen."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 8.5,
+        "feedback": "Gute Darstellung des organisatorischen Kontexts (3K-Modell, Siloproblematik). Aber: Welcher der drei Use Cases wird konkret empfohlen? Die Antwort bleibt auf Metaebene stehen. Worin besteht der **schwer imitierbare** Wettbewerbsvorteil \u2013 ist es nur Effizienz? Und welcher **echte Zielkonflikt** entsteht durch Ihre Empfehlung (z. B. Kosten vs. Kundenerlebnis, Tempo vs. Risiko)?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.3,
+        "canvas_alignment_pct": 30.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "key_resources"
+        ],
+        "missing_canvas_blocks": [
+          "value_propositions",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Key Resources (Mitarbeitende, Vertrauen) wird angedeutet. Value Propositions fehlt: kein konkreter Kundennutzen des Use Cases. Cost Structure fehlt: kein quantifizierbarer Zielkonflikt zwischen Nutzen und Aufwand."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 17.5,
+        "feedback": "Starke Argumentation: Sie erkennen den Zielkonflikt zwischen Spezifit\u00e4t/H\u00e4ufigkeit (\u2192 make) und Zeitdruck/Kompetenz (\u2192 buy) und benennen ein konkretes Risiko mit passender Massnahme. Was fehlt: Wie sichert die Bank langfristig Kontrolle \u00fcber kritische Aktivit\u00e4ten (z. B. Modell-Training, Compliance-\u00dcberwachung)? Welche internen Ressourcen (Daten, Bankwissen) bleiben strategisch wichtig, und wie sch\u00fctzt die Bank diese im Partnermodell?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette",
+          "stakeholder"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.6,
+        "canvas_alignment_pct": 60.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities",
+          "key_resources"
+        ],
+        "canvas_rationale": "AILabs als Partner wird klar thematisiert. Key Activities (was bleibt intern?) und Key Resources (welche Ressourcen sind strategisch?) fehlen als explizite Begr\u00fcndungsebenen der Make-or-Buy-Logik."
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 22.5,
+        "feedback": "Gut: Sie benennen eine klare strategische Stossrichtung (Prozess-Neugestaltung \u00fcber Silos hinweg) und identifizieren ein echtes Dilemma (Geschwindigkeit vs. Vertrauen). Die Konsequenz-Kette ist nachvollziehbar. Schw\u00e4che: Welche konkreten Wertsch\u00f6pfungsketten der Bank w\u00fcrden Sie zuerst umbauen \u2013 und welche Ressourcen oder F\u00e4higkeiten m\u00fcssen Sie daf\u00fcr aufbauen oder sch\u00fctzen? Wie wirkt sich die Revision auf die Kostenstruktur oder das Premium-Gesch\u00e4ftsmodell aus?",
+        "learning_objective_tags": [
+          "synthese",
+          "integration",
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.6,
+        "canvas_alignment_pct": 60.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "value_propositions",
+          "key_activities"
+        ],
+        "missing_canvas_blocks": [
+          "key_resources",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Value Proposition (Premium-Gesch\u00e4ftsmodell, Vertrauen) und Key Activities (Prozess-Neugestaltung, Governance) sind sichtbar. Key Resources (welche F\u00e4higkeiten?) und Cost Structure (Investitions-/Risikofolgen) bleiben implizit oder fehlen."
+      }
+    ],
+    "total_points": 68.0,
+    "max_points": 101.0,
+    "percentage": 67.3,
+    "canvas_alignment_pct": 56.6,
+    "rubric_fit_pct": 64.1,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-15T10:25:26.399207",
+    "submitted_at": "2026-05-15T11:48:08.998280",
+    "evaluated_at": "2026-05-15T11:48:39.709073"
+  },
+  {
+    "_id": "6a070cd63a2a661811b91b8c",
+    "submission_id": "b3d3d8d5-0750-40d8-a39c-006c99b3ac6c",
+    "user_id": "prolific_69ff4e77a1be562d4deb5763",
+    "matrikelnummer": "69ff4e77a1be562d4deb5763",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "69ff4e77a1be562d4deb5763",
+      "prolific_pid": "69ff4e77a1be562d4deb5763",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Dadurch, dass das durchschnittliche Klientel 51 Jahre alt ist, besteht eine Herausforderung darin, eine gute Balance zwischen den Konservativen Methoden (um die Kundenbindung und -erhaltung zu gw\u00e4hrleisten) und innovativen Methoden, um sich an die Entwicklung der Konkurrenz anzupassen (KI-Beratung). \n\nDerzeit bildet die konventionelle Filialberatung noch die h\u00f6chste Gewinnmarge (interne Gegebenheiten). Allerdings ist davon auszugehen, dass durch den Wealth-Shift eine Zuk\u00fcnftige Verlagerung auf das j\u00fcngere Klientel zukommen wird, welches mutma\u00dflich deutlich h\u00f6heres Interesse an einer Onlineberatung haben wird sowie an der M\u00f6glichkeit, jegliche Konflikte bzw. Probleme von zuhause aus zu behandeln (externe Entwicklungen). Es muss abgewogen werden, wie diese Umstellung erfolgen sollte, um gleichzeitig die Rentabilit\u00e4t des Unternehmens zu gew\u00e4hrleisten.",
+      "q2": "Zu Auswahl stehen ein Kundenservice Chatbot, Automatisierte Zusammenfassung von Kreditantr\u00e4gen f\u00fcr Berater und ein Compliance Tool zur Pr\u00fcfung interner Dokumente. Bei der Entscheidung sollte man aus meiner Sicht darauf achten, die Anforderungen von Tamaras Chef zu beachten. Demnach sitzt der Fokus auf eine m\u00f6glichst schnelle Anwendung, welche dabei m\u00f6glichst wenig potential f\u00fcr Sch\u00e4den oder \"Chaos\" mit sich bringt. \n\nAus meiner Sicht macht ein Chatbot keinen Sinn, da dies eine gro\u00dfe \u00c4nderung in der Dynamik zwischen Kunden und Unternehmen darstellt und gleichzeitig die von den Kunden gesch\u00e4tzten Qualit\u00e4ten des Unternehmens beeintr\u00e4chtigt. \n\nEin Compliance-Tool ist mit einem sehr hohen Aufwand verbunden und das Risiko f\u00fcr Fehler ist aus meiner Sicht deutlich h\u00f6her als eine Automatische, KI-gest\u00fctzte Zusammenfassung f\u00fcr Kreditantr\u00e4ge, welche dann manuell durchaus noch einmal von den Beratern \u00fcberpr\u00fcft werden k\u00f6nnte. Vorteil w\u00e4re hierbei eine zeitliche Entlastung der Berater, Nachteil ist allerdings, dass die Bank das Risiko f\u00fcr Fehler tr\u00e4gt. Es sollte der \nNutzen/Risiko Verh\u00e4ltnis abgewogen werden, welches allerdings aus meiner Sicht im Falle der KI-unterst\u00fctzten Kreditanalyse deutlich h\u00f6her ausf\u00e4llt, als bei den anderen L\u00f6sungen und gleichzeitig die risikoaverse Politik des Unternehmens im Vergleich am wenigsten beeintr\u00e4chtigt.",
+      "q3": "Klarer Vorteil der Verwendung, und vermutlich auch ein Hauptpunkt bei der allgemeinen Zuziehung eines \"Experten bez\u00fcglich KI-Entwicklung\", besteht darin, dass das Unternehmen einen Partner an der Hand hat, welcher bereits Erfahrungen in dem Feld gesammelt hat und bei vielen Anforderungen (z.B. Integration, Troubleshooting) Qualit\u00e4ten bieten kann, welches sich die Alpes Bank sonst in eigener Leistung erarbeiten m\u00fcsste. Quasi kann man davon ausgehen, dass das Unternehmen dadurch einen \"Headstart\" in das Thema bekommt und gleichzeitig einen Partner hat, an welches sich die ganze Zeit der Implikation \u00fcber gewandt werden kann. Vermutlich ist der eigene Aufbau einer Proficiency in dem Gebiet auch ein teureres Unterfangen. \n\nNachteile bilden zum einen das Risiko des Datenschutzes der Kunden des Unternehmens sowie das eine Beeintr\u00e4chtigung der Qualit\u00e4ten st\u00e4rken des Unternehmens im Umgang mit den Kunden durch auftretende Probleme, so wie es in der Fallstudie bereits angegeben wurde. Eine vermutlich m\u00f6gliche Ma\u00dfnahme w\u00e4re eine l\u00e4ngere Einarbeitung der KI mit AI-labs zusammen  oder eine vollst\u00e4nde Entwicklung der KI-Unterst\u00fctzung, welche allerdings dann wieder den bereits genannten Problematiken unterliegt.\n\n",
+      "q4": "Die Entscheidung \u00fcber die Einf\u00fchrung eines Chatbots ist aus meiner Sicht in diesem Falle ein fataler Fehler. Wenn man eine SWOT-Analyse hinzuzieht, erkennt man klar an den Gewinndaten des Unternehmens, dass eine St\u00e4rke in der pers\u00f6nliches Beratung des Unternehmens liegt. Eine Einf\u00fchrung des Chatbots hat das potential, diese St\u00e4rke zu beeintr\u00e4chtigen. \n\nEine \"opportunity\" und gleichzeitig \"weakness\" w\u00fcrde aus meiner Sicht die bereits geschilderte Implikation einer KI-gest\u00fctzten Kreditzusammenfassung f\u00fcr Berater darstellen, da diese zumindest nicht die St\u00e4rken des Unternehmens schneidet und einen weitaus kleineren \"impact\" haben wird und die Effizienz der Mitarbeiter verbessern kann.\n\nEin \"threat\" ist aus meiner Sicht die mit 12 Wochen bzw. bis zum Quartalsende deutlich zu kurz gew\u00e4hlte Zeit, um neue, dem Unternehmen komplett fremde, Methoden einzuf\u00fchren. Diese Implikation bedarf deutlich mehr Zeit und sollte m\u00f6glichst wenig Intrusive in die Unternehmenskultur sein, welche ohnehin schon als risikoavers beschrieben wird.\n\nEine Konsequenz der Revision der bereits getroffenen Entscheidungen w\u00e4re aus meiner Sicht fatal f\u00fcr das Unternehmen, da dies die moralische Einstellung zus\u00e4tzlich beschweren w\u00fcrde, welches die Offenheit/Toleranz bzgl. Neuerungen nachhaltig beeintr\u00e4chtigen w\u00fcrde. \n\n"
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 14.5,
+        "feedback": "Gut erkannt: Das Spannungsfeld zwischen bestehendem Filialmodell und digitalem Wandel sowie der Wealth-Shift. Die Verkn\u00fcpfung extern/intern ist sichtbar. Was fehlt: Eine zweite, klar unterschiedene Herausforderung wird nicht benannt. Welche konkrete Auswirkung hat die Umstellung auf die Premiumisierungsstrategie der Bank \u2013 warum genau steht das Gesch\u00e4ftsmodell unter Druck? Wie tangiert das die Zahlungsbereitschaft der Kunden?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.6,
+        "canvas_alignment_pct": 60.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [
+          "channels",
+          "revenue_streams"
+        ],
+        "missing_canvas_blocks": [
+          "customer_relationships"
+        ],
+        "canvas_rationale": "Channels (Filiale vs. Online) und Revenue Streams (Gewinnmarge, Rentabilit\u00e4t) werden angesprochen. Customer Relationships (Vertrauen, pers\u00f6nliche Betreuung, Premium-Beratungsmodell) bleibt implizit und wird nicht explizit als Herausforderung ausgearbeitet."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 14.5,
+        "feedback": "Gut: Klare Priorisierung (Kreditzusammenfassung) mit nachvollziehbarer Begr\u00fcndung \u00fcber Risikominimierung und zeitliche Entlastung. Der Zielkonflikt Nutzen/Risiko ist benannt. Was fehlt: Welche spezifischen internen St\u00e4rken von Alpes Bank (Daten, Beraterwissen, Vertrauenskultur?) machen diesen Use Case langfristig verteidigbar? Warum k\u00f6nnen UBS oder Credit Suisse diese L\u00f6sung nicht einfach kopieren? Und welche strategische Konsequenz hat die Fokussierung nach innen statt auf Kundenschnittstelle f\u00fcr die Positionierung der Bank?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "cost_structure"
+        ],
+        "missing_canvas_blocks": [
+          "value_propositions",
+          "key_resources"
+        ],
+        "canvas_rationale": "Cost Structure wird implizit via Nutzen-Risiko-Abw\u00e4gung adressiert. Value Propositions (Kundennutzen) und Key Resources (tragende St\u00e4rken, Imitationsschutz) fehlen oder bleiben generisch."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 10.5,
+        "feedback": "Gut: Sie erkennen den Erfahrungsvorteil von AILabs und nennen Datenschutz und Qualit\u00e4tsrisiko. Was fehlt: Welche Entscheidung treffen Sie konkret \u2013 Make oder Buy? Wie beeinflussen Spezifit\u00e4t (bankspezifisches Wissen?), H\u00e4ufigkeit (einmalig oder dauerhaft?) und Unsicherheit der Anforderungen Ihre Wahl? Welche konkrete Massnahme (nicht generisch 'l\u00e4ngere Einarbeitung') w\u00fcrden Sie gegen das Hauptrisiko einsetzen \u2013 z.B. vertragliche Governance, interne Kompetenzerhaltung?",
+        "learning_objective_tags": [
+          "analysieren",
+          "stakeholder"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.3,
+        "canvas_alignment_pct": 30.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities",
+          "key_resources"
+        ],
+        "canvas_rationale": "Partner-Rolle wird angedeutet (Erfahrung, Headstart), aber Key Activities (welche Entwicklung intern/extern?) und Key Resources (bankspezifisches Know-how, Daten, Compliance) fehlen als Entscheidungskriterien v\u00f6llig."
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 0.0,
+        "feedback": "Die automatische Auswertung konnte technisch nicht vollstaendig verarbeitet werden. Welche Kernargumente und Konsequenzen kannst du noch klarer strukturieren?",
+        "learning_objective_tags": [
+          "synthese",
+          "integration",
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.0,
+        "canvas_alignment_pct": 0.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [],
+        "missing_canvas_blocks": [],
+        "canvas_rationale": "Technischer Fallback wegen ungueltiger Modellantwort."
+      }
+    ],
+    "total_points": 39.5,
+    "max_points": 101.0,
+    "percentage": 39.1,
+    "canvas_alignment_pct": 30.9,
+    "rubric_fit_pct": 36.6,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-15T12:08:54.802695",
+    "submitted_at": "2026-05-15T13:03:30.686246",
+    "evaluated_at": "2026-05-15T13:04:03.606487"
+  },
+  {
+    "_id": "6a0711bf3a2a661811b91c46",
+    "submission_id": "14b82488-aecc-4021-ba42-b38a77e5ae74",
+    "user_id": "prolific_69fbf92548123850f030f77a",
+    "matrikelnummer": "69fbf92548123850f030f77a",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "69fbf92548123850f030f77a",
+      "prolific_pid": "69fbf92548123850f030f77a",
+      "metadata": {}
+    },
+    "answers": {
+      "q4": "Innerhalb der kommenden 12 bis 24 Monate wird sich die Alpes Bank gezwungen sehen, dem Drall der Premium-Beratung im Kontext der digitalen Unterst\u00fctzung zu folgen und die dadurch erm\u00f6glichten Effizienzen direkt in die Verbesserung der pers\u00f6nlichen Beziehung mit dem Kunden zu investieren. Wenn man den Weg zur\u00fcckgeht, dann stellt sich heraus, dass die Wahl eines \"Buy\"-Ansatzes im Zusammenhang mit der Entwicklung von KI die gef\u00e4hrlichste war. Bei einer Bank, die t\u00e4tig ist in einer konservativen und riskofreudigen Umgebung, kann jedes technische Misserfolg oder eine Ausstrahlung von Daten durch den externen Partner direkt das Grundvertrauen der Bank in ihren Kunden gef\u00e4hrden. In diesem Fall w\u00e4re jede R\u00fccksicht aufgrund der Sicherheit und Qualit\u00e4t nicht nur teuer, sondern auch um Jahre zur\u00fcckwerfen, weil das Vertrauen des Vorstands in die Digitalisierung dahin w\u00e4re.",
+      "q1": "Zun\u00e4chst einmal steht der Alpes Bank vor der existenziellen Aufgabe, sein hochrentable, jedoch personaleintensive Filiale-Muster aufgrund des technologischen Drucks seiner Konkurrenz zu verteidigen. Dies ergibt sich durch die Wechselwirkungen der externen Verf\u00fcgbarkeit g\u00fcnstiger KI-Beratungs-Arbeitswerkzeuge und der inneren Abh\u00e4ngigkeit von einer sehr rentablen, jedoch alternden Kundenschaft, die bislang bereit war, hohe Preise f\u00fcr menschliche Betreuung zu bezahlen. In der Branche wird mit einem digitalen Standardsystem gerechnet und es wird daher zunehmend schwierig f\u00fcr die Bank, ihre hohe Investition in Filialstrukturen aufgrund von Tradition rechtfertigen zu k\u00f6nnen. Die zweite Schl\u00fcsselproblematik besteht in der Bek\u00e4mpfung organisatorischer Silos. Bislang wurde die genannte AI nur sporadisch als Waffenrolle zur Effizienzoptimierung eingesetzt, bei der nachhaltigen Schaffung eines Wettbewerbsvorteils m\u00fcsste es zu einer kompletten Umgestaltung der Wertsch.",
+      "q2": "Es w\u00fcrde sich f\u00fcr Tamara lohnen, den Assistenten f\u00fcr E-Mails zu priorisieren, weil diese L\u00f6sung schnellen Nutzen mit relativ geringen Kosten und schneller Implementierung bringt. Allerdings wird der nachhaltige Vorteil der Alpes Bank durch die Implementierung der Technologie nicht gegeben, sondern durch die Entwicklung von einem hybriden Modell Premium-Services. Hierbei ist die interne St\u00e4rke der Bank in erster Linie die hohe Bindung der Kunden und Kompetenz des Beraters, bei reinen Online-Bankl\u00f6sungen nicht leicht wiederzufinden. Durch die Automatisierung der Verwaltungst\u00e4tigkeiten wird die M\u00f6glichkeit geboten, sich ganz der Betreuung zu widmen. Das Hauptproblem, das hierbei auftreten kann, besteht darin, die Effizienz so zu erh\u00f6hen, dass die Kosten gesenkt werden, ohne dass die Identit\u00e4t als Personal-Service dadurch geschw\u00e4cht wird.",
+      "q3": "In Bezug auf die Entwicklung des E-Mail-Assistenten kann die Adoption des Ansatzes Buy \u00fcber den Partner AILabs angebracht sein, da die notwendige Technologie zur Verf\u00fcgbarmachung von Large Language Models stark fortgeschritten und nicht die Kernkompetenz der Bank ist. Aufgrund der schnell fortschreitenden Innovationen und Unsicherheiten hinsichtlich der regulatorischen Anforderungen w\u00e4re es effizienter, auf externes Expertenwissen als alternative L\u00f6sung zu setzen anstelle eines langwierigen internen Entwicklungsprozesses. Allerdings besteht das gr\u00f6\u00dfte Risiko bei dieser Entscheidung darin, technologische Abh\u00e4ngigkeit zu entwickeln und Kontrolle \u00fcber sensitive Datenfl\u00fcsse zu verlieren. Daraus ergeben sich notwendigkeiten f\u00fcr die Bank, die Strategie offener Architektur unbedingt zu implementieren mit definierten Schnittstellen, die einen Anbieterwechsel erm\u00f6glichen."
+    },
+    "scores": [
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 0.0,
+        "feedback": "Die automatische Auswertung konnte technisch nicht vollstaendig verarbeitet werden. Welche Kernargumente und Konsequenzen kannst du noch klarer strukturieren?",
+        "learning_objective_tags": [
+          "synthese",
+          "integration",
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.0,
+        "canvas_alignment_pct": 0.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [],
+        "missing_canvas_blocks": [],
+        "canvas_rationale": "Technischer Fallback wegen ungueltiger Modellantwort."
+      },
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 18.5,
+        "feedback": "Gut: Du erkennst das Kerndilemma zwischen Filialmodell und KI-Druck und verkn\u00fcpfst extern (Technologie) mit intern (Kundenbasis, Kostenstruktur). Die Rentabilit\u00e4tsfrage ist klar benannt. Schw\u00e4che: Die zweite Herausforderung (Silos) bleibt unvollst\u00e4ndig und ohne Gesch\u00e4ftsmodell-Bezug. Wie wirkt sich die Silo-Problematik konkret auf Erl\u00f6sstr\u00f6me oder Kundenbeziehungen aus? Welche Wertsch\u00f6pfungslogik wird dadurch blockiert? Die Filial-Kanal-Diskussion k\u00f6nnte sch\u00e4rfer zeigen, warum die Premium-Beziehung ohne Anpassung erodiert.",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.6,
+        "canvas_alignment_pct": 60.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "missing_canvas_blocks": [],
+        "canvas_rationale": "Customer Relationships (Betreuung, Zahlungsbereitschaft) und Channels (Filiale vs. digital) werden solide angesprochen. Revenue Streams wird implizit ber\u00fchrt (Rentabilit\u00e4t, hohe Preise), aber die Verbindung zur zweiten Herausforderung fehlt. Insgesamt teilweise integriert, nicht durchg\u00e4ngig fallbezogen vertieft."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 16.5,
+        "feedback": "Gut: Klare Priorisierung (E-Mail-Assistent) mit pragmatischer Begr\u00fcndung und R\u00fcckbindung an hybrides Servicemodell. Starke Ressourcenlogik (Kundenbindung, Berater-Kompetenz) und ein konkreter Zielkonflikt (Effizienz vs. Personal-Service-Identit\u00e4t). Was fehlt: Warum ist dieser Vorteil f\u00fcr reine Online-Banken schwer imitierbar \u2014 was genau macht die Kombination unverwechselbar? Wie ver\u00e4ndert der Use Case das Wertversprechen konkret f\u00fcr verschiedene Kundensegmente?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.65,
+        "canvas_alignment_pct": 65.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "key_resources",
+          "cost_structure"
+        ],
+        "missing_canvas_blocks": [
+          "value_propositions"
+        ],
+        "canvas_rationale": "Key Resources (Kundenbindung, Beraterkompetenz) und Cost Structure (Effizienz-Identit\u00e4ts-Trade-off) sind gut adressiert. Value Propositions bleibt implizit \u2014 der konkrete Kundennutzen des hybriden Modells wird nicht explizit ausgearbeitet."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 16.5,
+        "feedback": "Gut: Klare Buy-Entscheidung mit plausiblem Argument (Technologie nicht Kernkompetenz, regulatorische Unsicherheit). Risiko (Abh\u00e4ngigkeit, Datenkontrolle) und Massnahme (offene Architektur) nachvollziehbar. Schw\u00e4che: Spezifit\u00e4t und H\u00e4ufigkeit der Leistung nicht explizit diskutiert \u2013 wie spezifisch ist ein E-Mail-Assistent f\u00fcr die Alpes Bank wirklich? Welche bankspezifischen Anforderungen (z. B. Regulatorik, Kundendaten) k\u00f6nnten interne Ressourcen rechtfertigen? Die Wahl zwischen Make/Buy h\u00e4ngt stark davon ab.",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette",
+          "stakeholder"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.6,
+        "canvas_alignment_pct": 60.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities",
+          "key_resources"
+        ],
+        "canvas_rationale": "Key Partners wird durch AILabs-Diskussion angesprochen. Key Activities (welche intern/extern?) und Key Resources (bankspezifisches Wissen, Daten, Compliance-Know-how) fehlen als explizite Begr\u00fcndungsebene der Make-or-Buy-Logik."
+      }
+    ],
+    "total_points": 51.5,
+    "max_points": 101.0,
+    "percentage": 51.0,
+    "canvas_alignment_pct": 43.4,
+    "rubric_fit_pct": 48.7,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-15T12:29:51.568038",
+    "submitted_at": "2026-05-15T12:41:00.876800",
+    "evaluated_at": "2026-05-15T12:41:36.050917"
+  },
+  {
+    "_id": "6a072b1c3a2a661811b91ff2",
+    "submission_id": "358bbab9-7697-4c91-aedd-8e211160d2b4",
+    "user_id": "prolific_69196b4f1c6ae1b1307a9de9",
+    "matrikelnummer": "69196b4f1c6ae1b1307a9de9",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "69196b4f1c6ae1b1307a9de9",
+      "prolific_pid": "69196b4f1c6ae1b1307a9de9",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Eine gro\u00dfe Herausforderung besteht darin das die aktuelle Kundengruppe bereits im fortgeschrittenen Alter ist und dementsprechend in naher Zukunft neue Kunden gewonnen werden m\u00fcssen. Daf\u00fcr wird es allerdings notwendig sein den Gewinn in den Bereichen App und Online-Banking zu erh\u00f6hen wo man massiv hinter dem Branchendurchschnitt liegt, da j\u00fcngere potenzielle Kunden mehr Wert darauf legen werden. Dadurch wird die Beratung in der Filiale langfristig minimiert und effizienter gemacht sodass nur pers\u00f6nliche Beratung bei schwerwiegenden Problemen notwendig ist. Daraus folgt das eine Menge Personalkosten eingespart werden k\u00f6nnen um den Ertrag zu steigern. Im Bereich Kundenservice sollte das Personal schnellstm\u00f6glich im Umgang mit KI besser geschult werden um die Antworten der KI schneller \u00fcberpr\u00fcfen zu k\u00f6nnen und die Effizienz zu steigern. Insgesamt wird die Kundenbeziehung dadurch zwar weniger pers\u00f6nlich aber deutlich effizienter und damit langfristig eher tragbar.",
+      "q3": ""
+    },
+    "scores": [],
+    "total_points": 0.0,
+    "max_points": 0.0,
+    "percentage": 0.0,
+    "canvas_alignment_pct": 0.0,
+    "rubric_fit_pct": 0.0,
+    "canvas_exemplar_candidate": false,
+    "status": "in_progress",
+    "started_at": "2026-05-15T14:18:04.189737"
+  },
+  {
+    "_id": "6a0734a33a2a661811b92159",
+    "submission_id": "df64eb57-9374-49a0-9c13-7fef3cf2768d",
+    "user_id": "prolific_69e4c24a1a711a5140a79f4b",
+    "matrikelnummer": "69e4c24a1a711a5140a79f4b",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "69e4c24a1a711a5140a79f4b",
+      "prolific_pid": "69e4c24a1a711a5140a79f4b",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Als eine kritische Herausforderung der Alpes Bank kann die Zukunftsf\u00e4higkeit des Filialmodells gesehen werden. Dies kann sich einmal aus den externen Marktentwicklungen und au\u00dferdem aus den internen Gegebenheiten entwickeln. Da die Konkurrenten billige KI gest\u00fctzte Beratungstools einsetzen, kann es sein das die Alpes Bank mit ihren teuren, pers\u00f6nliches Filialnetz hinten wegbleiben. Da au\u00dferdem die Filiale gerade das profitabelste Gesch\u00e4ftsfeld ist, ist abzuwarten, wie lange das Hochpreismodell sich gegen die Konkurrenz durchsetzen kann. Als zweite Herausforderung kann gesehen werden, dass die \u00dcberwindung interner Silos und traditioneller Unternehmenskultur geschafft werden muss. DA GenAI bisher lediglich zur Effizienzsteigerung innerhalb bestehender Strukturen genutzt werden kann, ist es f\u00fcr das Gesch\u00e4ftsmodell jedoch entscheidend, dass Prozesse abteilungs\u00fcbergreifend eingesetzt werden. ",
+      "q2": "Meiner Meinung nach sollte Tamara den E-Mail Assistenten zuerst umsetzen. Dieser ist ideal daf\u00fcr das 12 Wochen Mandat des CEOs zu erf\u00fcllen. Au\u00dferdem kann dieser zu schnellen Erfolgen in der Unternehmenskultur f\u00fchren. Die GenAI kann entsprechend genutzt werden, um die Berater zu unterst\u00fctzen anstatt sie direkt zu ersetzen. Dies hat den Vorteil, dass die tiefen Kundenbeziehungen erhalten werden k\u00f6nnen und das wissen der Berater kann dabei ebenfalls erhalten bleiben anstatt ersetzt zu werden. Da der Hauptkonflikt in der Effizienz gegen die Pr\u00e4mieumqualit\u00e4t liegt, kann mit diesem Assistenten beides erhalten bleiben.",
+      "q3": "Die Entscheidung \"Buy\" w\u00e4re hier sinnvoll, da es einen extremen Zeitdruck durch das Mandat gibt und es intern keine richtige GenAI Expertise gibt. Da ein Externer Partner somit die technologischen Anforderungen abnehmen kann, kann das Problem einer Unsicherheit in diesem Feld durch den Partner abgenommen werden. Da au\u00dferdem 300.000 EMails pro Jahr geschrieben werden sollen, ist es notwendig eine professionelle L\u00f6sung zu finden. Durch die Entscheidung \"Buy\" muss sich das Unternehmen nicht erst mit der Entwicklung befassen. Ein Risiko w\u00e4re, dass man abh\u00e4ngig von einem externen Partner wird. Zudem kann es zu einem gleichzeitigen Verlust der Kontrolle \u00fcber die Servicequalit\u00e4t f\u00fchren. Als Ma\u00dfnahme muss das 3K-Modell konsequent umgesetzt werden. Die Mitarbeiter m\u00fcssen hierbei als Qualit\u00e4tskontrolle eingesetzt werden, um die Entw\u00fcrfe der Ki zu pr\u00fcfen. Dies sicher weiterhin ab, dass die pr\u00e4miumqualit\u00e4t erhalten werden kann obwohl externe technik verwendet wird.",
+      "q4": "Innerhalb der n\u00e4chsten 2 Jahre sollte die Bank die Bank sowohl die organisatorische Transformation von Silo Effizienz als auch die abteilungs\u00fcbergreifende Prozesse durch eine KI Unterst\u00fctzung priorisieren. Ein Hauptziel sollte es sein, dass das Pr\u00e4miummodell durch die \"hybride Exzellenz\" abgesichert wird, indem die Berater den Kundenkontakt weiterhin pflegen k\u00f6nnen. Die riskanteste Entscheidung war im R\u00fcckblick wahrscheinlich die \"Buy\" Enscheidung. Da durch diese Entscheidung eine externe Abh\u00e4ngigkeit geschaffen wurde, kann das Unternehmen dadurch die Kontrolle \u00fcber die Qualit\u00e4t verlieren. Jedoch wurde mit dieser Entscheidung auch das 12-Wochen Mandat eingehalten. H\u00e4tte man sich f\u00fcr die \"Make entscheiden, w\u00e4re der pilottest innerhalb der 12 Wochen wahrscheinlich gescheitert, weil die interne Expertise fehlt. Dies h\u00e4tte dazu f\u00fchren k\u00f6nnen, dass der Schutz gegen die billig-Konkurrenten nicht durchgef\u00fchrt werden k\u00f6nnte, da die Kultur in der Alpes Bank die GenAI nicht h\u00e4tte fr\u00fchzeitig aufbauen k\u00f6nnen."
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 16.5,
+        "feedback": "Gut: Sie benennen zwei relevante Herausforderungen und zeigen bei der Filialfrage das Zusammenspiel extern/intern. Der Bezug zu Profitabilit\u00e4t und Channels ist erkennbar. Was fehlt: Wie genau wirkt sich die Herausforderung auf die Customer Relationships aus \u2013 was passiert mit dem Vertrauens- und Beratungsversprechen, wenn KI-Tools g\u00fcnstiger werden? Warum ist die Silo-Problematik gesch\u00e4ftsmodellrelevant \u2013 welche Revenue Streams oder Kundenbeziehungen h\u00e4ngen davon ab? Die zweite Herausforderung bleibt zu organisationsintern gedacht.",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.5,
+        "canvas_alignment_pct": 50.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [
+          "channels",
+          "revenue_streams"
+        ],
+        "missing_canvas_blocks": [
+          "customer_relationships"
+        ],
+        "canvas_rationale": "Channels und Revenue Streams werden angesprochen (Filiale, Hochpreismodell). Customer Relationships \u2013 das Kernversprechen pers\u00f6nlicher Beratung und Vertrauen \u2013 bleibt unterbelichtet. Die Silo-Herausforderung wird nicht ans Gesch\u00e4ftsmodell r\u00fcckgebunden."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 14.5,
+        "feedback": "Gut: Klare Entscheidung f\u00fcr E-Mail-Assistenten mit Kulturlogik und pragmatischem Zeithorizont. Der Erhalt von Beziehung & Wissen ist fallbezogen. Fehlt: Welche *internen St\u00e4rken* (Daten? Beraterwissen? Marke?) tragen diesen Vorteil \u2014 und warum kann UBS ihn nicht einfach kopieren? Der Zielkonflikt (Effizienz vs. Premium) wird genannt, aber nicht ausgearbeitet: Was genau wird geopfert, was gewonnen? Welche Kennzahl zeigt den Trade-off?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "value_propositions"
+        ],
+        "missing_canvas_blocks": [
+          "key_resources",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Value Proposition wird implizit (Unterst\u00fctzung statt Ersatz, Beziehungserhalt) angesprochen. Key Resources und Cost Structure fehlen: Keine Benennung tragender Ressourcen oder \u00f6konomische Abw\u00e4gung des Zielkonflikts."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 14.5,
+        "feedback": "Gut: Klare Buy-Entscheidung mit relevanten Argumenten (Zeitdruck, fehlende Expertise, Volumen). Das 3K-Modell als Qualit\u00e4tssicherung ist praxisnah. Schw\u00e4chen: Wie spezifisch ist die Leistung wirklich \u2013 k\u00f6nnte die Bank ihren Premiumanspruch mit einer Standardl\u00f6sung \u00fcberhaupt erf\u00fcllen? Welche kritischen Aktivit\u00e4ten (z. B. Prompt-Engineering, Datenschutz-Governance) m\u00fcssten intern bleiben, damit die Bank Kontrolle und Differenzierung beh\u00e4lt? Welche Ressourcen (Bankwissen, Kundendaten) sind so wertvoll, dass sie nicht extern delegiert werden d\u00fcrfen?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities",
+          "key_resources"
+        ],
+        "canvas_rationale": "Key Partners wird erw\u00e4hnt (externer Partner, Abh\u00e4ngigkeit). Key Activities und Key Resources werden nicht explizit durchdacht: Welche T\u00e4tigkeiten/Wissen muss intern bleiben, um Differenzierung und Kontrolle zu sichern?"
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 18.5,
+        "feedback": "Gut: Sie benennen eine klare Stossrichtung (hybride Exzellenz, Premiummodell) und identifizieren die Buy-Entscheidung als Risiko mit nachvollziehbarer Begr\u00fcndung (externe Abh\u00e4ngigkeit vs. Zeitdruck). Was fehlt: Wie wirkt sich eine Revision der Buy-Entscheidung konkret auf Ihre Ressourcenallokation, Governance-Struktur oder Ihr Kostenmodell aus? Welche internen F\u00e4higkeiten m\u00fcssten Sie dann priorisieren, und welche Trade-offs entst\u00fcnden f\u00fcr die hybride Exzellenz?",
+        "learning_objective_tags": [
+          "synthese",
+          "integration",
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "value_propositions",
+          "key_activities"
+        ],
+        "missing_canvas_blocks": [
+          "key_resources",
+          "cost_structure"
+        ],
+        "canvas_rationale": "Value Proposition (hybride Exzellenz, Premium) und Key Activities (Prozesse, Kultur) werden angedeutet. Key Resources (welche Kompetenzen aufbauen?) und Cost Structure (Investitions-/Risiko-Trade-offs) bleiben implizit oder fehlen."
+      }
+    ],
+    "total_points": 64.0,
+    "max_points": 101.0,
+    "percentage": 63.4,
+    "canvas_alignment_pct": 42.5,
+    "rubric_fit_pct": 57.1,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-15T14:58:43.164146",
+    "submitted_at": "2026-05-15T15:45:26.246658",
+    "evaluated_at": "2026-05-15T15:46:14.519680"
+  },
+  {
+    "_id": "6a0734b83a2a661811b9215b",
+    "submission_id": "f1d4b64a-ce4f-4adf-b6cf-8e962fd2c2ab",
+    "user_id": "prolific_123456",
+    "matrikelnummer": "123456",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "123456",
+      "prolific_pid": "123456",
+      "metadata": {}
+    },
+    "answers": {},
+    "scores": [],
+    "total_points": 0.0,
+    "max_points": 0.0,
+    "percentage": 0.0,
+    "canvas_alignment_pct": 0.0,
+    "rubric_fit_pct": 0.0,
+    "canvas_exemplar_candidate": false,
+    "status": "in_progress",
+    "started_at": "2026-05-15T14:59:04.618066"
+  },
+  {
+    "_id": "6a07381c3a2a661811b921dd",
+    "submission_id": "f440d090-a293-485a-9617-60382d8d7168",
+    "user_id": "prolific_DavidSonnabend",
+    "matrikelnummer": "DavidSonnabend",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "DavidSonnabend",
+      "prolific_pid": "DavidSonnabend",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Zwei kritische Herausforderungen f\u00fcr Alpes Bank 1. HERAUSFORDERUNG: Verteidigung des Premium-Filialmodells gegen KI-gest\u00fctzte Niedrigpreis-Konkurrenz Worin sie konkret besteht: Alpes Bank erwirtschaftet CHF 140 pro Kunde \u00fcber Filialen \u2014 weit \u00fcber dem Branchenschnitt von CHF 80. Dieses Modell basiert auf teuren menschlichen Beratern. Konkurrenten bieten nun KI-Beratung zu einem Bruchteil der Kosten an. Die Bank muss zeigen, warum Kunden weiterhin den Aufpreis f\u00fcr pers\u00f6nliche Beratung zahlen sollen \u2014 oder riskiert, ihre profitabelste Einnahmequelle zu verlieren. **Warum sie gesch\u00e4ftsmodellrelevant ist:** Die Filiale tr\u00e4gt fast 50% des Gesamtgewinns (CHF 140 von CHF 290). Digitale Kan\u00e4le sind unterentwickelt (App: CHF 0, Online: CHF 10 vs. Branche CHF 60). Wenn die Filiale erodiert, bricht das gesamte Ertragsmodell zusammen \u2014 ohne dass ein digitaler Ersatz existiert. Zusammenspiel extern/intern: - Extern: KI-Konkurrenz demokratisiert Finanzberatung und senkt Preise dramatisch - Intern: Bewusste Vernachl\u00e4ssigung digitaler Kan\u00e4le \u00fcber Jahre; Kultur ist auf pers\u00f6nlichen Service optimiert, nicht auf Skalierung - Spannung: Die Bank kann nicht einfach \"auch digital werden\" \u2014 ihre Kundschaft ist 51 Jahre alt und sch\u00e4tzt genau das, was teuer ist. Aber sie kann auch nicht ignorieren, dass j\u00fcngere Kunden oder preissensitive Segmente abwandern werden. 2. HERAUSFORDERUNG: Transformation von Effizienzautomatisierung zu echten Prozessinnovationen Worin sie konkret besteht: Nach einem Jahr nutzt Alpes Bank GenAI nur f\u00fcr isolierte Aufgaben innerhalb bestehender Abteilungen (E-Mail-Assistent, Wissens-Copilot, HR-Chatbot). Der CEO erkennt: \"Wir machen die alten Strukturen effizienter, denken aber nicht neu.\" Die Herausforderung besteht darin, GenAI \u00fcber Silos hinweg einzusetzen und gesamte Wertsch\u00f6pfungsketten neu zu gestalten \u2014 was tiefgreifende organisatorische Ver\u00e4nderungen erfordert. Warum sie gesch\u00e4ftsmodellrelevant ist: Echte Differenzierung entsteht nicht durch 21% schnellere E-Mail-Antworten, sondern durch grundlegend bessere Kundenerlebnisse. Wenn Konkurrenten GenAI nutzen, um End-to-End-Prozesse zu transformieren (z.B. vollautomatische Kreditvergabe in Minuten statt Tagen), reichen inkrementelle Effizienzgewinne nicht aus. Die Bank riskiert, technologisch abgeh\u00e4ngt zu werden \u2014 trotz GenAI-Nutzung. Warum sie besonders kritisch ist: Die risikoaverse, traditionelle Kultur bei"
+    },
+    "scores": [],
+    "total_points": 0.0,
+    "max_points": 0.0,
+    "percentage": 0.0,
+    "canvas_alignment_pct": 0.0,
+    "rubric_fit_pct": 0.0,
+    "canvas_exemplar_candidate": false,
+    "status": "in_progress",
+    "started_at": "2026-05-15T15:13:32.529380"
+  },
+  {
+    "_id": "6a073af03a2a661811b92251",
+    "submission_id": "c5abba8e-265a-4ba7-b21a-cb372aedc271",
+    "user_id": "prolific_69e61269b2490f8e7a076a21",
+    "matrikelnummer": "69e61269b2490f8e7a076a21",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "69e61269b2490f8e7a076a21",
+      "prolific_pid": "69e61269b2490f8e7a076a21",
+      "metadata": {}
+    },
+    "answers": {
+      "q1": "Die erste Herausforderung f\u00fcr die Alpes Bank ist der Allgmein immer h\u00e4ufigere Einsatz von KI im Bank Sektor. Hierdurch erwarten Kunden einerseits schnelle digitale L\u00f6sungen, was die Bank unter Druck setzt, da der Einsatz von KI ihr Kerngesch\u00e4ft mit den einzelnen Filialen massiv unter Druck setzt. Somit steht das Unternehmen unter enormen Zugzwang. Die zweite Herausforderung kn\u00fcpft an diesem Zugzwang an, da die Bank nun zwar ein erstes KI Konzept erarbeitet hat und dies auch schon nutzt, aber noch genaue Regelungen f\u00fcr dessen interne Nutzung fehlen. Auch ist dies nur ein erster Schritt in der Nutzung von KI und in den weiteren Etappen muss die Bank weiterhin versuchen ihr Gesch\u00e4ftsmodell zu digitalisieren und erneuern, darf hierbei aber nicht die Bindung zu ihren St\u00e4rken und den Kunden verlieren.",
+      "q2": "Tamara sollte sich auf die Entwicklung des Chat-Bots konzentrieren. Dessen Entwicklung ben\u00f6tigt zum einen nur 10 Wochen, ist also innerhalb der Frist sehr wahrscheinlich fertig entwickelt und besitzt zum anderen auch die geringsten Initialkosten, wodurch das wirtschaftliche Risiko f\u00fcr die Bank sinkt. Der Bot w\u00fcrde das starke Filialnetz der Bank zudem sehr gut komplementieren, da er nicht mit diesem in Konkurrenz steht sondern stattdessen die online Pr\u00e4senz der Bank weiter st\u00e4rkt. Die bisherige Kundschaft kann somit weiterhin die Filialen wie gewohnt nutzen, w\u00e4hrend der Bot f\u00fcr eine j\u00fcngere Zielgruppe attraktiv wirkt und dadurch eine neue Zielgruppe erschlie\u00dfen kann. Da der Bot auch keinerlei sensible Daten verwendet ergibt sich auch kein sehr hohes Risiko f\u00fcr einen Image Verlust bei eventuellen Fehlern. Diese Entscheidung zieht den \"make or buy\" Konflikt mit sich, welchen man aber aufgrund des Zeitdrucks und der leichten sp\u00e4teren Austauschbarkeit des Systems mit \"buy\" beantworten sollte.",
+      "q3": "Tamara sollte den Bot lieber kaufen, da die zeitliche Frist der kritischste Faktor f\u00fcr Sie ist. Ein Email- Bot ist zudem auch nicht allzu spezifisch, weshalb eine Kaufentscheidung Sinn macht. Der Bot wird zwar sehr frequent genutzt, aber mit Frequenz alleine kommen gekaufte Systeme allemal aus. Beim Kauf sollte Sie jedoch auf kritische Punkte im Vertrag beharren: Zum einen sollte sie strenge Regeln  f\u00fcr den Datenschutz festschreiben, um sicherzugehen, dass keinerlei Daten veruntreut werden. Zudem sollte sie als zweiten Punkt das Recht auf jederzeitige Einsichtnahme auf jegliche Daten des Bots vereinbaren, um so jederzeit die volle Kontrolle zu haben. Als letztes sollte sie das Recht auf eigenst\u00e4ndigen Umbau und Erweiterung des Bots festschreiben, um nicht abh\u00e4ngig vom Hersteller zu werden und individuelle Aspekte sp\u00e4ter leichter angehen zu k\u00f6nnen. ",
+      "q4": "Alpes Bank sollte sich in den n\u00e4chsten 12 bis 24 Monaten auf eine schnelle Erweiterung ihrer online und digital Pr\u00e4senz konzentrieren, um m\u00f6glichst schnell eine j\u00fcngere Zielgruppe zu erschlie\u00dfen. Hierzu bietet sich vor allem der Chat-Bot aufgrund der in der 2. Aufgabe beschriebenen Vorteile sehr gut an. Um jedoch auch den aktuellen Kern ihres Gesch\u00e4ftes weiterzuentwickeln, sollte die Bank ihre Service Kr\u00e4fte durch verschiedene KI Assistenten, wie zum Beispiel den Email Bot, unterst\u00fctzen. Dadurch k\u00f6nnen langfristig Kosten eingespart werden, ohne das Image der Bank und ihre wesentlichen Merkmale stark zu ver\u00e4ndern. Die risikoreichste  Entscheidung ist meiner Ansicht nach die Entwicklung des Chat Bots, da dadurch vor allem j\u00fcngere Kunden angesprochen werden sollen, die Bank mit dieser Zielgruppe aber bislang wenig Kontakt hatte. Somit muss die Bank nicht nur den Bot als Einzell\u00f6sung entwickeln, sondern vielmehr sollte man f\u00fcr diese Zielgruppe auch ein eigenes breiter aufgebautes Gesch\u00e4ftskonzept erarbeiten."
+    },
+    "scores": [
+      {
+        "question_id": "q1",
+        "bloom_level": 4,
+        "max_points": 25,
+        "awarded_points": 10.5,
+        "feedback": "Gut: Sie benennen zwei relevante Herausforderungen (KI-Druck auf Filialen, fehlende interne KI-Governance) und deuten das Spannungsfeld zwischen Digitalisierung und Kundenbindung an. Schw\u00e4cher: Warum genau bedroht KI-Einsatz das *Gesch\u00e4ftsmodell* der Alpes Bank \u2013 welche Erl\u00f6slogik oder welches Wertversprechen steht auf dem Spiel? Und: Wie h\u00e4ngen externe KI-Trends mit *internen* Gegebenheiten (z. B. Filialnetz, Mitarbeiterkompetenzen, Premium-Positionierung) zusammen? Die Verbindung bleibt vage.",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp1_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "customer_relationships",
+          "channels",
+          "revenue_streams"
+        ],
+        "addressed_canvas_blocks": [
+          "channels"
+        ],
+        "missing_canvas_blocks": [
+          "customer_relationships",
+          "revenue_streams"
+        ],
+        "canvas_rationale": "Channels (Filiale vs. digital) wird implizit angesprochen. Customer Relationships (Beratungsmodell, Vertrauen) und Revenue Streams (Profitabilit\u00e4t, Zahlungsbereitschaft) fehlen oder bleiben unausgef\u00fchrt."
+      },
+      {
+        "question_id": "q2",
+        "bloom_level": 5,
+        "max_points": 24,
+        "awarded_points": 14.5,
+        "feedback": "Gut: Klare Empfehlung mit operativen Argumenten (Zeit, Kosten, Risiko) und nachvollziehbarer Komplement\u00e4rlogik zum Filialnetz. Schw\u00e4chen: Welche internen St\u00e4rken von Alpes Bank tragen den langfristigen Wettbewerbsvorteil \u2013 und warum kann diese Kombination nicht einfach kopiert werden? Der Make-or-Buy-Konflikt ist richtig identifiziert, aber: Wenn buy die Antwort ist und das System austauschbar \u2013 worin liegt dann der nachhaltige, schwer imitierbare Vorteil?",
+        "learning_objective_tags": [
+          "evaluieren",
+          "trade-off"
+        ],
+        "rubric_reference": "tp2_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "value_propositions",
+          "cost_structure"
+        ],
+        "missing_canvas_blocks": [
+          "key_resources"
+        ],
+        "canvas_rationale": "Value Proposition (neue Zielgruppe, Komplement\u00e4rlogik) und Cost Structure (Initialkosten, Risiko) werden angesprochen. Key Resources fehlt: Keine Verbindung zu internen F\u00e4higkeiten, Daten oder Wissen, die den Vorteil tragen und Imitierbarkeit erschweren."
+      },
+      {
+        "question_id": "q3",
+        "bloom_level": 4,
+        "max_points": 22,
+        "awarded_points": 13.5,
+        "feedback": "Gut: Klare Buy-Entscheidung mit Zeitdruck-Argument und drei konkreten Vertragsklauseln als Gegenmassnahmen. Schw\u00e4chen: Die Spezifit\u00e4t wird behauptet, aber nicht begr\u00fcndet \u2013 wie standardisierbar sind bankspezifische E-Mail-Anfragen wirklich? Welches konkrete Risiko entsteht aus der Buy-Entscheidung? Die H\u00e4ufigkeit wird erw\u00e4hnt, aber nicht als Entscheidungskriterium genutzt. Welche internen F\u00e4higkeiten gehen verloren oder m\u00fcssen erhalten bleiben?",
+        "learning_objective_tags": [
+          "analysieren",
+          "wirkungskette"
+        ],
+        "rubric_reference": "tp3_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "key_partners",
+          "key_activities",
+          "key_resources"
+        ],
+        "addressed_canvas_blocks": [
+          "key_partners"
+        ],
+        "missing_canvas_blocks": [
+          "key_activities",
+          "key_resources"
+        ],
+        "canvas_rationale": "Key Partners wird durch Vertragsgestaltung mit AILabs implizit adressiert. Key Activities und Key Resources werden nicht durchdacht. Die Wertsch\u00f6pfungslogik bleibt unklar."
+      },
+      {
+        "question_id": "q4",
+        "bloom_level": 6,
+        "max_points": 30,
+        "awarded_points": 14.0,
+        "feedback": "Gut: Sie identifizieren den Chatbot als riskanteste Entscheidung und nennen die neue Zielgruppe als Grund. Was fehlt: Welche konkreten Interdependenzen entstehen zwischen Chatbot-Rollout, bestehenden Servicestrukturen und Ihrem Wertversprechen? Wie ver\u00e4ndert eine Revision dieser Entscheidung Ihre Ressourcenallokation und Kostenstruktur? Was bedeutet 'breiteres Gesch\u00e4ftskonzept' operativ \u2013 welche Key Activities m\u00fcssten anders priorisiert werden?",
+        "learning_objective_tags": [
+          "synthese",
+          "reflexion"
+        ],
+        "rubric_reference": "tp4_rubric.json",
+        "canvas_alignment_score": 0.4,
+        "canvas_alignment_pct": 40.0,
+        "required_canvas_blocks": [
+          "value_propositions",
+          "key_activities",
+          "key_resources",
+          "cost_structure"
+        ],
+        "addressed_canvas_blocks": [
+          "key_activities",
+          "cost_structure"
+        ],
+        "missing_canvas_blocks": [
+          "value_propositions",
+          "key_resources"
+        ],
+        "canvas_rationale": "Key Activities (Support, Chatbot-Entwicklung) und Kostenaspekte werden angedeutet. Value Propositions bleibt diffus ('Image', 'Merkmale'), Key Resources (Daten, Kompetenzen, Governance) fehlen. Interdependenzen bei Revision nicht durchdacht."
+      }
+    ],
+    "total_points": 52.5,
+    "max_points": 101.0,
+    "percentage": 52.0,
+    "canvas_alignment_pct": 40.0,
+    "rubric_fit_pct": 48.4,
+    "canvas_exemplar_candidate": false,
+    "status": "evaluated",
+    "started_at": "2026-05-15T15:25:36.046857",
+    "submitted_at": "2026-05-15T16:24:05.650337",
+    "evaluated_at": "2026-05-15T16:24:45.781171"
+  },
+  {
+    "_id": "6a09a6023a2a661811b98c32",
+    "submission_id": "e2ca8b9c-ef16-41ed-9af5-b7bd37035c97",
+    "user_id": "prolific_69f44e447a4f124f695c4d96",
+    "matrikelnummer": "69f44e447a4f124f695c4d96",
+    "case_id": "alpes-bank-genai-001",
+    "target_tp": 1,
+    "experiment": {
+      "provider": "prolific",
+      "experiment_name": "prolific_experimental_run",
+      "run_id": "69f44e447a4f124f695c4d96",
+      "prolific_pid": "69f44e447a4f124f695c4d96",
+      "metadata": {}
+    },
+    "answers": {},
+    "scores": [],
+    "total_points": 0.0,
+    "max_points": 0.0,
+    "percentage": 0.0,
+    "canvas_alignment_pct": 0.0,
+    "rubric_fit_pct": 0.0,
+    "canvas_exemplar_candidate": false,
+    "status": "in_progress",
+    "started_at": "2026-05-17T11:26:58.287316"
+  }
+]

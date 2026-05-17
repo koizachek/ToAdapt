@@ -95,6 +95,32 @@ MONGODB_COLLECTION=experiment_events
 
 Wenn Prolific die Landing-Page mit `PROLIFIC_PID`, `STUDY_ID` und `SESSION_ID` aufruft, werden diese Werte automatisch ins Backend durchgereicht und zusammen mit Session-, Chat- und Submission-Events geloggt.
 
+### Lokale Prolific-Exporte
+
+Falls rohe Exportdateien aus Prolific im Repo mitliegen sollen, aber nicht versioniert werden duerfen, gibt es dafuer den lokalen Pfad `data/prolific_runs/`.
+
+```bash
+python scripts/import_prolific_runs.py ~/Downloads/prolific-export --batch may-2026-pilot
+```
+
+Der Import legt die Originaldateien unter `data/prolific_runs/raw/<batch>/` ab und schreibt dazu ein Manifest mit Dateiliste und Checksummen nach `data/prolific_runs/manifests/`.
+
+### Review-Exporte als Excel
+
+Falls `data/submission_states.json` vorliegt, lassen sich daraus zwei Review-Dateien erzeugen:
+
+```bash
+python scripts/export_review_workbooks.py
+```
+
+Der Export schreibt bis zu drei Excel-Dateien nach `data/prolific_runs/derived/review_exports/`:
+
+- `*_rubric.xlsx`: pro Frage ein Blatt mit Antworten, `user_id`, Prolific-IDs und der bestehenden Rubric-Bewertung
+- `*_blind.xlsx`: pro Frage ein Blatt ohne Personenkennung und ohne Rubric-Bewertung, dafuer mit Feldern fuer `teacher_awarded_points` und `teacher_rationale`
+- `*_chat_turns.xlsx`: separate Datei mit einer Zeile pro Bot-Interaktion aus `experiment_events.json`, inklusive `user_message`, `assistant_message`, `agent_type`, `message_count` und Session-/Prolific-Kontext
+
+Beide Dateien teilen dieselbe `review_item_id`, damit menschliche Bewertungen spaeter leicht mit den Rubric-Scores abgeglichen werden koennen.
+
 ## Guardrails
 
 - Keine Framework-Namen in Agent-Antworten (Porter, RBV, VRIO, TCE, 4P …)

@@ -3,3 +3,6 @@
 CLAUDE.md
 dev-docs/frontend/.next
 frontend/node_modules
+data/prolific_runs/**
+!data/prolific_runs/
+!data/prolific_runs/README.md
