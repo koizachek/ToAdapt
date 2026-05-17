@@ -18,6 +18,21 @@ from backend.models.submission import QuestionScore, Submission, SubmissionResul
 
 logger = structlog.get_logger(__name__)
 
+DISALLOWED_FEEDBACK_PATTERNS = [
+    "du solltest schreiben",
+    "hier ist eine mögliche antwort",
+    "die richtige antwort ist",
+    "tamara sollte",
+    "wähle den",
+    "waehle den",
+    "finma",
+    "swiss hosting",
+    "azure switzerland",
+    "vendor lock-in",
+    "vendor lock in",
+    "microsoft",
+]
+
 EVALUATOR_SYSTEM = """Du bist ein Bewertungsassistent für BWL A an der Universität St. Gallen.
 
 Du bewertest Studierenden-Antworten auf Basis von pfadoffenen Rubrics.
@@ -28,11 +43,15 @@ BEWERTUNGSPRINZIPIEN:
 - Framework-Namen müssen NICHT genannt werden — die Logik muss angewendet werden.
 - Generische Aussagen ohne ON/Case-Bezug erhalten keine Spitzenpunkte.
 - Dein Feedback ist scaffolded: Du zeigst Denkrichtungen auf, gibst aber keine Musterlösung.
+- Nutze nur Informationen, die im Case oder in der Antwort des Studierenden explizit vorkommen.
+- Keine erfundenen Zusatzdetails wie Regulatoren, Hosting-Setups, Vertragsklauseln oder Anbieter-Implementierungsdetails.
 
 FEEDBACK-FORMAT (pro Frage):
 - Was gut funktioniert (1–2 Sätze)
 - Was fehlt oder schwach ist (1–2 Sätze, als Frage formuliert)
 - Keine direkte Antwort nennen
+- Keine Satzbausteine zum Abschreiben wie "du solltest schreiben..." oder "erste Herausforderung könnte sein..."
+- Ton: klar, ruhig, nicht slangig, keine Emojis
 
 Wenn eine Canvas-Rubric vorliegt, prüfst du explizit, ob die relevanten Business-Model-Canvas-Bausteine inhaltlich angewendet wurden.
 Keywords sind nur Signale. Entscheidend ist die Qualität der Anwendung auf den Fall.
@@ -159,6 +178,24 @@ class RubricEvaluator:
             "canvas_rationale": "Technischer Fallback wegen ungueltiger Modellantwort.",
         }
 
+    def _sanitize_feedback(self, feedback: str, tags: list[str]) -> str:
+        text = (feedback or "").strip()
+        lower = text.lower()
+        if not text or any(pattern in lower for pattern in DISALLOWED_FEEDBACK_PATTERNS):
+            return (
+                "Deine Antwort enthält erste Ansätze, aber die Begründung bleibt noch zu implizit. "
+                "Welche Entscheidung triffst du genau, worauf stützt du sie im Case, und welche "
+                "Konsequenz folgt daraus für das Unternehmen?"
+            )
+        return text
+
+    def _sanitize_canvas_rationale(self, rationale: str | None) -> str | None:
+        text = (rationale or "").strip()
+        lower = text.lower()
+        if any(pattern in lower for pattern in DISALLOWED_FEEDBACK_PATTERNS):
+            return "Die Begründung bleibt bei den im Case sichtbaren Hinweisen und vermeidet nicht belegte Zusatzdetails."
+        return text or None
+
     def _parse_evaluation_payload(self, text: str, tags: list[str]) -> dict:
         for candidate in self._extract_json_candidates(text):
             try:
@@ -256,7 +293,10 @@ class RubricEvaluator:
                 bloom_level=question.bloom_level,
                 max_points=question.max_points,
                 awarded_points=min(float(data.get("awarded_points", 0.0)), question.max_points),
-                feedback=data.get("feedback", self._fallback_payload(tags)["feedback"]),
+                feedback=self._sanitize_feedback(
+                    data.get("feedback", self._fallback_payload(tags)["feedback"]),
+                    tags,
+                ),
                 learning_objective_tags=data.get("learning_objective_tags", tags),
                 rubric_reference=question.rubric_reference,
                 canvas_alignment_score=canvas_alignment_score,
@@ -264,7 +304,7 @@ class RubricEvaluator:
                 required_canvas_blocks=required_canvas_blocks,
                 addressed_canvas_blocks=addressed_canvas_blocks,
                 missing_canvas_blocks=missing_canvas_blocks,
-                canvas_rationale=data.get("canvas_rationale"),
+                canvas_rationale=self._sanitize_canvas_rationale(data.get("canvas_rationale")),
             ))
 
         total = sum(s.awarded_points for s in scores)
