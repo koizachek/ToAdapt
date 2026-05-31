@@ -276,83 +276,86 @@ class RubricEvaluator:
             max_tokens=1200,
         )
 
-    async def evaluate_submission(self, submission: Submission, case: Case) -> SubmissionResult:
-        scores: list[QuestionScore] = []
-        used_rubrics: list[QuestionRubric | None] = []
+    async def evaluate_question(
+        self,
+        *,
+        submission: Submission,
+        case: Case,
+        question_id: str,
+        answer_text: str,
+    ) -> tuple[QuestionScore, QuestionRubric | None]:
+        question = {q.question_id: q for q in case.questions}.get(question_id)
+        if not question:
+            raise ValueError(f"Unknown question_id: {question_id}")
+        if not answer_text.strip():
+            raise ValueError(f"Missing answer_text for question_id: {question_id}")
 
-        questions_by_id = {q.question_id: q for q in case.questions}
+        rubric = load_question_rubric(question)
+        tags = self._make_tags(question)
+        mid = round(question.max_points * 0.55, 1)
+        low = round(question.max_points * 0.25, 1)
 
-        for question_id, answer_text in submission.answers.items():
-            question = questions_by_id.get(question_id)
-            if not question or not answer_text.strip():
-                continue
+        prompt = EVALUATE_PROMPT.format(
+            case_title=case.title,
+            case_industry=case.industry,
+            question_text=question.text,
+            max_points=question.max_points,
+            bloom_level=question.bloom_level,
+            tags=", ".join(tags),
+            rubric_focus=self._format_rubric_focus(rubric),
+            canvas_blocks=self._format_canvas_blocks(rubric),
+            calibration_notes=self._format_calibration_notes(question),
+            answer=answer_text,
+            mid_points=mid,
+            low_points=low,
+        )
 
-            rubric = load_question_rubric(question)
-            used_rubrics.append(rubric)
-            tags = self._make_tags(question)
-            mid = round(question.max_points * 0.55, 1)
-            low = round(question.max_points * 0.25, 1)
-
-            prompt = EVALUATE_PROMPT.format(
-                case_title=case.title,
-                case_industry=case.industry,
-                question_text=question.text,
-                max_points=question.max_points,
-                bloom_level=question.bloom_level,
-                tags=", ".join(tags),
-                rubric_focus=self._format_rubric_focus(rubric),
-                canvas_blocks=self._format_canvas_blocks(rubric),
-                calibration_notes=self._format_calibration_notes(question),
-                answer=answer_text,
-                mid_points=mid,
-                low_points=low,
-            )
-
-            text = await self.client.complete(
-                system=EVALUATOR_SYSTEM,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=1200,
+        text = await self.client.complete(
+            system=EVALUATOR_SYSTEM,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1200,
+        )
+        try:
+            data = self._parse_evaluation_payload(text, tags)
+        except ValueError:
+            logger.warning(
+                "evaluation_json_parse_failed",
+                submission_id=submission.submission_id,
+                question_id=question_id,
+                raw_preview=text[:500],
             )
             try:
-                data = self._parse_evaluation_payload(text, tags)
+                repaired_text = await self._request_repair(prompt, text)
+                data = self._parse_evaluation_payload(repaired_text, tags)
             except ValueError:
-                logger.warning(
-                    "evaluation_json_parse_failed",
+                logger.error(
+                    "evaluation_json_repair_failed",
                     submission_id=submission.submission_id,
                     question_id=question_id,
-                    raw_preview=text[:500],
                 )
-                try:
-                    repaired_text = await self._request_repair(prompt, text)
-                    data = self._parse_evaluation_payload(repaired_text, tags)
-                except ValueError:
-                    logger.error(
-                        "evaluation_json_repair_failed",
-                        submission_id=submission.submission_id,
-                        question_id=question_id,
-                    )
-                    data = self._fallback_payload(tags)
+                data = self._fallback_payload(tags)
 
-            canvas_alignment_score = max(0.0, min(float(data.get("canvas_alignment_score", 0.0)), 1.0))
-            required_canvas_blocks = [
-                block.block for block in rubric.required_canvas_blocks
-            ] if rubric else []
-            addressed_canvas_blocks = [
-                block for block in data.get("addressed_canvas_blocks", [])
-                if isinstance(block, str)
-            ]
-            missing_canvas_blocks = [
-                block for block in data.get("missing_canvas_blocks", [])
-                if isinstance(block, str)
-            ]
-            evaluation_status = str(data.get("evaluation_status", "ok") or "ok")
-            needs_human_review = bool(data.get("needs_human_review", False))
-            judge_confidence = str(data.get("judge_confidence", "") or "").lower() or None
-            if judge_confidence == "low":
-                needs_human_review = True
-            review_reason = data.get("review_reason")
+        canvas_alignment_score = max(0.0, min(float(data.get("canvas_alignment_score", 0.0)), 1.0))
+        required_canvas_blocks = [
+            block.block for block in rubric.required_canvas_blocks
+        ] if rubric else []
+        addressed_canvas_blocks = [
+            block for block in data.get("addressed_canvas_blocks", [])
+            if isinstance(block, str)
+        ]
+        missing_canvas_blocks = [
+            block for block in data.get("missing_canvas_blocks", [])
+            if isinstance(block, str)
+        ]
+        evaluation_status = str(data.get("evaluation_status", "ok") or "ok")
+        needs_human_review = bool(data.get("needs_human_review", False))
+        judge_confidence = str(data.get("judge_confidence", "") or "").lower() or None
+        if judge_confidence == "low":
+            needs_human_review = True
+        review_reason = data.get("review_reason")
 
-            scores.append(QuestionScore(
+        return (
+            QuestionScore(
                 question_id=question_id,
                 bloom_level=question.bloom_level,
                 max_points=question.max_points,
@@ -376,8 +379,24 @@ class RubricEvaluator:
                 score_band=str(data.get("score_band", "") or "").lower() or None,
                 main_strengths=self._as_string_list(data.get("main_strengths")),
                 main_penalties=self._as_string_list(data.get("main_penalties")),
-            ))
+            ),
+            rubric,
+        )
 
+    def result_from_scores(
+        self,
+        *,
+        submission: Submission,
+        case: Case,
+        scores: list[QuestionScore],
+    ) -> SubmissionResult:
+        rubrics = [
+            load_question_rubric(question)
+            for score in scores
+            for question in case.questions
+            if question.question_id == score.question_id
+            and question.rubric_reference
+        ]
         total = sum(s.awarded_points for s in scores)
         maximum = sum(s.max_points for s in scores)
         pct = round((total / maximum * 100) if maximum > 0 else 0, 1)
@@ -391,21 +410,7 @@ class RubricEvaluator:
         exemplar_candidate = self._canvas_exemplar_candidate(
             pct,
             canvas_alignment_pct,
-            used_rubrics,
-        )
-
-        overall = self._overall_feedback(pct)
-        canvas_summary = self._canvas_summary(canvas_alignment_pct, exemplar_candidate)
-
-        logger.info(
-            "submission_evaluated",
-            submission_id=submission.submission_id,
-            total=total,
-            max=maximum,
-            pct=pct,
-            canvas_alignment_pct=canvas_alignment_pct,
-            rubric_fit_pct=rubric_fit_pct,
-            canvas_exemplar_candidate=exemplar_candidate,
+            rubrics,
         )
 
         return SubmissionResult(
@@ -417,10 +422,40 @@ class RubricEvaluator:
             canvas_alignment_pct=canvas_alignment_pct,
             rubric_fit_pct=rubric_fit_pct,
             canvas_exemplar_candidate=exemplar_candidate,
-            canvas_summary=canvas_summary,
+            canvas_summary=self._canvas_summary(canvas_alignment_pct, exemplar_candidate),
             scores=scores,
-            overall_feedback=overall,
+            overall_feedback=self._overall_feedback(pct),
         )
+
+    async def evaluate_submission(self, submission: Submission, case: Case) -> SubmissionResult:
+        scores: list[QuestionScore] = []
+
+        for question_id, answer_text in submission.answers.items():
+            if not answer_text.strip():
+                continue
+
+            score, _rubric = await self.evaluate_question(
+                submission=submission,
+                case=case,
+                question_id=question_id,
+                answer_text=answer_text,
+            )
+            scores.append(score)
+
+        result = self.result_from_scores(submission=submission, case=case, scores=scores)
+
+        logger.info(
+            "submission_evaluated",
+            submission_id=submission.submission_id,
+            total=result.total_points,
+            max=result.max_points,
+            pct=result.percentage,
+            canvas_alignment_pct=result.canvas_alignment_pct,
+            rubric_fit_pct=result.rubric_fit_pct,
+            canvas_exemplar_candidate=result.canvas_exemplar_candidate,
+        )
+
+        return result
 
     def _overall_feedback(self, pct: float) -> str:
         if pct >= 80:
