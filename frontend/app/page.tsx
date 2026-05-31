@@ -165,7 +165,7 @@ function LoginPageContent({
                 {error && <p className="mt-2 text-xs" style={{ color: '#c0392b' }}>{error}</p>}
                 <p className="mt-2 text-xs leading-5" style={{ color: '#ad3f2b' }}>
                   Mit dem Absenden bestätigst du, dass deine Antwort eigenständig verfasst ist. Mit ChatGPT oder
-                  anderen KI-Tools generierte Antworten werden mit GPTZero überprüft und führen zum Ausschluss der Auszahlung.
+                  anderen KI-Tools generierte Antworten werden mit GPTZero überprüft.
                 </p>
               </div>
 
