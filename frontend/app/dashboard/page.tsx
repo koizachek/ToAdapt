@@ -95,7 +95,7 @@ export default function DashboardPage() {
                 { label: 'Studierende', value: overview.total_students, icon: <Users size={14} /> },
                 { label: 'Submissions', value: overview.total_submissions, icon: <TrendingUp size={14} /> },
                 { label: 'Ø Score', value: `${overview.avg_percentage.toFixed(0)}%`, icon: null },
-                { label: 'Ø Canvas-Fit', value: `${overview.avg_canvas_alignment_pct.toFixed(0)}%`, icon: null },
+                { label: 'Ø Business Model Canvas', value: `${overview.avg_canvas_alignment_pct.toFixed(0)}%`, icon: null },
                 { label: 'Exemplars', value: overview.exemplar_submissions_count, icon: null },
                 {
                   label: 'Review/Fallback',
