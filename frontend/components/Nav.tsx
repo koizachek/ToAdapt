@@ -29,6 +29,10 @@ function hasCookie(name: string, value: string) {
   return document.cookie.split(';').some(cookie => cookie.trim() === `${name}=${value}`)
 }
 
+function clearCookie(name: string) {
+  document.cookie = `${name}=; Max-Age=0; path=/`
+}
+
 export default function Nav() {
   const path = usePathname()
   const router = useRouter()
@@ -63,6 +67,15 @@ export default function Nav() {
     : teacherLinks
 
   const switchMode = (nextMode: AppMode) => {
+    if (nextMode === 'student') {
+      clearCookie('teacher_mode')
+      sessionStorage.setItem('app_mode', 'student')
+      setSelectedMode('student')
+      setHasTeacherAccess(false)
+      router.push('/cases')
+      return
+    }
+
     if (nextMode === 'teacher' && !hasTeacherAccess) {
       sessionStorage.setItem('app_mode', 'teacher')
       setSelectedMode('teacher')
