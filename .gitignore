@@ -9,6 +9,3 @@ backend/db/submissions/*.json
 data/prolific_runs/**
 !data/prolific_runs/
 !data/prolific_runs/README.md
-!data/prolific_runs/derived/
-!data/prolific_runs/derived/aligned_rescores/
-!data/prolific_runs/derived/aligned_rescores/teacher_alignment_report_20260531_17submissions.md
