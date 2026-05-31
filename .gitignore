@@ -1,8 +1,11 @@
 .venv/
 .env
+__pycache__/
+*.pyc
 CLAUDE.md
 dev-docs/frontend/.next
 frontend/node_modules
+backend/db/submissions/*.json
 data/prolific_runs/**
 !data/prolific_runs/
 !data/prolific_runs/README.md

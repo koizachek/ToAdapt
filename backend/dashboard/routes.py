@@ -35,6 +35,8 @@ class StudentRow(BaseModel):
     avg_canvas_alignment_pct: float = 0.0
     avg_rubric_fit_pct: float = 0.0
     exemplar_submissions_count: int = 0
+    needs_human_review_count: int = 0
+    technical_fallback_count: int = 0
     latest_percentage: float | None = None
     latest_canvas_alignment_pct: float | None = None
     latest_rubric_fit_pct: float | None = None
@@ -52,6 +54,8 @@ class DashboardOverview(BaseModel):
     avg_canvas_alignment_pct: float = 0.0
     avg_rubric_fit_pct: float = 0.0
     exemplar_submissions_count: int = 0
+    needs_human_review_count: int = 0
+    technical_fallback_count: int = 0
     by_tp: dict[int, float]
     by_bloom: dict[int, float]
     top_objectives: list[LearningObjectiveScore]   # top 5 by weakness
@@ -105,6 +109,18 @@ def _latest_result(results: list[dict]) -> dict | None:
     return max(results, key=_result_timestamp)
 
 
+def _review_counts(results: list[dict]) -> tuple[int, int]:
+    review_count = 0
+    fallback_count = 0
+    for result in results:
+        for score in result.get("scores", []):
+            if score.get("needs_human_review"):
+                review_count += 1
+            if score.get("evaluation_status") == "technical_fallback":
+                fallback_count += 1
+    return review_count, fallback_count
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -118,6 +134,8 @@ async def get_overview():
             avg_canvas_alignment_pct=0,
             avg_rubric_fit_pct=0,
             exemplar_submissions_count=0,
+            needs_human_review_count=0,
+            technical_fallback_count=0,
             by_tp={}, by_bloom={}, top_objectives=[],
         )
 
@@ -151,6 +169,7 @@ async def get_overview():
     exemplar_submissions_count = sum(
         1 for r in results if r.get("canvas_exemplar_candidate")
     )
+    needs_human_review_count, technical_fallback_count = _review_counts(results)
 
     return DashboardOverview(
         total_students=len(students),
@@ -159,6 +178,8 @@ async def get_overview():
         avg_canvas_alignment_pct=avg_canvas_alignment_pct,
         avg_rubric_fit_pct=avg_rubric_fit_pct,
         exemplar_submissions_count=exemplar_submissions_count,
+        needs_human_review_count=needs_human_review_count,
+        technical_fallback_count=technical_fallback_count,
         by_tp=by_tp,
         by_bloom=by_bloom,
         top_objectives=_aggregate_objectives(all_scores)[:5],
@@ -188,6 +209,7 @@ async def get_student(matrikelnummer: str):
 
     avg_pct = round(sum(r["percentage"] for r in results) / len(results), 1)
     latest = _latest_result(results)
+    needs_human_review_count, technical_fallback_count = _review_counts(results)
 
     return StudentRow(
         matrikelnummer=matrikelnummer,
@@ -204,6 +226,8 @@ async def get_student(matrikelnummer: str):
         exemplar_submissions_count=sum(
             1 for r in results if r.get("canvas_exemplar_candidate")
         ),
+        needs_human_review_count=needs_human_review_count,
+        technical_fallback_count=technical_fallback_count,
         latest_percentage=latest.get("percentage") if latest else None,
         latest_canvas_alignment_pct=latest.get("canvas_alignment_pct") if latest else None,
         latest_rubric_fit_pct=latest.get("rubric_fit_pct") if latest else None,
@@ -226,6 +250,7 @@ async def list_students():
     for matrikel, student_results in by_student.items():
         all_scores = [s for r in student_results for s in r.get("scores", [])]
         latest = _latest_result(student_results)
+        needs_human_review_count, technical_fallback_count = _review_counts(student_results)
         tp_buckets: dict[int, list[float]] = defaultdict(list)
         for r in student_results:
             tp_buckets[r["target_tp"]].append(r["percentage"])
@@ -254,6 +279,8 @@ async def list_students():
             exemplar_submissions_count=sum(
                 1 for r in student_results if r.get("canvas_exemplar_candidate")
             ),
+            needs_human_review_count=needs_human_review_count,
+            technical_fallback_count=technical_fallback_count,
             latest_percentage=latest.get("percentage") if latest else None,
             latest_canvas_alignment_pct=latest.get("canvas_alignment_pct") if latest else None,
             latest_rubric_fit_pct=latest.get("rubric_fit_pct") if latest else None,
