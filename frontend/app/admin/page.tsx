@@ -27,7 +27,10 @@ export default function AdminPage() {
   const [reviewer, setReviewer] = useState('')
 
   const load = () => apiFetch<CaseSummary[]>('/admin/cases').then(setCases)
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    sessionStorage.setItem('app_mode', 'teacher')
+    load()
+  }, [])
 
   const generate = async () => {
     setGen(true)

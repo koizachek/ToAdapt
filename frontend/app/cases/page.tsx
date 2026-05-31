@@ -28,6 +28,9 @@ export default function CasesPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!sessionStorage.getItem('app_mode')) {
+      sessionStorage.setItem('app_mode', 'student')
+    }
     apiFetch<CaseSummary[]>('/admin/cases?status=approved')
       .then(setCases)
       .catch(() => setCases([]))

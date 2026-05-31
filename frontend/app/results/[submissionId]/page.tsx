@@ -36,6 +36,7 @@ export default function ResultsPage() {
   const [result, setResult] = useState<SubmissionResult | null>(null)
 
   useEffect(() => {
+    sessionStorage.setItem('app_mode', 'student')
     // Results are stored after submit — re-fetch from the backend
     // For MVP: stored in sessionStorage by the case page
     const stored = sessionStorage.getItem(`result_${submissionId}`)

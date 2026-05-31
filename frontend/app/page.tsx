@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, BookOpen, LayoutDashboard, ShieldCheck } from 'lucide-react'
 
 interface LoginPageContentProps {
   prolificPid?: string
@@ -11,6 +11,7 @@ interface LoginPageContentProps {
 }
 
 const EXPERIMENT_NAME = 'prolific_experimental_run'
+type AppMode = 'student' | 'teacher'
 
 function LoginPageContent({
   prolificPid = '',
@@ -18,6 +19,11 @@ function LoginPageContent({
   prolificSessionId = '',
 }: LoginPageContentProps) {
   const router = useRouter()
+  const [mode, setMode] = useState<AppMode>(() => {
+    if (typeof window === 'undefined') return 'student'
+    if (prolificPid) return 'student'
+    return sessionStorage.getItem('app_mode') === 'teacher' ? 'teacher' : 'student'
+  })
   const [participantIdInput, setParticipantIdInput] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -27,6 +33,16 @@ function LoginPageContent({
   useEffect(() => {
     if (typeof window === 'undefined') return
 
+    if (prolificPid) {
+      setMode('student')
+      sessionStorage.setItem('app_mode', 'student')
+    }
+    if (mode === 'teacher') {
+      sessionStorage.setItem('app_mode', 'teacher')
+      return
+    }
+
+    sessionStorage.setItem('app_mode', 'student')
     sessionStorage.setItem('experiment_context', JSON.stringify({
       provider: 'prolific',
       experiment_name: EXPERIMENT_NAME,
@@ -41,7 +57,12 @@ function LoginPageContent({
       sessionStorage.setItem('matrikelnummer', prolificPid)
       sessionStorage.setItem('user_id', `prolific_${prolificPid}`)
     }
-  }, [prolificPid, prolificSessionId, resolvedParticipantId, studyId])
+  }, [mode, prolificPid, prolificSessionId, resolvedParticipantId, studyId])
+
+  const switchMode = (nextMode: AppMode) => {
+    setMode(nextMode)
+    sessionStorage.setItem('app_mode', nextMode)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,57 +97,129 @@ function LoginPageContent({
           ToAdapt
         </h1>
         <p className="mt-3 text-sm tracking-[0.2em] uppercase" style={{ color: 'var(--muted)' }}>
-          Willkommen zur Studie
+          {mode === 'student' ? 'Willkommen zur Studie' : 'Lehrkräftebereich'}
         </p>
       </div>
+
+      {!prolificPid && (
+        <div
+          className="mb-8 flex w-full max-w-sm items-center gap-1 p-1"
+          style={{ border: '1px solid rgba(53,40,30,0.16)', background: 'rgba(250,250,248,0.45)' }}
+          aria-label="Modus wählen"
+        >
+          {[
+            { id: 'student' as const, label: 'Studierende' },
+            { id: 'teacher' as const, label: 'Lehrkräfte' },
+          ].map(option => {
+            const active = mode === option.id
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => switchMode(option.id)}
+                className="flex-1 px-4 py-2 text-sm font-medium transition-colors"
+                style={{
+                  background: active ? 'var(--ink)' : 'transparent',
+                  color: active ? 'var(--white)' : 'var(--ink)',
+                }}
+                aria-pressed={active}
+              >
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       <div
         className="w-full max-w-sm p-8"
         style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.15)' }}
       >
-        <p className="text-xs tracking-widest uppercase mb-6" style={{ color: 'var(--muted)' }}>
-          Anmeldung
-        </p>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className="block text-xs mb-2 font-medium tracking-wide" style={{ color: 'var(--line)' }}>
-              Prolific-ID
-            </label>
-            <input
-              type="text"
-              value={participantIdInput}
-              onChange={e => { setParticipantIdInput(e.target.value); setError('') }}
-              placeholder="5f7c2e4a9b1c..."
-              autoFocus
-              className="w-full px-4 py-3 text-sm bg-transparent outline-none transition-all"
-              style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
-              onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'}
-              onBlur={e => e.currentTarget.style.borderColor = 'rgba(53,40,30,0.25)'}
-            />
-            {error && <p className="mt-2 text-xs" style={{ color: '#c0392b' }}>{error}</p>}
-            <p className="mt-2 text-xs leading-5" style={{ color: '#ad3f2b' }}>
-              Mit dem Absenden bestätigst du, dass deine Antwort eigenständig verfasst ist. Mit ChatGPT oder
-              anderen KI-Tools generierte Antworten werden mit GPTZero überprüft und führen zum Ausschluss der Auszahlung.
+        {mode === 'student' ? (
+          <>
+            <p className="text-xs tracking-widest uppercase mb-6" style={{ color: 'var(--muted)' }}>
+              Anmeldung
             </p>
-          </div>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div>
+                <label className="block text-xs mb-2 font-medium tracking-wide" style={{ color: 'var(--line)' }}>
+                  Prolific-ID
+                </label>
+                <input
+                  type="text"
+                  value={participantIdInput}
+                  onChange={e => { setParticipantIdInput(e.target.value); setError('') }}
+                  placeholder="5f7c2e4a9b1c..."
+                  autoFocus
+                  className="w-full px-4 py-3 text-sm bg-transparent outline-none transition-all"
+                  style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
+                  onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+                  onBlur={e => e.currentTarget.style.borderColor = 'rgba(53,40,30,0.25)'}
+                />
+                {error && <p className="mt-2 text-xs" style={{ color: '#c0392b' }}>{error}</p>}
+                <p className="mt-2 text-xs leading-5" style={{ color: '#ad3f2b' }}>
+                  Mit dem Absenden bestätigst du, dass deine Antwort eigenständig verfasst ist. Mit ChatGPT oder
+                  anderen KI-Tools generierte Antworten werden mit GPTZero überprüft und führen zum Ausschluss der Auszahlung.
+                </p>
+              </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="group flex items-center justify-between px-5 py-3 text-sm font-medium tracking-wide transition-all duration-200"
-            style={{ background: 'var(--ink)', color: 'var(--white)' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'var(--ink)')}
-          >
-            {loading ? 'Wird geladen…' : 'Weiter'}
-            <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-1" />
-          </button>
-        </form>
+              <button
+                type="submit"
+                disabled={loading}
+                className="group flex items-center justify-between px-5 py-3 text-sm font-medium tracking-wide transition-all duration-200"
+                style={{ background: 'var(--ink)', color: 'var(--white)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'var(--ink)')}
+              >
+                {loading ? 'Wird geladen…' : 'Weiter'}
+                <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-1" />
+              </button>
+            </form>
+          </>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>
+              Lehrkräfte
+            </p>
+            {[
+              { href: '/cases', label: 'Cases & Fragen ansehen', icon: BookOpen },
+              { href: '/dashboard', label: 'Lerner-Dashboard öffnen', icon: LayoutDashboard },
+              { href: '/admin', label: 'Admin-Bereich öffnen', icon: ShieldCheck },
+            ].map(action => {
+              const Icon = action.icon
+              return (
+                <button
+                  key={action.href}
+                  type="button"
+                  onClick={() => router.push(action.href)}
+                  className="flex items-center justify-between px-5 py-3 text-sm font-medium tracking-wide transition-all duration-200"
+                  style={{ border: '1px solid rgba(53,40,30,0.18)', color: 'var(--ink)' }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'var(--accent)'
+                    e.currentTarget.style.color = 'var(--accent)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'rgba(53,40,30,0.18)'
+                    e.currentTarget.style.color = 'var(--ink)'
+                  }}
+                >
+                  <span className="flex items-center gap-3">
+                    <Icon size={15} />
+                    {action.label}
+                  </span>
+                  <ArrowRight size={15} />
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
-      <p className="mt-10 text-xs text-center max-w-xs" style={{ color: 'var(--muted)' }}>
-        Deine Prolific-ID wird für die Studienzuordnung erfasst. Chat-Logs bleiben aus dem Dozierenden-Dashboard ausgeschlossen.
-      </p>
+      {mode === 'student' && (
+        <p className="mt-10 text-xs text-center max-w-xs" style={{ color: 'var(--muted)' }}>
+          Deine Prolific-ID wird für die Studienzuordnung erfasst. Chat-Logs bleiben aus dem Dozierenden-Dashboard ausgeschlossen.
+        </p>
+      )}
     </main>
   )
 }
