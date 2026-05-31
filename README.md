@@ -1,6 +1,6 @@
 # ToAdapt
 
-AI-gestützter Transfer-Trainer für BWL A — Universität St. Gallen.
+AI-gestützter Transfer-Trainer für Business Cases
 
 Studierende bearbeiten individuell AI-generierte Mini-Cases und trainieren so den Transfer betriebswirtschaftlicher Denklogiken auf unbekannte Unternehmenskontexte — die Kernkompetenz der summativen Prüfung.
 
@@ -140,12 +140,6 @@ Der Export schreibt bis zu drei Excel-Dateien nach `data/prolific_runs/derived/r
 
 Beide Dateien teilen dieselbe `review_item_id`, damit menschliche Bewertungen spaeter leicht mit den Rubric-Scores abgeglichen werden koennen.
 
-## Guardrails
-
-- Keine Framework-Namen in Agent-Antworten (Porter, RBV, VRIO, TCE, 4P …)
-- Keine direkten Antworten oder Musterlösungen
-- TP-phasenspezifische Framework-Beschränkungen (aus `tp_configs.py`)
-- NORDIC HOME und ON dürfen in generierten Cases nicht vorkommen
 
 ## License
 
