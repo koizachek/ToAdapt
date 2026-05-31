@@ -21,6 +21,13 @@ class QuestionScore(BaseModel):
     addressed_canvas_blocks: list[str] = Field(default_factory=list)
     missing_canvas_blocks: list[str] = Field(default_factory=list)
     canvas_rationale: str | None = None
+    evaluation_status: str = "ok"
+    needs_human_review: bool = False
+    review_reason: str | None = None
+    judge_confidence: str | None = None
+    score_band: str | None = None
+    main_strengths: list[str] = Field(default_factory=list)
+    main_penalties: list[str] = Field(default_factory=list)
 
 
 class SubmissionStatus(str):

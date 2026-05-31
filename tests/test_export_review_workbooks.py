@@ -46,6 +46,13 @@ def test_export_review_workbooks_generates_rubric_and_blind_files(tmp_path):
                     "addressed_canvas_blocks": ["channels"],
                     "missing_canvas_blocks": [],
                     "canvas_rationale": "Passend angewendet.",
+                    "evaluation_status": "ok",
+                    "needs_human_review": False,
+                    "review_reason": "",
+                    "judge_confidence": "high",
+                    "score_band": "strong",
+                    "main_strengths": ["Case-Bezug"],
+                    "main_penalties": [],
                 },
                 {
                     "question_id": "q2",
@@ -60,6 +67,13 @@ def test_export_review_workbooks_generates_rubric_and_blind_files(tmp_path):
                     "addressed_canvas_blocks": [],
                     "missing_canvas_blocks": [],
                     "canvas_rationale": "",
+                    "evaluation_status": "technical_fallback",
+                    "needs_human_review": True,
+                    "review_reason": "Invalid JSON",
+                    "judge_confidence": "low",
+                    "score_band": "unscored",
+                    "main_strengths": [],
+                    "main_penalties": ["Technischer Fallback"],
                 },
             ],
             "percentage": 82.4,
@@ -145,6 +159,8 @@ def test_export_review_workbooks_generates_rubric_and_blind_files(tmp_path):
     assert rubric_sheet["A2"].value == "case-alpha:q1:001"
     assert rubric_sheet["C2"].value == "prolific_user_a"
     assert rubric_sheet["O2"].value == 19.5
+    assert rubric_sheet["X2"].value == "ok"
+    assert rubric_sheet["Y2"].value is False
     assert blind_sheet["A2"].value == "case-alpha:q1:001"
     assert blind_sheet["J2"].value is None
     assert blind_sheet["K2"].value is None

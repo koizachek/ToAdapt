@@ -20,6 +20,7 @@ logger = structlog.get_logger(__name__)
 
 DISALLOWED_FEEDBACK_PATTERNS = [
     "du solltest schreiben",
+    "erste herausforderung könnte sein",
     "hier ist eine mögliche antwort",
     "die richtige antwort ist",
     "tamara sollte",
@@ -41,7 +42,7 @@ BEWERTUNGSPRINZIPIEN:
 - Es gibt keine einzig richtige Antwort. Jede schlüssig begründete Entscheidung kann volle Punktzahl erreichen.
 - Bewertet wird die Qualität des Denkens, nicht die sprachliche Glätte.
 - Framework-Namen müssen NICHT genannt werden — die Logik muss angewendet werden.
-- Generische Aussagen ohne ON/Case-Bezug erhalten keine Spitzenpunkte.
+- Generische Aussagen ohne konkreten Case-Bezug erhalten keine Spitzenpunkte.
 - Dein Feedback ist scaffolded: Du zeigst Denkrichtungen auf, gibst aber keine Musterlösung.
 - Nutze nur Informationen, die im Case oder in der Antwort des Studierenden explizit vorkommen.
 - Keine erfundenen Zusatzdetails wie Regulatoren, Hosting-Setups, Vertragsklauseln oder Anbieter-Implementierungsdetails.
@@ -55,6 +56,10 @@ FEEDBACK-FORMAT (pro Frage):
 
 Wenn eine Canvas-Rubric vorliegt, prüfst du explizit, ob die relevanten Business-Model-Canvas-Bausteine inhaltlich angewendet wurden.
 Keywords sind nur Signale. Entscheidend ist die Qualität der Anwendung auf den Fall.
+
+Du unterstützt Lehrende bei der Bewertung. Vergib Punkte konservativ entlang der Rubric,
+markiere unsichere oder technisch problematische Fälle zur menschlichen Prüfung und
+behaupte keine Genauigkeit, wenn die Antwort zwischen zwei Bewertungsbändern liegt.
 
 Du antwortest AUSSCHLIESSLICH mit einem validen JSON-Objekt. Kein Text davor oder danach."""
 
@@ -73,6 +78,9 @@ Rubric-Fokus:
 Verbindliche Canvas-Bausteine:
 {canvas_blocks}
 
+Kalibrierung aus Lehrerbewertungen:
+{calibration_notes}
+
 ANTWORT DES STUDIERENDEN:
 {answer}
 
@@ -84,7 +92,13 @@ Antworte mit einem JSON-Objekt:
   "canvas_alignment_score": <float, 0.0 bis 1.0>,
   "addressed_canvas_blocks": ["<block_id>"],
   "missing_canvas_blocks": ["<block_id>"],
-  "canvas_rationale": "<kurze Begründung, max 50 Wörter>"
+  "canvas_rationale": "<kurze Begründung, max 50 Wörter>",
+  "judge_confidence": "high|medium|low",
+  "score_band": "low|partial|solid|strong",
+  "main_strengths": ["<kurzer Punkt>"],
+  "main_penalties": ["<kurzer Punkt>"],
+  "needs_human_review": <true|false>,
+  "review_reason": "<nur falls needs_human_review=true>"
 }}
 
 Vergabe-Leitlinien:
@@ -92,6 +106,9 @@ Vergabe-Leitlinien:
 - {mid_points} Punkte: Entscheidung vorhanden, Begründung teilweise, wenig Case-Bezug
 - {low_points} Punkte: Analyse bleibt an der Oberfläche, keine Ursache-Wirkung, generisch
 - 0 Punkte: Keine verwertbare Antwort
+- Wenn ein Pflichtbestandteil der Frage fehlt, darf die Antwort trotz guter Teilaspekte nicht in das obere Bewertungsband.
+- Fehlende Canvas-Logik ist ein substanzieller Abzug, wenn Canvas-Bausteine verbindlich vorgegeben sind.
+- Markiere needs_human_review=true bei Low Confidence, Grenzfällen, widersprüchlichen Antworten oder technischen Unsicherheiten.
 
 Canvas-Scoring:
 - 1.0: Die relevanten Canvas-Bausteine werden korrekt, fallbezogen und integriert angewendet.
@@ -135,6 +152,34 @@ class RubricEvaluator:
             )
         return "\n".join(lines)
 
+    def _format_calibration_notes(self, question: CaseQuestion) -> str:
+        notes_by_question = {
+            "q1": [
+                "Die Aufgabe verlangt zwei klar getrennte Herausforderungen; nur eine Herausforderung begrenzt den Score deutlich.",
+                "Externer Druck und interne Gegebenheiten müssen bei mindestens einer Herausforderung als Wechselwirkung sichtbar sein.",
+                "Lehrende bestrafen reine Piloten-/Umsetzungsprobleme, wenn die strategische Geschäftsmodellfrage verfehlt wird.",
+            ],
+            "q2": [
+                "Ohne eindeutige Priorisierung eines der drei definierten Use Cases bleibt der Score niedrig.",
+                "Langfristiger Wettbewerbsvorteil braucht interne Stärken und Imitationsschutz; bloße Effizienzbehauptungen reichen nicht.",
+                "Ein Zielkonflikt muss aus der eigenen Empfehlung folgen, nicht nur allgemein als Risiko erwähnt werden.",
+            ],
+            "q3": [
+                "Die Entscheidung muss Make-or-Buy-Faktoren nutzen: Spezifität, Häufigkeit und Unsicherheit.",
+                "Eine klare Entscheidung plus Risiko reicht nur teilweise, wenn Key Partners, Key Activities und Key Resources implizit bleiben.",
+                "Lehrende bewerten fehlende Canvas-Verankerung strenger als eine nur plausible allgemeine Outsourcing-Argumentation.",
+            ],
+            "q4": [
+                "Die Antwort muss frühere Entscheidungen integriert betrachten; eine isolierte neue Strategie ist nur teilweise passend.",
+                "Die riskanteste Entscheidung soll vergleichend begründet werden, nicht nur genannt.",
+                "Eine Revision muss Konsequenzen für andere Empfehlungsteile zeigen; bloße Wiederholung der Präferenz reicht nicht.",
+            ],
+        }
+        notes = notes_by_question.get(question.question_id, [])
+        if not notes:
+            return "- Keine spezifischen Kalibrierungsanker vorhanden."
+        return "\n".join(f"- {note}" for note in notes)
+
     def _canvas_exemplar_candidate(
         self,
         percentage: float,
@@ -176,6 +221,13 @@ class RubricEvaluator:
             "addressed_canvas_blocks": [],
             "missing_canvas_blocks": [],
             "canvas_rationale": "Technischer Fallback wegen ungueltiger Modellantwort.",
+            "evaluation_status": "technical_fallback",
+            "needs_human_review": True,
+            "review_reason": "Die Modellantwort konnte auch nach Reparaturversuch nicht als valides JSON verarbeitet werden.",
+            "judge_confidence": "low",
+            "score_band": "unscored",
+            "main_strengths": [],
+            "main_penalties": ["Technischer Fallback; keine belastbare automatische Bewertung."],
         }
 
     def _sanitize_feedback(self, feedback: str, tags: list[str]) -> str:
@@ -207,6 +259,11 @@ class RubricEvaluator:
                 return data
 
         raise ValueError("LLM evaluation response was not valid JSON")
+
+    def _as_string_list(self, value: object) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        return [str(item).strip() for item in value if str(item).strip()]
 
     async def _request_repair(self, prompt: str, raw_text: str) -> str:
         return await self.client.complete(
@@ -245,6 +302,7 @@ class RubricEvaluator:
                 tags=", ".join(tags),
                 rubric_focus=self._format_rubric_focus(rubric),
                 canvas_blocks=self._format_canvas_blocks(rubric),
+                calibration_notes=self._format_calibration_notes(question),
                 answer=answer_text,
                 mid_points=mid,
                 low_points=low,
@@ -287,6 +345,12 @@ class RubricEvaluator:
                 block for block in data.get("missing_canvas_blocks", [])
                 if isinstance(block, str)
             ]
+            evaluation_status = str(data.get("evaluation_status", "ok") or "ok")
+            needs_human_review = bool(data.get("needs_human_review", False))
+            judge_confidence = str(data.get("judge_confidence", "") or "").lower() or None
+            if judge_confidence == "low":
+                needs_human_review = True
+            review_reason = data.get("review_reason")
 
             scores.append(QuestionScore(
                 question_id=question_id,
@@ -305,6 +369,13 @@ class RubricEvaluator:
                 addressed_canvas_blocks=addressed_canvas_blocks,
                 missing_canvas_blocks=missing_canvas_blocks,
                 canvas_rationale=self._sanitize_canvas_rationale(data.get("canvas_rationale")),
+                evaluation_status=evaluation_status,
+                needs_human_review=needs_human_review,
+                review_reason=str(review_reason).strip() if review_reason else None,
+                judge_confidence=judge_confidence,
+                score_band=str(data.get("score_band", "") or "").lower() or None,
+                main_strengths=self._as_string_list(data.get("main_strengths")),
+                main_penalties=self._as_string_list(data.get("main_penalties")),
             ))
 
         total = sum(s.awarded_points for s in scores)
