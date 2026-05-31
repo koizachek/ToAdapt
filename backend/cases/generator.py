@@ -30,7 +30,7 @@ logger = structlog.get_logger(__name__)
 # Prompt-Templates
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT = """Du bist ein erfahrener BWL-Dozent an der Universität St. Gallen.
+SYSTEM_PROMPT = """Du bist ein erfahrener BWL-Dozent.
 Du erstellst Mini-Cases für einen Transfer-Trainer in BWL A.
 
 WICHTIGE REGELN:

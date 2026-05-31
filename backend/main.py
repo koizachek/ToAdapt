@@ -1,4 +1,4 @@
-"""ToAdapt — Transfer-Trainer für BWL A, Universität St. Gallen."""
+"""ToAdapt — Transfer-Trainer für BWL A."""
 
 from contextlib import asynccontextmanager
 
@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="ToAdapt",
-    description="Transfer-Trainer für BWL A — Universität St. Gallen",
+    description="Transfer-Trainer für BWL A",
     version="0.2.0",
     lifespan=lifespan,
 )

@@ -5,7 +5,7 @@ build-backend = "setuptools.backends.legacy:build"
 [project]
 name = "toadapt"
 version = "0.1.0"
-description = "Multi-Agent Scaffolding System für BWL A — Universität St.Gallen"
+description = "Multi-Agent Scaffolding System für BWL A"
 requires-python = ">=3.11"
 
 [tool.pytest.ini_options]

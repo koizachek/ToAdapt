@@ -6,6 +6,7 @@ CLAUDE.md
 dev-docs/frontend/.next
 frontend/node_modules
 backend/db/submissions/*.json
+backend/db/dashboard_seed/*.json
 data/prolific_runs/**
 !data/prolific_runs/
 !data/prolific_runs/README.md
