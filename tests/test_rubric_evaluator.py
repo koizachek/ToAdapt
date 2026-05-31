@@ -46,3 +46,12 @@ def test_sanitize_canvas_rationale_removes_case_speculation():
     assert rationale == (
         "Die Begründung bleibt bei den im Case sichtbaren Hinweisen und vermeidet nicht belegte Zusatzdetails."
     )
+
+
+def test_fallback_payload_marks_human_review():
+    evaluator = RubricEvaluator.__new__(RubricEvaluator)
+    payload = evaluator._fallback_payload(["analyse"])
+
+    assert payload["evaluation_status"] == "technical_fallback"
+    assert payload["needs_human_review"] is True
+    assert payload["judge_confidence"] == "low"

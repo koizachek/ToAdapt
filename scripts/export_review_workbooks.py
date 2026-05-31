@@ -60,6 +60,13 @@ class ReviewRow:
     rubric_addressed_canvas_blocks: str
     rubric_missing_canvas_blocks: str
     rubric_canvas_rationale: str
+    rubric_evaluation_status: str
+    rubric_needs_human_review: bool | None
+    rubric_review_reason: str
+    rubric_judge_confidence: str
+    rubric_score_band: str
+    rubric_main_strengths: str
+    rubric_main_penalties: str
     submission_percentage: float | None
     submission_canvas_alignment_pct: float | None
     submission_rubric_fit_pct: float | None
@@ -195,6 +202,13 @@ def _build_rows(submissions_path: Path, cases_dir: Path) -> list[ReviewRow]:
                     rubric_addressed_canvas_blocks=_join_list(score.get("addressed_canvas_blocks")),
                     rubric_missing_canvas_blocks=_join_list(score.get("missing_canvas_blocks")),
                     rubric_canvas_rationale=score.get("canvas_rationale", ""),
+                    rubric_evaluation_status=score.get("evaluation_status", ""),
+                    rubric_needs_human_review=score.get("needs_human_review"),
+                    rubric_review_reason=score.get("review_reason", ""),
+                    rubric_judge_confidence=score.get("judge_confidence", ""),
+                    rubric_score_band=score.get("score_band", ""),
+                    rubric_main_strengths=_join_list(score.get("main_strengths")),
+                    rubric_main_penalties=_join_list(score.get("main_penalties")),
                     submission_percentage=submission.get("percentage"),
                     submission_canvas_alignment_pct=submission.get("canvas_alignment_pct"),
                     submission_rubric_fit_pct=submission.get("rubric_fit_pct"),
@@ -316,6 +330,13 @@ def _write_rubric_workbook(rows: list[ReviewRow], output_path: Path) -> None:
         "rubric_addressed_canvas_blocks",
         "rubric_missing_canvas_blocks",
         "rubric_canvas_rationale",
+        "rubric_evaluation_status",
+        "rubric_needs_human_review",
+        "rubric_review_reason",
+        "rubric_judge_confidence",
+        "rubric_score_band",
+        "rubric_main_strengths",
+        "rubric_main_penalties",
         "submission_percentage",
         "submission_canvas_alignment_pct",
         "submission_rubric_fit_pct",
@@ -354,6 +375,13 @@ def _write_rubric_workbook(rows: list[ReviewRow], output_path: Path) -> None:
                 row.rubric_addressed_canvas_blocks,
                 row.rubric_missing_canvas_blocks,
                 row.rubric_canvas_rationale,
+                row.rubric_evaluation_status,
+                row.rubric_needs_human_review,
+                row.rubric_review_reason,
+                row.rubric_judge_confidence,
+                row.rubric_score_band,
+                row.rubric_main_strengths,
+                row.rubric_main_penalties,
                 row.submission_percentage,
                 row.submission_canvas_alignment_pct,
                 row.submission_rubric_fit_pct,
@@ -388,12 +416,18 @@ def _write_rubric_workbook(rows: list[ReviewRow], output_path: Path) -> None:
                 "U": 28,
                 "V": 28,
                 "W": 45,
-                "X": 16,
-                "Y": 24,
-                "Z": 22,
-                "AA": 22,
-                "AB": 22,
-                "AC": 22,
+                "X": 22,
+                "Y": 22,
+                "Z": 50,
+                "AA": 18,
+                "AB": 16,
+                "AC": 45,
+                "AD": 45,
+                "AE": 16,
+                "AF": 24,
+                "AG": 22,
+                "AH": 22,
+                "AI": 22,
             },
         )
 
