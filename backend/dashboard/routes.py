@@ -14,6 +14,12 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 SUBMISSIONS_DIR = Path(__file__).parent.parent / "db" / "submissions"
 SUBMISSIONS_DIR.mkdir(parents=True, exist_ok=True)
+SEED_SUBMISSIONS_PATH = (
+    Path(__file__).parent.parent
+    / "db"
+    / "dashboard_seed"
+    / "teacher_alignment_20260531_17submissions.json"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -72,7 +78,16 @@ def _load_all_results() -> list[dict]:
             results.append(json.loads(f.read_text()))
         except Exception:
             pass
-    return results
+    if results:
+        return results
+
+    try:
+        seed_results = json.loads(SEED_SUBMISSIONS_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    if not isinstance(seed_results, list):
+        return []
+    return seed_results
 
 
 def _aggregate_objectives(scores_list: list[dict]) -> list[LearningObjectiveScore]:
