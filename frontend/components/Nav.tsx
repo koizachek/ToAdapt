@@ -45,6 +45,10 @@ export default function Nav() {
       return false
     }
   })
+  const [hasTeacherAccess, setHasTeacherAccess] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return sessionStorage.getItem('teacher_access') === 'true'
+  })
   const mode = isExperimentalRun ? 'student' : modeFromPath(path) ?? selectedMode
 
   const visibleLinks = isExperimentalRun || mode === 'student'
@@ -52,8 +56,16 @@ export default function Nav() {
     : teacherLinks
 
   const switchMode = (nextMode: AppMode) => {
+    if (nextMode === 'teacher' && !hasTeacherAccess) {
+      sessionStorage.setItem('app_mode', 'teacher')
+      setSelectedMode('teacher')
+      router.push('/')
+      return
+    }
+
     sessionStorage.setItem('app_mode', nextMode)
     setSelectedMode(nextMode)
+    setHasTeacherAccess(sessionStorage.getItem('teacher_access') === 'true')
     router.push(nextMode === 'teacher' ? '/dashboard' : '/cases')
   }
 

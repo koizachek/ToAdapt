@@ -11,6 +11,7 @@ interface LoginPageContentProps {
 }
 
 const EXPERIMENT_NAME = 'prolific_experimental_run'
+const TEACHER_ACCESS_CODE = '0000'
 type AppMode = 'student' | 'teacher'
 
 function LoginPageContent({
@@ -25,6 +26,7 @@ function LoginPageContent({
     return sessionStorage.getItem('app_mode') === 'teacher' ? 'teacher' : 'student'
   })
   const [participantIdInput, setParticipantIdInput] = useState('')
+  const [teacherCodeInput, setTeacherCodeInput] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -61,7 +63,20 @@ function LoginPageContent({
 
   const switchMode = (nextMode: AppMode) => {
     setMode(nextMode)
+    setError('')
     sessionStorage.setItem('app_mode', nextMode)
+  }
+
+  const handleTeacherSubmit = (event: React.FormEvent) => {
+    event.preventDefault()
+    if (teacherCodeInput.trim() !== TEACHER_ACCESS_CODE) {
+      setError('Code nicht korrekt.')
+      return
+    }
+
+    sessionStorage.setItem('app_mode', 'teacher')
+    sessionStorage.setItem('teacher_access', 'true')
+    router.push('/cases')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -177,41 +192,45 @@ function LoginPageContent({
             </form>
           </>
         ) : (
-          <div className="flex flex-col gap-3">
+          <form onSubmit={handleTeacherSubmit} className="flex flex-col gap-4">
             <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>
               Lehrkräfte
             </p>
-            {[
-              { href: '/cases', label: 'Cases & Fragen ansehen', icon: BookOpen },
-              { href: '/dashboard', label: 'Lerner-Dashboard öffnen', icon: LayoutDashboard },
-              { href: '/admin', label: 'Admin-Bereich öffnen', icon: ShieldCheck },
-            ].map(action => {
-              const Icon = action.icon
-              return (
-                <button
-                  key={action.href}
-                  type="button"
-                  onClick={() => router.push(action.href)}
-                  className="flex items-center justify-between px-5 py-3 text-sm font-medium tracking-wide transition-all duration-200"
-                  style={{ border: '1px solid rgba(53,40,30,0.18)', color: 'var(--ink)' }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = 'var(--accent)'
-                    e.currentTarget.style.color = 'var(--accent)'
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = 'rgba(53,40,30,0.18)'
-                    e.currentTarget.style.color = 'var(--ink)'
-                  }}
-                >
-                  <span className="flex items-center gap-3">
-                    <Icon size={15} />
-                    {action.label}
-                  </span>
-                  <ArrowRight size={15} />
-                </button>
-              )
-            })}
-          </div>
+            <div>
+              <label className="block text-xs mb-2 font-medium tracking-wide" style={{ color: 'var(--line)' }}>
+                Zugangscode
+              </label>
+              <input
+                type="password"
+                inputMode="numeric"
+                value={teacherCodeInput}
+                onChange={event => { setTeacherCodeInput(event.target.value); setError('') }}
+                placeholder="0000"
+                className="w-full px-4 py-3 text-sm bg-transparent outline-none transition-all"
+                style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
+                onFocus={event => { event.currentTarget.style.borderColor = 'var(--accent)' }}
+                onBlur={event => { event.currentTarget.style.borderColor = 'rgba(53,40,30,0.25)' }}
+              />
+              {error && <p className="mt-2 text-xs" style={{ color: '#c0392b' }}>{error}</p>}
+            </div>
+
+            <button
+              type="submit"
+              className="group flex items-center justify-between px-5 py-3 text-sm font-medium tracking-wide transition-all duration-200"
+              style={{ background: 'var(--ink)', color: 'var(--white)' }}
+              onMouseEnter={event => { event.currentTarget.style.background = 'var(--accent)' }}
+              onMouseLeave={event => { event.currentTarget.style.background = 'var(--ink)' }}
+            >
+              Lehrkräftebereich öffnen
+              <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-1" />
+            </button>
+
+            <div className="grid grid-cols-3 gap-2 pt-2 text-xs" style={{ color: 'var(--muted)' }}>
+              <span className="flex items-center gap-1"><BookOpen size={12} /> Cases</span>
+              <span className="flex items-center gap-1"><LayoutDashboard size={12} /> Dashboard</span>
+              <span className="flex items-center gap-1"><ShieldCheck size={12} /> Admin</span>
+            </div>
+          </form>
         )}
       </div>
 
