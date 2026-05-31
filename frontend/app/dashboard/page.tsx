@@ -31,6 +31,23 @@ interface StudentRow {
 }
 
 const BLOOM: Record<number, string> = { 2: 'Verstehen', 3: 'Anwenden', 4: 'Analysieren', 5: 'Evaluieren', 6: 'Synthese' }
+const OBJECTIVE_LABELS: Record<string, string> = {
+  analyse: 'Analyse',
+  evaluieren: 'Evaluieren',
+  integration: 'Integration',
+  kpi: 'KPI',
+  reflexion: 'Reflexion',
+  transfer: 'Transfer',
+  'trade-off': 'Trade-off',
+}
+
+function objectiveLabel(tag: string) {
+  return OBJECTIVE_LABELS[tag] ?? tag
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map(part => part.length <= 3 ? part.toUpperCase() : part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
 
 function MiniBar({ pct, label }: { pct: number; label: string }) {
   return (
@@ -86,12 +103,16 @@ export default function DashboardPage() {
                   icon: null,
                 },
               ].map(k => (
-                <div key={k.label} className="p-6" style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.12)' }}>
-                  <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--muted)' }}>
+                <div
+                  key={k.label}
+                  className="h-32 p-6 flex flex-col justify-between"
+                  style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.12)' }}
+                >
+                  <div className="min-h-9 flex items-start gap-2" style={{ color: 'var(--muted)' }}>
                     {k.icon}
-                    <span className="text-xs tracking-widest uppercase">{k.label}</span>
+                    <span className="text-xs tracking-widest uppercase leading-snug">{k.label}</span>
                   </div>
-                  <p className="font-display text-4xl">{k.value}</p>
+                  <p className="font-display text-4xl leading-none tabular-nums">{k.value}</p>
                 </div>
               ))}
             </div>
@@ -123,7 +144,7 @@ export default function DashboardPage() {
                 <div className="flex flex-col gap-3">
                   {overview.top_objectives.map(o => (
                     <div key={o.tag} className="flex items-center justify-between">
-                      <span className="text-sm">{o.tag}</span>
+                      <span className="text-sm">{objectiveLabel(o.tag)}</span>
                       <div className="flex items-center gap-4">
                         <span className="text-xs" style={{ color: 'var(--muted)' }}>n={o.n}</span>
                         <span className="text-sm font-medium" style={{ color: o.avg_pct < 50 ? '#c0392b' : 'var(--ink)' }}>
