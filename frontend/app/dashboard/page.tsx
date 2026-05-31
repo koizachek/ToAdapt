@@ -10,6 +10,8 @@ interface Overview {
   total_students: number; total_submissions: number; avg_percentage: number
   avg_canvas_alignment_pct: number; avg_rubric_fit_pct: number
   exemplar_submissions_count: number
+  needs_human_review_count: number
+  technical_fallback_count: number
   by_tp: Record<number, number>; by_bloom: Record<number, number>
   top_objectives: LearningObjectiveScore[]
 }
@@ -18,6 +20,8 @@ interface StudentRow {
   avg_canvas_alignment_pct: number
   avg_rubric_fit_pct: number
   exemplar_submissions_count: number
+  needs_human_review_count: number
+  technical_fallback_count: number
   latest_percentage: number | null
   latest_canvas_alignment_pct: number | null
   latest_rubric_fit_pct: number | null
@@ -69,13 +73,18 @@ export default function DashboardPage() {
         {overview && (
           <>
             {/* KPIs */}
-            <div className="grid grid-cols-5 gap-6 mb-12">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6 mb-12">
               {[
                 { label: 'Studierende', value: overview.total_students, icon: <Users size={14} /> },
                 { label: 'Submissions', value: overview.total_submissions, icon: <TrendingUp size={14} /> },
                 { label: 'Ø Score', value: `${overview.avg_percentage.toFixed(0)}%`, icon: null },
                 { label: 'Ø Canvas-Fit', value: `${overview.avg_canvas_alignment_pct.toFixed(0)}%`, icon: null },
                 { label: 'Exemplars', value: overview.exemplar_submissions_count, icon: null },
+                {
+                  label: 'Review/Fallback',
+                  value: `${overview.needs_human_review_count}/${overview.technical_fallback_count}`,
+                  icon: null,
+                },
               ].map(k => (
                 <div key={k.label} className="p-6" style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.12)' }}>
                   <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--muted)' }}>
@@ -145,10 +154,11 @@ export default function DashboardPage() {
           </div>
 
           <div className="divider mb-0" />
-          <div className="grid text-xs font-medium tracking-wide uppercase py-3 px-2" style={{ color: 'var(--muted)', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr' }}>
+          <div className="grid text-xs font-medium tracking-wide uppercase py-3 px-2" style={{ color: 'var(--muted)', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
             <span>Matrikelnummer</span>
             <span className="text-right">Submissions</span>
             <span className="text-right">Ø Score</span>
+            <span className="text-right">Review</span>
             <span className="text-right">TP 1</span>
             <span className="text-right">TP 2</span>
             <span className="text-right">TP 3</span>
@@ -162,12 +172,15 @@ export default function DashboardPage() {
               <div key={s.matrikelnummer}>
                 <div
                   className="grid items-center py-3 px-2 text-sm"
-                  style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr' }}
+                  style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1fr' }}
                 >
                   <span className="font-mono text-xs">{s.matrikelnummer}</span>
                   <span className="text-right" style={{ color: 'var(--muted)' }}>{s.submissions_count}</span>
                   <span className="text-right font-medium" style={{ color: s.avg_percentage >= 70 ? 'var(--accent)' : s.avg_percentage < 45 ? '#c0392b' : 'var(--ink)' }}>
                     {s.avg_percentage.toFixed(0)}%
+                  </span>
+                  <span className="text-right text-xs" style={{ color: s.needs_human_review_count > 0 ? '#c0392b' : 'var(--muted)' }}>
+                    {s.needs_human_review_count}/{s.technical_fallback_count}
                   </span>
                   {[1, 2, 3].map(tp => (
                     <span key={tp} className="text-right text-xs" style={{ color: 'var(--muted)' }}>

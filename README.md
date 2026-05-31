@@ -73,6 +73,25 @@ pip install -r requirements.txt
 uvicorn backend.main:app --reload
 ```
 
+## Aktueller Stand
+
+- Das Frontend hat zwei Modi. Studierende nutzen den bestehenden Studien-/Case-Flow. Lehrkräfte melden sich auf der Startseite mit einem Zugangscode an und sehen danach `Cases`, `Dashboard` und `Admin` direkt in der oberen Navigation.
+- Der Lehrkräfte-Code wird serverseitig über `TEACHER_ACCESS_CODE` geprüft. Lokal ist `0000` möglich, der Code wird im Frontend nicht angezeigt.
+- Der LLM-as-a-Judge ist an die Lehrerbewertung kalibriert: Rubric-Scores enthalten jetzt Confidence, Score-Band, Review-Flags, technische Fallbacks, Stärken und Abzüge.
+- Die zuletzt neu bewertete Datei liegt lokal unter `data/prolific_runs/derived/aligned_rescores/submission_states_aligned_20260531T140830Z.json`.
+- Der Vorher-Nachher-Bericht liegt unter `data/prolific_runs/derived/aligned_rescores/teacher_alignment_report_20260531.md`.
+- Die bereinigte Nutzerbasis bleibt maßgeblich. Fehlende Testnutzer oder schlechte Outputs werden nicht wieder eingefügt, solange mit der bereinigten Submission-Datei gearbeitet wird.
+
+## Bewertungen ins Lehrkräfte-Dashboard übertragen
+
+Das Dashboard liest live aus `backend/db/submissions/*.json`. Neue Online-Abgaben werden dort beim Submit automatisch geschrieben. Für bereits neu bewertete Prolific-/Alignment-Dateien gibt es einen Publish-Schritt:
+
+```bash
+python scripts/publish_dashboard_scores.py data/prolific_runs/derived/aligned_rescores/submission_states_aligned_20260531T140830Z.json
+```
+
+Danach erscheinen die bewerteten Abgaben direkt im Lehrkräfte-Dashboard unter `/dashboard`, inklusive Review-Flags und technischen Fallbacks. Die Rohdatei unter `data/prolific_runs/` wird dabei nicht verändert.
+
 ### Optional: Prolific + MongoDB Logging
 
 Für Experimental-Runs kann das Backend strukturierte Events nach MongoDB schreiben. Dafür genügen diese Env-Variablen:
