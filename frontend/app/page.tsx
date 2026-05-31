@@ -103,7 +103,7 @@ function LoginPageContent({
           ToAdapt
         </h1>
         <p className="mt-3 text-sm tracking-[0.2em] uppercase" style={{ color: 'var(--muted)' }}>
-          {mode === 'student' ? 'Willkommen zur Studie' : 'Lehrkräftebereich'}
+          {mode === 'student' ? 'Tansfer-Learning mit Business Cases' : 'Lehrkräftebereich'}
         </p>
       </div>
 
@@ -149,7 +149,7 @@ function LoginPageContent({
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
                 <label className="block text-xs mb-2 font-medium tracking-wide" style={{ color: 'var(--line)' }}>
-                  Prolific-ID
+                  Matrikelnummer
                 </label>
                 <input
                   type="text"
@@ -226,7 +226,7 @@ function LoginPageContent({
 
       {mode === 'student' && (
         <p className="mt-10 text-xs text-center max-w-xs" style={{ color: 'var(--muted)' }}>
-          Deine Prolific-ID wird für die Studienzuordnung erfasst. Chat-Logs bleiben aus dem Dozierenden-Dashboard ausgeschlossen.
+          Deine Matrikelnummer wird für die Studienzuordnung erfasst. Chat-Logs bleiben aus dem Dozierenden-Dashboard ausgeschlossen.
         </p>
       )}
     </main>
