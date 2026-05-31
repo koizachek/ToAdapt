@@ -52,14 +52,3 @@ Stand: 2026-05-31
 - Das Alignment verbessert nicht jede Kennzahl gleichzeitig. Relevant ist deshalb nicht nur der Mittelwert, sondern auch Richtung, Ausreisser, Review-Flags und Frageebene.
 - Die Review-Flags markieren genau die Stellen, an denen der Judge die Lehrkraft nicht ersetzen, sondern gezielt auf unsichere oder technisch auffaellige Bewertungen hinweisen soll.
 
-## Ausgeschlossene Rescore-Submissions
-
-- `b6fecfaf-333e-4da9-94d7-51f9e634a286` / `dianatest`
-- `f440d090-a293-485a-9617-60382d8d7168` / `DavidSonnabend`
-- `c5abba8e-265a-4ba7-b21a-cb372aedc271` / `69e61269b2490f8e7a076a21`
-
-## Quellen
-
-- Lehrerbewertung: `/Users/dianakozachek/Desktop/prolific_review_20260517T120141Z_blind.xlsx`
-- Rubric vorher: `data/prolific_runs/derived/review_exports/prolific_review_20260517T120141Z_rubric.xlsx`
-- Rubric nach Alignment: `data/prolific_runs/derived/aligned_rescores/aligned_review_20260531T140830Z_20260531T142056Z_rubric.xlsx`
