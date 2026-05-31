@@ -118,6 +118,11 @@ const CASE_GLOSSARY: Record<string, GlossaryTerm[]> = {
 
 const INITIAL_AGENT_MESSAGE = 'Hallo! Ich bin dein Lernbegleiter für diesen Case. Markierte Fachbegriffe starten direkt eine kontextbezogene Diskussion. Wo möchtest du einsteigen?'
 
+function hasCookie(name: string, value: string) {
+  if (typeof document === 'undefined') return false
+  return document.cookie.split(';').some(cookie => cookie.trim() === `${name}=${value}`)
+}
+
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
@@ -434,7 +439,7 @@ export default function CasePage() {
   const router = useRouter()
   const [isTeacherMode] = useState(() => {
     if (typeof window === 'undefined') return false
-    return sessionStorage.getItem('app_mode') === 'teacher'
+    return hasCookie('teacher_mode', 'true')
   })
   const [caseData, setCase] = useState<Case | null>(null)
   const [tab, setTab] = useState<'case' | 'questions'>('case')

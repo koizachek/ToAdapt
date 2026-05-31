@@ -24,12 +24,18 @@ function modeFromPath(path: string): AppMode | null {
   return null
 }
 
+function hasCookie(name: string, value: string) {
+  if (typeof document === 'undefined') return false
+  return document.cookie.split(';').some(cookie => cookie.trim() === `${name}=${value}`)
+}
+
 export default function Nav() {
   const path = usePathname()
   const router = useRouter()
   const [selectedMode, setSelectedMode] = useState<AppMode>(() => {
     if (typeof window === 'undefined') return 'student'
     try {
+      if (hasCookie('teacher_mode', 'true')) return 'teacher'
       const storedMode = sessionStorage.getItem('app_mode') as AppMode | null
       return storedMode === 'teacher' ? 'teacher' : 'student'
     } catch {
@@ -38,6 +44,7 @@ export default function Nav() {
   })
   const [isExperimentalRun] = useState(() => {
     if (typeof window === 'undefined') return false
+    if (hasCookie('teacher_mode', 'true')) return false
     try {
       const experimentContext = JSON.parse(sessionStorage.getItem('experiment_context') ?? 'null')
       return experimentContext?.provider === 'prolific'
@@ -47,11 +54,11 @@ export default function Nav() {
   })
   const [hasTeacherAccess, setHasTeacherAccess] = useState(() => {
     if (typeof window === 'undefined') return false
-    return sessionStorage.getItem('teacher_access') === 'true'
+    return hasCookie('teacher_mode', 'true')
   })
-  const mode = isExperimentalRun ? 'student' : modeFromPath(path) ?? selectedMode
+  const mode = hasTeacherAccess ? 'teacher' : isExperimentalRun ? 'student' : modeFromPath(path) ?? selectedMode
 
-  const visibleLinks = isExperimentalRun || mode === 'student'
+  const visibleLinks = !hasTeacherAccess && (isExperimentalRun || mode === 'student')
     ? studentLinks
     : teacherLinks
 
@@ -65,7 +72,7 @@ export default function Nav() {
 
     sessionStorage.setItem('app_mode', nextMode)
     setSelectedMode(nextMode)
-    setHasTeacherAccess(sessionStorage.getItem('teacher_access') === 'true')
+    setHasTeacherAccess(hasCookie('teacher_mode', 'true'))
     router.push(nextMode === 'teacher' ? '/dashboard' : '/cases')
   }
 

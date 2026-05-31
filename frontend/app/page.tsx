@@ -8,25 +8,28 @@ interface LoginPageContentProps {
   prolificPid?: string
   studyId?: string
   prolificSessionId?: string
+  initialMode?: AppMode
+  teacherLoginError?: boolean
 }
 
 const EXPERIMENT_NAME = 'prolific_experimental_run'
-const TEACHER_ACCESS_CODE = '0000'
 type AppMode = 'student' | 'teacher'
 
 function LoginPageContent({
   prolificPid = '',
   studyId = '',
   prolificSessionId = '',
+  initialMode = 'student',
+  teacherLoginError = false,
 }: LoginPageContentProps) {
   const router = useRouter()
   const [mode, setMode] = useState<AppMode>(() => {
     if (typeof window === 'undefined') return 'student'
     if (prolificPid) return 'student'
+    if (initialMode === 'teacher') return 'teacher'
     return sessionStorage.getItem('app_mode') === 'teacher' ? 'teacher' : 'student'
   })
   const [participantIdInput, setParticipantIdInput] = useState('')
-  const [teacherCodeInput, setTeacherCodeInput] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -65,18 +68,6 @@ function LoginPageContent({
     setMode(nextMode)
     setError('')
     sessionStorage.setItem('app_mode', nextMode)
-  }
-
-  const handleTeacherSubmit = (event: React.FormEvent) => {
-    event.preventDefault()
-    if (teacherCodeInput.trim() !== TEACHER_ACCESS_CODE) {
-      setError('Code nicht korrekt.')
-      return
-    }
-
-    sessionStorage.setItem('app_mode', 'teacher')
-    sessionStorage.setItem('teacher_access', 'true')
-    router.push('/cases')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -192,7 +183,7 @@ function LoginPageContent({
             </form>
           </>
         ) : (
-          <form onSubmit={handleTeacherSubmit} className="flex flex-col gap-4">
+          <form action="/teacher-login" method="post" className="flex flex-col gap-4">
             <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>
               Lehrkräfte
             </p>
@@ -203,15 +194,14 @@ function LoginPageContent({
               <input
                 type="password"
                 inputMode="numeric"
-                value={teacherCodeInput}
-                onChange={event => { setTeacherCodeInput(event.target.value); setError('') }}
-                placeholder="0000"
+                name="teacher_code"
+                placeholder="Code eingeben"
                 className="w-full px-4 py-3 text-sm bg-transparent outline-none transition-all"
                 style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
                 onFocus={event => { event.currentTarget.style.borderColor = 'var(--accent)' }}
                 onBlur={event => { event.currentTarget.style.borderColor = 'rgba(53,40,30,0.25)' }}
               />
-              {error && <p className="mt-2 text-xs" style={{ color: '#c0392b' }}>{error}</p>}
+              {teacherLoginError && <p className="mt-2 text-xs" style={{ color: '#c0392b' }}>Code nicht korrekt.</p>}
             </div>
 
             <button
@@ -251,6 +241,8 @@ function LoginPageInner() {
       prolificPid={searchParams.get('PROLIFIC_PID') ?? searchParams.get('prolific_pid') ?? ''}
       studyId={searchParams.get('STUDY_ID') ?? searchParams.get('study_id') ?? ''}
       prolificSessionId={searchParams.get('SESSION_ID') ?? searchParams.get('session_id') ?? ''}
+      initialMode={searchParams.get('mode') === 'teacher' ? 'teacher' : 'student'}
+      teacherLoginError={searchParams.get('teacher_error') === '1'}
     />
   )
 }
