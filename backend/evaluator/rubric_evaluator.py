@@ -273,7 +273,7 @@ class RubricEvaluator:
                 {"role": "assistant", "content": raw_text},
                 {"role": "user", "content": REPAIR_PROMPT},
             ],
-            max_tokens=512,
+            max_tokens=1200,
         )
 
     async def evaluate_submission(self, submission: Submission, case: Case) -> SubmissionResult:
@@ -311,7 +311,7 @@ class RubricEvaluator:
             text = await self.client.complete(
                 system=EVALUATOR_SYSTEM,
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=512,
+                max_tokens=1200,
             )
             try:
                 data = self._parse_evaluation_payload(text, tags)
