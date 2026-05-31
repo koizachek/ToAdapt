@@ -34,7 +34,7 @@ DISALLOWED_FEEDBACK_PATTERNS = [
     "microsoft",
 ]
 
-EVALUATOR_SYSTEM = """Du bist ein Bewertungsassistent für BWL A.
+EVALUATOR_SYSTEM = """Du bist ein Bewertungsassistent für BWL.
 
 Du bewertest Studierenden-Antworten auf Basis von pfadoffenen Rubrics.
 
