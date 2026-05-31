@@ -432,6 +432,10 @@ function GlossaryChip({
 export default function CasePage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const [isTeacherMode] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return sessionStorage.getItem('app_mode') === 'teacher'
+  })
   const [caseData, setCase] = useState<Case | null>(null)
   const [tab, setTab] = useState<'case' | 'questions'>('case')
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -449,15 +453,21 @@ export default function CasePage() {
   const hasStartedExperimentRef = useRef(false)
 
   useEffect(() => {
+    if (isTeacherMode) {
+      sessionStorage.setItem('app_mode', 'teacher')
+      return
+    }
+
+    sessionStorage.setItem('app_mode', 'student')
     setClientIdentity(readClientIdentity())
-  }, [])
+  }, [isTeacherMode])
 
   useEffect(() => {
     apiFetch<Case>(`/admin/cases/${id}`).then(setCase)
   }, [id])
 
   useEffect(() => {
-    if (!id || !clientIdentity || hasStartedExperimentRef.current) return
+    if (isTeacherMode || !id || !clientIdentity || hasStartedExperimentRef.current) return
     hasStartedExperimentRef.current = true
 
     apiFetch<{ submission_id: string }>('/submissions', {
@@ -479,7 +489,7 @@ export default function CasePage() {
       historyRef.current = []
       setChat([{ role: 'agent', content: INITIAL_AGENT_MESSAGE, agent_type: 'metacognitive' }])
     }).catch(console.error)
-  }, [clientIdentity, id])
+  }, [clientIdentity, id, isTeacherMode])
 
   useEffect(() => {
     const node = chatScrollRef.current
@@ -487,7 +497,7 @@ export default function CasePage() {
     node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' })
   }, [chat, sending])
 
-  const glossaryTerms = useMemo(() => CASE_GLOSSARY[id] ?? [], [id])
+  const glossaryTerms = useMemo(() => isTeacherMode ? [] : CASE_GLOSSARY[id] ?? [], [id, isTeacherMode])
   const glossaryMap = useMemo(
     () => new Map(glossaryTerms.map(term => [term.term.toLowerCase(), term])),
     [glossaryTerms],
@@ -598,7 +608,7 @@ export default function CasePage() {
       <main className="mx-auto max-w-[1400px] px-6 pb-12 pt-24 lg:px-8">
         <div className="py-6">
           <p className="mb-1 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
-            {caseData.industry} · {caseData.country}
+            {isTeacherMode ? 'Lehrkräfte-Vorschau' : `${caseData.industry} · ${caseData.country}`}
           </p>
           <h1 className="font-display text-3xl leading-tight">{caseData.title}</h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>{caseData.tagline}</p>
@@ -682,12 +692,14 @@ export default function CasePage() {
               <div className="flex max-w-3xl flex-col gap-8 pr-0 xl:pr-4">
                 <BusinessModelCanvasGuide />
 
-                <div
-                  className="rounded-2xl px-5 py-4 text-sm leading-7"
-                  style={{ background: 'rgba(21,99,61,0.08)', color: 'var(--ink)' }}
-                >
-                  Schreibe in ganzen Sätzen. Für Frage 1–2 gilt 50–200 Wörter, für Frage 3–4 100–200 Wörter.
-                </div>
+                {!isTeacherMode && (
+                  <div
+                    className="rounded-2xl px-5 py-4 text-sm leading-7"
+                    style={{ background: 'rgba(21,99,61,0.08)', color: 'var(--ink)' }}
+                  >
+                    Schreibe in ganzen Sätzen. Für Frage 1–2 gilt 50–200 Wörter, für Frage 3–4 100–200 Wörter.
+                  </div>
+                )}
 
                 {caseData.questions.map((question, index) => (
                   <div key={question.question_id}>
@@ -715,73 +727,128 @@ export default function CasePage() {
                       </span>
                     </div>
 
-                    <textarea
-                      value={answerText}
-                      onChange={event => setAnswers(current => ({ ...current, [question.question_id]: event.target.value }))}
-                      onBlur={event => saveAnswer(question.question_id, event.target.value)}
-                      rows={6}
-                      placeholder={`Deine Antwort in ganzen Sätzen (${requirement.minWords}–${requirement.maxWords} Wörter)…`}
-                      className="ml-8 w-full resize-none rounded-2xl bg-transparent px-4 py-3 text-sm outline-none transition-all"
-                      style={{
-                        border: `1px solid ${answerText.trim().length > 0 && !isWithinRange ? 'rgba(173,63,43,0.45)' : 'rgba(53,40,30,0.2)'}`,
-                        color: 'var(--ink)',
-                      }}
-                      onFocus={event => { event.currentTarget.style.borderColor = 'var(--accent)' }}
-                      onBlurCapture={event => {
-                        event.currentTarget.style.borderColor = answerText.trim().length > 0 && !isWithinRange
-                          ? 'rgba(173,63,43,0.45)'
-                          : 'rgba(53,40,30,0.2)'
-                      }}
-                    />
-                    <div className="ml-8 mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-                      <span style={{ color: 'var(--muted)' }}>
-                        Vorgabe: {requirement.minWords}–{requirement.maxWords} Wörter, ganze Sätze
-                      </span>
-                      <span style={{ color: answerText.trim().length === 0 || isWithinRange ? 'var(--accent)' : '#ad3f2b' }}>
-                        {wordCount} Wörter
-                      </span>
-                      {sentenceHintVisible && (
-                        <span style={{ color: '#ad3f2b' }}>
-                          Bitte in ganzen Sätzen formulieren.
-                        </span>
-                      )}
-                    </div>
+                    {isTeacherMode ? (
+                      <div
+                        className="ml-8 rounded-2xl px-4 py-3 text-xs leading-6"
+                        style={{ border: '1px solid rgba(53,40,30,0.14)', color: 'var(--muted)' }}
+                      >
+                        Antwortvorgabe fuer Studierende: {requirement.minWords}–{requirement.maxWords} Woerter, ganze Saetze.
+                      </div>
+                    ) : (
+                      <>
+                        <textarea
+                          value={answerText}
+                          onChange={event => setAnswers(current => ({ ...current, [question.question_id]: event.target.value }))}
+                          onBlur={event => saveAnswer(question.question_id, event.target.value)}
+                          rows={6}
+                          placeholder={`Deine Antwort in ganzen Sätzen (${requirement.minWords}–${requirement.maxWords} Wörter)…`}
+                          className="ml-8 w-full resize-none rounded-2xl bg-transparent px-4 py-3 text-sm outline-none transition-all"
+                          style={{
+                            border: `1px solid ${answerText.trim().length > 0 && !isWithinRange ? 'rgba(173,63,43,0.45)' : 'rgba(53,40,30,0.2)'}`,
+                            color: 'var(--ink)',
+                          }}
+                          onFocus={event => { event.currentTarget.style.borderColor = 'var(--accent)' }}
+                          onBlurCapture={event => {
+                            event.currentTarget.style.borderColor = answerText.trim().length > 0 && !isWithinRange
+                              ? 'rgba(173,63,43,0.45)'
+                              : 'rgba(53,40,30,0.2)'
+                          }}
+                        />
+                        <div className="ml-8 mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                          <span style={{ color: 'var(--muted)' }}>
+                            Vorgabe: {requirement.minWords}–{requirement.maxWords} Wörter, ganze Sätze
+                          </span>
+                          <span style={{ color: answerText.trim().length === 0 || isWithinRange ? 'var(--accent)' : '#ad3f2b' }}>
+                            {wordCount} Wörter
+                          </span>
+                          {sentenceHintVisible && (
+                            <span style={{ color: '#ad3f2b' }}>
+                              Bitte in ganzen Sätzen formulieren.
+                            </span>
+                          )}
+                        </div>
+                      </>
+                    )}
                         </>
                       )
                     })()}
                   </div>
                 ))}
 
-                <div className="divider" />
+                {!isTeacherMode && <div className="divider" />}
 
-                {submissionError && (
+                {!isTeacherMode && submissionError && (
                   <p className="text-sm" style={{ color: '#ad3f2b' }}>
                     {submissionError}
                   </p>
                 )}
 
-                {submitting && (
+                {!isTeacherMode && submitting && (
                   <p className="text-sm" style={{ color: 'var(--muted)' }}>
                     Auswertung laeuft. Bitte Seite nicht schliessen.
                   </p>
                 )}
 
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  className="self-start rounded-full px-6 py-3 text-sm font-medium tracking-wide transition-all duration-200"
-                  style={{ background: submitting ? 'var(--muted)' : 'var(--ink)', color: 'var(--white)' }}
-                  onMouseEnter={event => { if (!submitting) event.currentTarget.style.background = 'var(--accent)' }}
-                  onMouseLeave={event => { if (!submitting) event.currentTarget.style.background = 'var(--ink)' }}
-                >
-                  {submitting ? 'Wird ausgewertet…' : 'Abgeben & auswerten'}
-                </button>
+                {!isTeacherMode && (
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={submitting}
+                    className="self-start rounded-full px-6 py-3 text-sm font-medium tracking-wide transition-all duration-200"
+                    style={{ background: submitting ? 'var(--muted)' : 'var(--ink)', color: 'var(--white)' }}
+                    onMouseEnter={event => { if (!submitting) event.currentTarget.style.background = 'var(--accent)' }}
+                    onMouseLeave={event => { if (!submitting) event.currentTarget.style.background = 'var(--ink)' }}
+                  >
+                    {submitting ? 'Wird ausgewertet…' : 'Abgeben & auswerten'}
+                  </button>
+                )}
               </div>
             )}
           </section>
 
           <aside className="xl:sticky xl:top-28">
+            {isTeacherMode ? (
+              <div
+                className="rounded-[28px] border p-6"
+                style={{ background: 'rgba(250,250,248,0.7)', borderColor: 'rgba(53,40,30,0.12)' }}
+              >
+                <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--muted)' }}>
+                  Vorschau
+                </p>
+                <div className="flex flex-col gap-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span style={{ color: 'var(--muted)' }}>Branche</span>
+                    <span className="font-medium">{caseData.industry}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span style={{ color: 'var(--muted)' }}>Land</span>
+                    <span className="font-medium">{caseData.country}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span style={{ color: 'var(--muted)' }}>Abschnitte</span>
+                    <span className="font-medium">{caseData.sections.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span style={{ color: 'var(--muted)' }}>Exhibits</span>
+                    <span className="font-medium">{caseData.exhibits.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span style={{ color: 'var(--muted)' }}>Fragen</span>
+                    <span className="font-medium">{caseData.questions.length}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTab('questions')}
+                  className="mt-6 w-full rounded-full px-5 py-3 text-sm font-medium transition-all"
+                  style={{ background: 'var(--ink)', color: 'var(--white)' }}
+                  onMouseEnter={event => { event.currentTarget.style.background = 'var(--accent)' }}
+                  onMouseLeave={event => { event.currentTarget.style.background = 'var(--ink)' }}
+                >
+                  Fragen anzeigen
+                </button>
+              </div>
+            ) : (
             <div
               className="overflow-hidden rounded-[28px] border"
               style={{
@@ -879,6 +946,7 @@ export default function CasePage() {
                 </div>
               </div>
             </div>
+            )}
           </aside>
         </div>
       </main>

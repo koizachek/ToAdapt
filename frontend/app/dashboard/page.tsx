@@ -43,18 +43,12 @@ function MiniBar({ pct, label }: { pct: number; label: string }) {
 export default function DashboardPage() {
   const [overview, setOverview] = useState<Overview | null>(null)
   const [students, setStudents] = useState<StudentRow[]>([])
-  const [selfRow, setSelfRow] = useState<StudentRow | null>(null)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
+    sessionStorage.setItem('app_mode', 'teacher')
     apiFetch<Overview>('/dashboard/overview').then(setOverview)
     apiFetch<StudentRow[]>('/dashboard/students').then(setStudents)
-
-    const matrikelnummer = sessionStorage.getItem('matrikelnummer')
-    if (!matrikelnummer) return
-    apiFetch<StudentRow>(`/dashboard/student/${matrikelnummer}`)
-      .then(setSelfRow)
-      .catch(() => setSelfRow(null))
   }, [])
 
   const filtered = students.filter(s => s.matrikelnummer.includes(search))
@@ -65,76 +59,12 @@ export default function DashboardPage() {
       <main className="pt-28 pb-20 px-8 max-w-5xl mx-auto">
         <div className="mb-12">
           <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>
-            {selfRow ? 'Mein Stand + Kursübersicht' : 'Dozenten-Übersicht'}
+            Lerner-Dashboard
           </p>
           <h1 className="font-display text-5xl leading-none">Dashboard</h1>
         </div>
 
         <div className="divider mb-10" />
-
-        {selfRow && (
-          <div className="mb-14">
-            <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--muted)' }}>
-              Mein Stand
-            </p>
-            <div className="grid grid-cols-4 gap-6 mb-8">
-              {[
-                { label: 'Ø Score', value: `${selfRow.avg_percentage.toFixed(0)}%` },
-                { label: 'Canvas-Fit', value: `${selfRow.avg_canvas_alignment_pct.toFixed(0)}%` },
-                { label: 'Rubric-Fit', value: `${selfRow.avg_rubric_fit_pct.toFixed(0)}%` },
-                { label: 'Exemplar-Kandidaten', value: selfRow.exemplar_submissions_count },
-              ].map(k => (
-                <div key={k.label} className="p-6" style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.12)' }}>
-                  <div className="mb-2 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
-                    {k.label}
-                  </div>
-                  <p className="font-display text-4xl">{k.value}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-2 gap-10">
-              <div className="p-6" style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.12)' }}>
-                <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--muted)' }}>
-                  Letzte Einreichung
-                </p>
-                <div className="flex flex-col gap-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span style={{ color: 'var(--muted)' }}>Score</span>
-                    <span className="font-medium">{selfRow.latest_percentage != null ? `${selfRow.latest_percentage.toFixed(0)}%` : '—'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span style={{ color: 'var(--muted)' }}>Canvas-Fit</span>
-                    <span className="font-medium">{selfRow.latest_canvas_alignment_pct != null ? `${selfRow.latest_canvas_alignment_pct.toFixed(0)}%` : '—'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span style={{ color: 'var(--muted)' }}>Rubric-Fit</span>
-                    <span className="font-medium">{selfRow.latest_rubric_fit_pct != null ? `${selfRow.latest_rubric_fit_pct.toFixed(0)}%` : '—'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span style={{ color: 'var(--muted)' }}>TP</span>
-                    <span className="font-medium">{selfRow.latest_target_tp != null ? `TP ${selfRow.latest_target_tp}` : '—'}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--muted)' }}>
-                  Mein Profil nach TP
-                </p>
-                <div className="flex flex-col gap-3">
-                  {[1, 2, 3, 4].map(tp => (
-                    <MiniBar
-                      key={tp}
-                      pct={selfRow.by_tp[tp] ?? 0}
-                      label={`TP ${tp}`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {overview && (
           <>

@@ -1,11 +1,16 @@
 'use client'
 
+import { useEffect } from 'react'
 import Nav from '@/components/Nav'
 
 const COMPLETION_CODE = 'C17I8JXC'
 const PROLIFIC_RETURN_URL = `https://app.prolific.com/submissions/complete?cc=${COMPLETION_CODE}`
 
 export default function GoodbyePage() {
+  useEffect(() => {
+    sessionStorage.setItem('app_mode', 'student')
+  }, [])
+
   return (
     <>
       <Nav />
