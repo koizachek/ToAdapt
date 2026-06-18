@@ -1,11 +1,17 @@
 'use client'
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, usePathname, useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { BookOpenText, FileText, MessageSquare, Send } from 'lucide-react'
 import Nav from '@/components/Nav'
 import { apiFetch } from '@/lib/api'
+import {
+  APP_MODE_CHANGED_EVENT,
+  APP_MODE_STORAGE_KEY,
+  clearCookie,
+  readTeacherMode,
+} from '@/lib/appMode'
 import { languageFromCaseId, Locale } from '@/lib/i18n'
 import { useLanguage } from '@/lib/useLanguage'
 
@@ -255,11 +261,6 @@ const CASE_GLOSSARY: Record<string, GlossaryTerm[]> = {
       starterPrompt: 'Briefly explain the term "MVP" and state in one sentence what role it plays in this case.',
     },
   ],
-}
-
-function hasCookie(name: string, value: string) {
-  if (typeof document === 'undefined') return false
-  return document.cookie.split(';').some(cookie => cookie.trim() === `${name}=${value}`)
 }
 
 function escapeRegExp(value: string) {
@@ -626,14 +627,12 @@ function GlossaryChip({
 
 export default function CasePage() {
   const { id } = useParams<{ id: string }>()
+  const path = usePathname()
   const router = useRouter()
   const [storedLanguage, setLanguage] = useLanguage()
   const language = languageFromCaseId(id)
   const text = CASE_PAGE_TEXT[language]
-  const [isTeacherMode] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return hasCookie('teacher_mode', 'true')
-  })
+  const [isTeacherMode, setIsTeacherMode] = useState(() => readTeacherMode())
   const [caseData, setCase] = useState<Case | null>(null)
   const [tab, setTab] = useState<'case' | 'questions'>('case')
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -660,12 +659,30 @@ export default function CasePage() {
   }, [language, setLanguage, storedLanguage])
 
   useEffect(() => {
+    const syncTeacherMode = () => setIsTeacherMode(readTeacherMode())
+    window.addEventListener(APP_MODE_CHANGED_EVENT, syncTeacherMode)
+    window.addEventListener('focus', syncTeacherMode)
+    window.addEventListener('pageshow', syncTeacherMode)
+
+    return () => {
+      window.removeEventListener(APP_MODE_CHANGED_EVENT, syncTeacherMode)
+      window.removeEventListener('focus', syncTeacherMode)
+      window.removeEventListener('pageshow', syncTeacherMode)
+    }
+  }, [])
+
+  useEffect(() => {
+    void Promise.resolve().then(() => setIsTeacherMode(readTeacherMode()))
+  }, [path])
+
+  useEffect(() => {
     if (isTeacherMode) {
-      sessionStorage.setItem('app_mode', 'teacher')
+      sessionStorage.setItem(APP_MODE_STORAGE_KEY, 'teacher')
       return
     }
 
-    sessionStorage.setItem('app_mode', 'student')
+    clearCookie('teacher_mode')
+    sessionStorage.setItem(APP_MODE_STORAGE_KEY, 'student')
   }, [isTeacherMode])
 
   useEffect(() => {

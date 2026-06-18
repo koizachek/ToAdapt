@@ -5,10 +5,14 @@ import { usePathname, useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useState } from 'react'
 import { GraduationCap, UserRoundCog } from 'lucide-react'
+import {
+  AppMode,
+  readStoredAppMode,
+  readTeacherMode,
+  writeAppMode,
+} from '@/lib/appMode'
 import { caseIdForLanguage, Locale } from '@/lib/i18n'
 import { useLanguage } from '@/lib/useLanguage'
-
-type AppMode = 'student' | 'teacher'
 
 const studentLinks = [
   { href: '/cases', label: 'Cases' },
@@ -26,32 +30,14 @@ function modeFromPath(path: string): AppMode | null {
   return null
 }
 
-function hasCookie(name: string, value: string) {
-  if (typeof document === 'undefined') return false
-  return document.cookie.split(';').some(cookie => cookie.trim() === `${name}=${value}`)
-}
-
-function clearCookie(name: string) {
-  document.cookie = `${name}=; Max-Age=0; path=/`
-}
-
 export default function Nav() {
   const path = usePathname()
   const router = useRouter()
   const [language, setLanguage] = useLanguage()
-  const [selectedMode, setSelectedMode] = useState<AppMode>(() => {
-    if (typeof window === 'undefined') return 'student'
-    try {
-      if (hasCookie('teacher_mode', 'true')) return 'teacher'
-      const storedMode = sessionStorage.getItem('app_mode') as AppMode | null
-      return storedMode === 'teacher' ? 'teacher' : 'student'
-    } catch {
-      return 'student'
-    }
-  })
+  const [selectedMode, setSelectedMode] = useState<AppMode>(() => readStoredAppMode())
   const [isExperimentalRun] = useState(() => {
     if (typeof window === 'undefined') return false
-    if (hasCookie('teacher_mode', 'true')) return false
+    if (readTeacherMode()) return false
     try {
       const experimentContext = JSON.parse(sessionStorage.getItem('experiment_context') ?? 'null')
       return experimentContext?.provider === 'prolific'
@@ -61,7 +47,7 @@ export default function Nav() {
   })
   const [hasTeacherAccess, setHasTeacherAccess] = useState(() => {
     if (typeof window === 'undefined') return false
-    return hasCookie('teacher_mode', 'true')
+    return readTeacherMode()
   })
   const mode = hasTeacherAccess ? 'teacher' : isExperimentalRun ? 'student' : modeFromPath(path) ?? selectedMode
 
@@ -71,8 +57,7 @@ export default function Nav() {
 
   const switchMode = (nextMode: AppMode) => {
     if (nextMode === 'student') {
-      clearCookie('teacher_mode')
-      sessionStorage.setItem('app_mode', 'student')
+      writeAppMode('student')
       setSelectedMode('student')
       setHasTeacherAccess(false)
       router.push('/cases')
@@ -80,15 +65,15 @@ export default function Nav() {
     }
 
     if (nextMode === 'teacher' && !hasTeacherAccess) {
-      sessionStorage.setItem('app_mode', 'teacher')
+      writeAppMode('teacher')
       setSelectedMode('teacher')
       router.push('/')
       return
     }
 
-    sessionStorage.setItem('app_mode', nextMode)
+    writeAppMode(nextMode)
     setSelectedMode(nextMode)
-    setHasTeacherAccess(hasCookie('teacher_mode', 'true'))
+    setHasTeacherAccess(readTeacherMode())
     router.push(nextMode === 'teacher' ? '/dashboard' : '/cases')
   }
 
