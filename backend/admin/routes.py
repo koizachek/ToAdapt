@@ -58,9 +58,11 @@ async def generate_case(body: GenerateCaseRequest):
 
 
 @router.get("/cases", response_model=list[CaseSummary])
-async def list_cases(status: str | None = None):
+async def list_cases(status: str | None = None, language: str | None = None):
     """Listet alle Cases im Pool, optional gefiltert nach Status."""
-    return case_manager.list_all(status=status)
+    if language is not None and language not in {"de", "en"}:
+        raise HTTPException(status_code=400, detail="Ungültige Sprache")
+    return case_manager.list_all(status=status, language=language)
 
 
 @router.get("/cases/{case_id}", response_model=Case)

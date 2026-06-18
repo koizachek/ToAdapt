@@ -32,12 +32,20 @@ class CaseManager:
             return None
         return Case.model_validate_json(p.read_text(encoding="utf-8"))
 
-    def list_all(self, status: str | None = None) -> list[CaseSummary]:
+    def list_all(
+        self,
+        status: str | None = None,
+        language: str | None = None,
+    ) -> list[CaseSummary]:
         cases = []
         for f in POOL_DIR.glob("*.json"):
+            if f.name.endswith("-agent.json"):
+                continue
             try:
                 c = Case.model_validate_json(f.read_text(encoding="utf-8"))
-                if status is None or c.status == status:
+                status_matches = status is None or c.status == status
+                language_matches = language is None or c.language == language
+                if status_matches and language_matches:
                     cases.append(CaseSummary(
                         case_id=c.case_id,
                         title=c.title,
@@ -45,6 +53,8 @@ class CaseManager:
                         difficulty=c.difficulty,
                         status=c.status,
                         created_at=c.created_at,
+                        language=c.language,
+                        translated_from=c.translated_from,
                     ))
             except Exception as e:
                 logger.warning("case_load_error", file=str(f), error=str(e))

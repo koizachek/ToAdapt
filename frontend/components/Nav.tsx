@@ -5,6 +5,8 @@ import { usePathname, useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useState } from 'react'
 import { GraduationCap, UserRoundCog } from 'lucide-react'
+import { caseIdForLanguage, Locale } from '@/lib/i18n'
+import { useLanguage } from '@/lib/useLanguage'
 
 type AppMode = 'student' | 'teacher'
 
@@ -36,6 +38,7 @@ function clearCookie(name: string) {
 export default function Nav() {
   const path = usePathname()
   const router = useRouter()
+  const [language, setLanguage] = useLanguage()
   const [selectedMode, setSelectedMode] = useState<AppMode>(() => {
     if (typeof window === 'undefined') return 'student'
     try {
@@ -87,6 +90,20 @@ export default function Nav() {
     setSelectedMode(nextMode)
     setHasTeacherAccess(hasCookie('teacher_mode', 'true'))
     router.push(nextMode === 'teacher' ? '/dashboard' : '/cases')
+  }
+
+  const switchLanguage = (nextLanguage: Locale) => {
+    setLanguage(nextLanguage)
+
+    const caseMatch = path.match(/^\/cases\/([^/]+)$/)
+    if (caseMatch) {
+      router.push(`/cases/${caseIdForLanguage(caseMatch[1], nextLanguage)}`)
+      return
+    }
+
+    if (path === '/') {
+      router.refresh()
+    }
   }
 
   return (
@@ -148,15 +165,30 @@ export default function Nav() {
           </Link>
         ))}
 
-        {/* Language toggle — EN placeholder */}
-        <button
-          disabled
-          title="Englische Version in Vorbereitung"
-          className="text-xs font-medium tracking-widest px-3 py-1 rounded-full border opacity-35 cursor-not-allowed select-none"
-          style={{ borderColor: 'var(--line)', color: 'var(--ink)' }}
+        <div
+          className="flex items-center gap-1 p-1"
+          style={{ border: '1px solid rgba(53,40,30,0.16)', background: 'rgba(250,250,248,0.45)' }}
+          aria-label={language === 'en' ? 'Choose language' : 'Sprache wählen'}
         >
-          EN
-        </button>
+          {(['de', 'en'] as Locale[]).map(option => {
+            const active = language === option
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => switchLanguage(option)}
+                className="px-2.5 py-1.5 text-xs font-medium tracking-widest transition-colors"
+                style={{
+                  background: active ? 'var(--ink)' : 'transparent',
+                  color: active ? 'var(--white)' : 'var(--ink)',
+                }}
+                aria-pressed={active}
+              >
+                {option.toUpperCase()}
+              </button>
+            )
+          })}
+        </div>
       </nav>
     </header>
   )

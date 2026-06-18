@@ -2,11 +2,33 @@
 
 import { useEffect } from 'react'
 import Nav from '@/components/Nav'
+import { Locale } from '@/lib/i18n'
+import { useLanguage } from '@/lib/useLanguage'
 
 const COMPLETION_CODE = 'C17I8JXC'
 const PROLIFIC_RETURN_URL = `https://app.prolific.com/submissions/complete?cc=${COMPLETION_CODE}`
 
+const GOODBYE_TEXT = {
+  de: {
+    eyebrow: 'Studie abgeschlossen',
+    title: 'Vielen Dank fuer deine Teilnahme.',
+    body: 'Deine Antworten wurden erfolgreich uebermittelt. Nutze jetzt den Completion Code unten oder gehe direkt ueber den Button zur Rueckgabe an Prolific.',
+    codeLabel: 'Completion Code',
+    return: 'Zurueck zu Prolific',
+  },
+  en: {
+    eyebrow: 'Study complete',
+    title: 'Thank you for participating.',
+    body: 'Your answers have been submitted successfully. Use the completion code below or return directly to Prolific with the button.',
+    codeLabel: 'Completion Code',
+    return: 'Return to Prolific',
+  },
+} satisfies Record<Locale, Record<string, string>>
+
 export default function GoodbyePage() {
+  const [language] = useLanguage()
+  const text = GOODBYE_TEXT[language]
+
   useEffect(() => {
     sessionStorage.setItem('app_mode', 'student')
   }, [])
@@ -23,14 +45,13 @@ export default function GoodbyePage() {
           }}
         >
           <p className="mb-3 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
-            Study Complete
+            {text.eyebrow}
           </p>
           <h1 className="font-display text-4xl leading-tight" style={{ color: 'var(--ink)' }}>
-            Vielen Dank fuer deine Teilnahme.
+            {text.title}
           </h1>
           <p className="mt-4 text-sm leading-7" style={{ color: 'var(--ink)' }}>
-            Deine Antworten wurden erfolgreich uebermittelt. Nutze jetzt den Completion Code unten oder gehe direkt
-            ueber den Button zur Rueckgabe an Prolific.
+            {text.body}
           </p>
 
           <div
@@ -38,7 +59,7 @@ export default function GoodbyePage() {
             style={{ background: 'rgba(53,40,30,0.06)', border: '1px solid rgba(53,40,30,0.1)' }}
           >
             <p className="mb-2 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
-              Completion Code
+              {text.codeLabel}
             </p>
             <p className="font-mono text-3xl tracking-[0.18em]" style={{ color: 'var(--ink)' }}>
               {COMPLETION_CODE}
@@ -52,7 +73,7 @@ export default function GoodbyePage() {
             onMouseEnter={event => { event.currentTarget.style.background = 'var(--accent)' }}
             onMouseLeave={event => { event.currentTarget.style.background = 'var(--ink)' }}
           >
-            Zurueck zu Prolific
+            {text.return}
           </a>
         </div>
       </main>
