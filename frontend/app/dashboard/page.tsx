@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
 import { apiFetch } from '@/lib/api'
+import { APP_MODE_STORAGE_KEY } from '@/lib/appMode'
+import { Locale } from '@/lib/i18n'
+import { useLanguage } from '@/lib/useLanguage'
 import { Users, TrendingUp } from 'lucide-react'
 
 interface LearningObjectiveScore { tag: string; avg_pct: number; n: number }
@@ -30,7 +33,10 @@ interface StudentRow {
   by_tp: Record<number, number>
 }
 
-const BLOOM: Record<number, string> = { 2: 'Verstehen', 3: 'Anwenden', 4: 'Analysieren', 5: 'Evaluieren', 6: 'Synthese' }
+const BLOOM: Record<Locale, Record<number, string>> = {
+  de: { 2: 'Verstehen', 3: 'Anwenden', 4: 'Analysieren', 5: 'Evaluieren', 6: 'Synthese' },
+  en: { 2: 'Understand', 3: 'Apply', 4: 'Analyze', 5: 'Evaluate', 6: 'Synthesize' },
+}
 const OBJECTIVE_LABELS: Record<string, string> = {
   analyse: 'Analyse',
   evaluieren: 'Evaluieren',
@@ -40,6 +46,62 @@ const OBJECTIVE_LABELS: Record<string, string> = {
   transfer: 'Transfer',
   'trade-off': 'Trade-off',
 }
+
+const DASHBOARD_TEXT = {
+  de: {
+    eyebrow: 'Lerner-Dashboard',
+    title: 'Dashboard',
+    students: 'Studierende',
+    submissions: 'Submissions',
+    averageScore: 'Ø Score',
+    averageCanvas: 'Ø Business Model Canvas',
+    exemplars: 'Exemplars',
+    reviewFallback: 'Review/Fallback',
+    byBloom: 'Nach Bloom-Stufe',
+    byTp: 'Nach TP',
+    weakestObjectives: 'Schwächste Lernziele',
+    studentCount: (count: number) => `Studierende (${count})`,
+    searchPlaceholder: 'Matrikelnummer suchen...',
+    studentId: 'Matrikelnummer',
+    review: 'Review',
+    noData: 'Noch keine Daten.',
+  },
+  en: {
+    eyebrow: 'Learning dashboard',
+    title: 'Dashboard',
+    students: 'Students',
+    submissions: 'Submissions',
+    averageScore: 'Avg. score',
+    averageCanvas: 'Avg. Business Model Canvas',
+    exemplars: 'Exemplars',
+    reviewFallback: 'Review/Fallback',
+    byBloom: 'By Bloom level',
+    byTp: 'By TP',
+    weakestObjectives: 'Weakest learning objectives',
+    studentCount: (count: number) => `Students (${count})`,
+    searchPlaceholder: 'Search participant ID...',
+    studentId: 'Participant ID',
+    review: 'Review',
+    noData: 'No data yet.',
+  },
+} satisfies Record<Locale, {
+  eyebrow: string
+  title: string
+  students: string
+  submissions: string
+  averageScore: string
+  averageCanvas: string
+  exemplars: string
+  reviewFallback: string
+  byBloom: string
+  byTp: string
+  weakestObjectives: string
+  studentCount: (count: number) => string
+  searchPlaceholder: string
+  studentId: string
+  review: string
+  noData: string
+}>
 
 function objectiveLabel(tag: string) {
   return OBJECTIVE_LABELS[tag] ?? tag
@@ -62,12 +124,14 @@ function MiniBar({ pct, label }: { pct: number; label: string }) {
 }
 
 export default function DashboardPage() {
+  const [language] = useLanguage()
   const [overview, setOverview] = useState<Overview | null>(null)
   const [students, setStudents] = useState<StudentRow[]>([])
   const [search, setSearch] = useState('')
+  const text = DASHBOARD_TEXT[language]
 
   useEffect(() => {
-    sessionStorage.setItem('app_mode', 'teacher')
+    sessionStorage.setItem(APP_MODE_STORAGE_KEY, 'teacher')
     apiFetch<Overview>('/dashboard/overview').then(setOverview)
     apiFetch<StudentRow[]>('/dashboard/students').then(setStudents)
   }, [])
@@ -80,9 +144,9 @@ export default function DashboardPage() {
       <main className="pt-28 pb-20 px-8 max-w-5xl mx-auto">
         <div className="mb-12">
           <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>
-            Lerner-Dashboard
+            {text.eyebrow}
           </p>
-          <h1 className="font-display text-5xl leading-none">Dashboard</h1>
+          <h1 className="font-display text-5xl leading-none">{text.title}</h1>
         </div>
 
         <div className="divider mb-10" />
@@ -92,13 +156,13 @@ export default function DashboardPage() {
             {/* KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6 mb-12">
               {[
-                { label: 'Studierende', value: overview.total_students, icon: <Users size={14} /> },
-                { label: 'Submissions', value: overview.total_submissions, icon: <TrendingUp size={14} /> },
-                { label: 'Ø Score', value: `${overview.avg_percentage.toFixed(0)}%`, icon: null },
-                { label: 'Ø Business Model Canvas', value: `${overview.avg_canvas_alignment_pct.toFixed(0)}%`, icon: null },
-                { label: 'Exemplars', value: overview.exemplar_submissions_count, icon: null },
+                { label: text.students, value: overview.total_students, icon: <Users size={14} /> },
+                { label: text.submissions, value: overview.total_submissions, icon: <TrendingUp size={14} /> },
+                { label: text.averageScore, value: `${overview.avg_percentage.toFixed(0)}%`, icon: null },
+                { label: text.averageCanvas, value: `${overview.avg_canvas_alignment_pct.toFixed(0)}%`, icon: null },
+                { label: text.exemplars, value: overview.exemplar_submissions_count, icon: null },
                 {
-                  label: 'Review/Fallback',
+                  label: text.reviewFallback,
                   value: `${overview.needs_human_review_count}/${overview.technical_fallback_count}`,
                   icon: null,
                 },
@@ -120,15 +184,15 @@ export default function DashboardPage() {
             {/* Bloom + TP breakdown */}
             <div className="grid grid-cols-2 gap-10 mb-14">
               <div>
-                <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--muted)' }}>Nach Bloom-Stufe</p>
+                <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--muted)' }}>{text.byBloom}</p>
                 <div className="flex flex-col gap-3">
                   {Object.entries(overview.by_bloom).map(([lvl, pct]) => (
-                    <MiniBar key={lvl} pct={pct} label={BLOOM[Number(lvl)] ?? `Bloom ${lvl}`} />
+                    <MiniBar key={lvl} pct={pct} label={BLOOM[language][Number(lvl)] ?? `Bloom ${lvl}`} />
                   ))}
                 </div>
               </div>
               <div>
-                <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--muted)' }}>Nach TP</p>
+                <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--muted)' }}>{text.byTp}</p>
                 <div className="flex flex-col gap-3">
                   {Object.entries(overview.by_tp).map(([tp, pct]) => (
                     <MiniBar key={tp} pct={pct} label={`TP ${tp}`} />
@@ -140,7 +204,7 @@ export default function DashboardPage() {
             {/* Weakest learning objectives */}
             {overview.top_objectives.length > 0 && (
               <div className="mb-14 p-6" style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.12)' }}>
-                <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--muted)' }}>Schwächste Lernziele</p>
+                <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--muted)' }}>{text.weakestObjectives}</p>
                 <div className="flex flex-col gap-3">
                   {overview.top_objectives.map(o => (
                     <div key={o.tag} className="flex items-center justify-between">
@@ -163,12 +227,12 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center justify-between mb-6">
             <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
-              Studierende ({filtered.length})
+              {text.studentCount(filtered.length)}
             </p>
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Matrikelnummer suchen…"
+              placeholder={text.searchPlaceholder}
               className="px-3 py-1.5 text-sm bg-transparent outline-none"
               style={{ border: '1px solid rgba(53,40,30,0.2)', color: 'var(--ink)', width: '220px' }}
             />
@@ -176,10 +240,10 @@ export default function DashboardPage() {
 
           <div className="divider mb-0" />
           <div className="grid text-xs font-medium tracking-wide uppercase py-3 px-2" style={{ color: 'var(--muted)', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
-            <span>Matrikelnummer</span>
-            <span className="text-right">Submissions</span>
-            <span className="text-right">Ø Score</span>
-            <span className="text-right">Review</span>
+            <span>{text.studentId}</span>
+            <span className="text-right">{text.submissions}</span>
+            <span className="text-right">{text.averageScore}</span>
+            <span className="text-right">{text.review}</span>
             <span className="text-right">TP 1</span>
             <span className="text-right">TP 2</span>
             <span className="text-right">TP 3</span>
@@ -187,7 +251,7 @@ export default function DashboardPage() {
           <div className="divider" />
 
           {filtered.length === 0 ? (
-            <p className="py-10 text-sm text-center" style={{ color: 'var(--muted)' }}>Noch keine Daten.</p>
+            <p className="py-10 text-sm text-center" style={{ color: 'var(--muted)' }}>{text.noData}</p>
           ) : (
             filtered.map((s, i) => (
               <div key={s.matrikelnummer}>

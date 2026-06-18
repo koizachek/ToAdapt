@@ -43,6 +43,19 @@ WICHTIGE REGELN:
 
 Du antwortest AUSSCHLIESSLICH mit einem validen JSON-Objekt. Kein Text davor oder danach."""
 
+SYSTEM_PROMPT_EN = """You are an experienced business administration lecturer.
+You create mini-cases for a business transfer trainer.
+
+IMPORTANT RULES:
+- The case is NOT based on ON Running and NOT on NORDIC HOME (these are reserved for the actual course).
+- The company is fictional. All numbers, names, and people are invented.
+- The case is self-contained and requires no prior knowledge.
+- Frameworks are NEVER named directly. Instead, their logic is enforced implicitly.
+- There are no single "correct" solutions. Several defensible answer paths are possible.
+- Language: English, management-oriented, precise.
+
+You respond ONLY with a valid JSON object. No text before or after it."""
+
 CASE_GENERATION_PROMPT = """Erstelle einen vollständigen Mini-Case für den Transfer-Trainer.
 
 Parameter:
@@ -99,6 +112,69 @@ Anforderungen:
 - Gesamtpunktzahl aller Fragen: {total_points}
 - Case-Länge: entspricht ca. {page_count} Seiten A4"""
 
+CASE_GENERATION_PROMPT_EN = """Create a complete mini-case for the transfer trainer.
+
+Parameters:
+- Industry: {industry}
+- Country of origin: {country}
+- Target TP: {target_tp} ({tp_name})
+- Difficulty: {difficulty}
+- Bloom levels: {bloom_levels}
+
+Allowed framework logics (build them in implicitly, do not name them):
+{allowed_frameworks}
+
+Forbidden framework names (must not appear in the text):
+{forbidden_framework_names}
+
+Create a case with this exact JSON schema:
+{{
+  "title": "Company name - short subtitle",
+  "tagline": "One-sentence description of the company and its challenge",
+  "sections": [
+    {{
+      "section_id": "s1",
+      "title": "Section title",
+      "content": "2-4 paragraphs of continuous text"
+    }}
+  ],
+  "exhibits": [
+    {{
+      "exhibit_id": "e1",
+      "title": "Exhibit title",
+      "content": "Markdown table or continuous text",
+      "exhibit_type": "table"
+    }}
+  ],
+  "questions": [
+    {{
+      "question_id": "q1",
+      "phase": {target_tp},
+      "bloom_level": 3,
+      "text": "Question for the student",
+      "max_points": 9,
+      "rubric_reference": "tp{target_tp}_rubric.json",
+      "allowed_frameworks": ["..."],
+      "forbidden_framework_names": ["..."]
+    }}
+  ]
+}}
+
+Requirements:
+- 4-6 sections (narrative, concise, with real tensions)
+- 3-5 exhibits (at least 1 data table, at least 1 quote from a manager)
+- {num_questions} questions that cover exactly the Bloom levels {bloom_levels}
+- Each question implies a framework but does not name it
+- Total points across all questions: {total_points}
+- Case length: approximately {page_count} A4 pages"""
+
+TP_NAMES_EN = {
+    1: "Analysis & stakeholders",
+    2: "Strategic decision",
+    3: "Translating strategy into the market",
+    4: "Integration & overall picture",
+}
+
 
 # ---------------------------------------------------------------------------
 # TP-spezifische Generierungs-Parameter
@@ -126,17 +202,21 @@ class CaseGenerator:
         country: str,
         target_tp: int,
         difficulty: str = CaseDifficulty.TP1,
+        language: str = "de",
     ) -> Case:
         """Erstellt einen AI-generierten Case-Draft."""
 
         tp_cfg = TP_CONFIGS[target_tp]
         gen_params = TP_GENERATION_PARAMS[target_tp]
+        prompt_template = CASE_GENERATION_PROMPT_EN if language == "en" else CASE_GENERATION_PROMPT
+        system_prompt = SYSTEM_PROMPT_EN if language == "en" else SYSTEM_PROMPT
+        tp_name = TP_NAMES_EN.get(target_tp, tp_cfg["name"]) if language == "en" else tp_cfg["name"]
 
-        prompt = CASE_GENERATION_PROMPT.format(
+        prompt = prompt_template.format(
             industry=industry,
             country=country,
             target_tp=target_tp,
-            tp_name=tp_cfg["name"],
+            tp_name=tp_name,
             difficulty=difficulty,
             bloom_levels=tp_cfg["bloom_levels"],
             allowed_frameworks="\n".join(f"- {f}" for f in tp_cfg["allowed_frameworks"]),
@@ -146,10 +226,10 @@ class CaseGenerator:
             page_count=gen_params["page_count"],
         )
 
-        logger.info("case_generation_started", industry=industry, country=country, tp=target_tp)
+        logger.info("case_generation_started", industry=industry, country=country, tp=target_tp, language=language)
 
         raw = await self.client.complete(
-            system=SYSTEM_PROMPT,
+            system=system_prompt,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=4096,
         )
@@ -163,6 +243,7 @@ class CaseGenerator:
             tagline=data["tagline"],
             difficulty=difficulty,
             target_tp=target_tp,
+            language=language,
             sections=[CaseSection(**s) for s in data["sections"]],
             exhibits=[CaseExhibit(**e) for e in data["exhibits"]],
             questions=[CaseQuestion(**q) for q in data["questions"]],
@@ -171,5 +252,5 @@ class CaseGenerator:
             created_at=datetime.utcnow(),
         )
 
-        logger.info("case_generation_complete", case_id=case.case_id, title=case.title)
+        logger.info("case_generation_complete", case_id=case.case_id, title=case.title, language=language)
         return case

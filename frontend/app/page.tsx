@@ -263,6 +263,7 @@ function LoginPageContent({
           </>
         ) : (
           <form action="/teacher-login" method="post" className="flex flex-col gap-4">
+            <input type="hidden" name="language" value={language} />
             <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>
               {text.teacherSection}
             </p>

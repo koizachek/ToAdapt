@@ -12,7 +12,7 @@ import {
   clearCookie,
   readTeacherMode,
 } from '@/lib/appMode'
-import { languageFromCaseId, Locale } from '@/lib/i18n'
+import { isLocale, languageFromCaseId, Locale } from '@/lib/i18n'
 import { useLanguage } from '@/lib/useLanguage'
 
 interface CaseSection { section_id: string; title: string; content: string }
@@ -27,6 +27,7 @@ interface Case {
   sections: CaseSection[]
   exhibits: CaseExhibit[]
   questions: CaseQuestion[]
+  language?: string
 }
 interface ChatMsg { role: 'user' | 'agent'; content: string; agent_type?: string }
 interface ExperimentContext {
@@ -630,10 +631,14 @@ export default function CasePage() {
   const path = usePathname()
   const router = useRouter()
   const [storedLanguage, setLanguage] = useLanguage()
-  const language = languageFromCaseId(id)
-  const text = CASE_PAGE_TEXT[language]
   const [isTeacherMode, setIsTeacherMode] = useState(() => readTeacherMode())
   const [caseData, setCase] = useState<Case | null>(null)
+  const language = isLocale(caseData?.language)
+    ? caseData.language
+    : id.endsWith('-en')
+      ? languageFromCaseId(id)
+      : storedLanguage
+  const text = CASE_PAGE_TEXT[language]
   const [tab, setTab] = useState<'case' | 'questions'>('case')
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [submissionId, setSubmissionId] = useState<string | null>(null)
@@ -690,7 +695,7 @@ export default function CasePage() {
   }, [id])
 
   useEffect(() => {
-    if (isTeacherMode || !id || !clientIdentity || startedExperimentCaseRef.current === id) return
+    if (isTeacherMode || !id || !caseData || !clientIdentity || startedExperimentCaseRef.current === id) return
     startedExperimentCaseRef.current = id
     void Promise.resolve().then(() => {
       setAnswers({})
@@ -722,7 +727,7 @@ export default function CasePage() {
       historyRef.current = []
       setChat([{ role: 'agent', content: text.initialAgentMessage, agent_type: 'metacognitive' }])
     }).catch(console.error)
-  }, [clientIdentity, id, isTeacherMode, text.initialAgentMessage])
+  }, [caseData, clientIdentity, id, isTeacherMode, text.initialAgentMessage])
 
   useEffect(() => {
     const node = chatScrollRef.current
