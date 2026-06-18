@@ -24,6 +24,26 @@ const teacherLinks = [
   { href: '/admin', label: 'Admin' },
 ]
 
+const NAV_TEXT: Record<Locale, {
+  modeAria: string
+  studentMode: string
+  teacherMode: string
+  languageAria: string
+}> = {
+  de: {
+    modeAria: 'Modus wählen',
+    studentMode: 'Studierende',
+    teacherMode: 'Lehrkräfte',
+    languageAria: 'Sprache wählen',
+  },
+  en: {
+    modeAria: 'Choose mode',
+    studentMode: 'Students',
+    teacherMode: 'Teachers',
+    languageAria: 'Choose language',
+  },
+}
+
 function modeFromPath(path: string): AppMode | null {
   if (path.startsWith('/dashboard') || path.startsWith('/admin')) return 'teacher'
   if (path.startsWith('/results') || path.startsWith('/goodbye')) return 'student'
@@ -49,6 +69,7 @@ export default function Nav() {
     if (typeof window === 'undefined') return false
     return readTeacherMode()
   })
+  const text = NAV_TEXT[language]
   const mode = hasTeacherAccess ? 'teacher' : isExperimentalRun ? 'student' : modeFromPath(path) ?? selectedMode
 
   const visibleLinks = !hasTeacherAccess && (isExperimentalRun || mode === 'student')
@@ -107,11 +128,11 @@ export default function Nav() {
           <div
             className="flex items-center gap-1 p-1"
             style={{ border: '1px solid rgba(53,40,30,0.16)', background: 'rgba(250,250,248,0.45)' }}
-            aria-label="Modus wählen"
+            aria-label={text.modeAria}
           >
             {[
-              { id: 'student' as const, label: 'Studierende', icon: GraduationCap },
-              { id: 'teacher' as const, label: 'Lehrkräfte', icon: UserRoundCog },
+              { id: 'student' as const, label: text.studentMode, icon: GraduationCap },
+              { id: 'teacher' as const, label: text.teacherMode, icon: UserRoundCog },
             ].map(option => {
               const Icon = option.icon
               const active = mode === option.id
@@ -153,7 +174,7 @@ export default function Nav() {
         <div
           className="flex items-center gap-1 p-1"
           style={{ border: '1px solid rgba(53,40,30,0.16)', background: 'rgba(250,250,248,0.45)' }}
-          aria-label={language === 'en' ? 'Choose language' : 'Sprache wählen'}
+          aria-label={text.languageAria}
         >
           {(['de', 'en'] as Locale[]).map(option => {
             const active = language === option

@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
 import { apiFetch } from '@/lib/api'
 import { Plus, Check, X, ChevronDown, ChevronUp } from 'lucide-react'
-import clsx from 'clsx'
+import { APP_MODE_STORAGE_KEY } from '@/lib/appMode'
+import { languageQuery, Locale } from '@/lib/i18n'
+import { useLanguage } from '@/lib/useLanguage'
 
 interface CaseSummary { case_id: string; title: string; industry: string; difficulty: string; status: string }
 interface Case extends CaseSummary {
@@ -13,29 +15,113 @@ interface Case extends CaseSummary {
   exhibits: { exhibit_id: string; title: string; content: string }[]
   questions: { question_id: string; text: string; max_points: number; bloom_level: number }[]
 }
+interface AdminForm {
+  industry: string
+  country: string
+  target_tp: number
+}
 
 const INDUSTRIES = ['Mobility', 'HealthTech', 'Retail', 'Logistics', 'EdTech', 'FinTech', 'Hospitality', 'Manufacturing']
-const COUNTRIES  = ['Deutschland', 'Österreich', 'Frankreich', 'Niederlande', 'Schweden', 'Polen', 'Spanien', 'Italien']
-const TP_OPTIONS = [{ value: 1, label: 'TP 1 — Analyse' }, { value: 2, label: 'TP 2 — Strategie' }, { value: 3, label: 'TP 3 — Umsetzung' }, { value: 4, label: 'TP 4 — Integration' }]
+const COUNTRY_OPTIONS = [
+  { value: 'Deutschland', de: 'Deutschland', en: 'Germany' },
+  { value: 'Österreich', de: 'Österreich', en: 'Austria' },
+  { value: 'Frankreich', de: 'Frankreich', en: 'France' },
+  { value: 'Niederlande', de: 'Niederlande', en: 'Netherlands' },
+  { value: 'Schweden', de: 'Schweden', en: 'Sweden' },
+  { value: 'Polen', de: 'Polen', en: 'Poland' },
+  { value: 'Spanien', de: 'Spanien', en: 'Spain' },
+  { value: 'Italien', de: 'Italien', en: 'Italy' },
+]
+const TP_OPTIONS: Record<Locale, { value: number; label: string }[]> = {
+  de: [{ value: 1, label: 'TP 1 - Analyse' }, { value: 2, label: 'TP 2 - Strategie' }, { value: 3, label: 'TP 3 - Umsetzung' }, { value: 4, label: 'TP 4 - Integration' }],
+  en: [{ value: 1, label: 'TP 1 - Analysis' }, { value: 2, label: 'TP 2 - Strategy' }, { value: 3, label: 'TP 3 - Implementation' }, { value: 4, label: 'TP 4 - Integration' }],
+}
+
+const ADMIN_TEXT = {
+  de: {
+    eyebrow: 'Dozenten-Interface',
+    title: 'Admin',
+    generateHeading: 'Neuen Case generieren',
+    industry: 'Branche',
+    country: 'Land',
+    targetTp: 'Ziel-TP',
+    generating: 'Wird generiert...',
+    generate: 'Case generieren',
+    reviewer: 'Reviewer',
+    reviewerPlaceholder: 'Dein Name',
+    reviewerFallback: 'Dozent',
+    status: { draft: 'Entwurf', approved: 'Freigegeben', rejected: 'Abgelehnt' },
+    approve: 'Freigeben',
+    reject: 'Ablehnen',
+    questions: 'Fragen',
+    points: 'Pkt',
+  },
+  en: {
+    eyebrow: 'Teacher interface',
+    title: 'Admin',
+    generateHeading: 'Generate new case',
+    industry: 'Industry',
+    country: 'Country',
+    targetTp: 'Target TP',
+    generating: 'Generating...',
+    generate: 'Generate case',
+    reviewer: 'Reviewer',
+    reviewerPlaceholder: 'Your name',
+    reviewerFallback: 'Teacher',
+    status: { draft: 'Draft', approved: 'Approved', rejected: 'Rejected' },
+    approve: 'Approve',
+    reject: 'Reject',
+    questions: 'Questions',
+    points: 'pts',
+  },
+} satisfies Record<Locale, {
+  eyebrow: string
+  title: string
+  generateHeading: string
+  industry: string
+  country: string
+  targetTp: string
+  generating: string
+  generate: string
+  reviewer: string
+  reviewerPlaceholder: string
+  reviewerFallback: string
+  status: Record<string, string>
+  approve: string
+  reject: string
+  questions: string
+  points: string
+}>
 
 export default function AdminPage() {
+  const [language] = useLanguage()
   const [cases, setCases]       = useState<CaseSummary[]>([])
   const [expanded, setExpanded] = useState<string | null>(null)
   const [detail, setDetail]     = useState<Record<string, Case>>({})
   const [generating, setGen]    = useState(false)
-  const [form, setForm]         = useState({ industry: INDUSTRIES[0], country: COUNTRIES[0], target_tp: 1 })
+  const [form, setForm]         = useState<AdminForm>({ industry: INDUSTRIES[0], country: COUNTRY_OPTIONS[0].value, target_tp: 1 })
   const [reviewer, setReviewer] = useState('')
+  const text = ADMIN_TEXT[language]
 
-  const load = () => apiFetch<CaseSummary[]>('/admin/cases').then(setCases)
+  const load = useCallback(
+    () => apiFetch<CaseSummary[]>(`/admin/cases?${languageQuery(language)}`).then(setCases),
+    [language],
+  )
+
   useEffect(() => {
-    sessionStorage.setItem('app_mode', 'teacher')
+    sessionStorage.setItem(APP_MODE_STORAGE_KEY, 'teacher')
     load()
-  }, [])
+  }, [load])
 
   const generate = async () => {
     setGen(true)
+    const selectedCountry = COUNTRY_OPTIONS.find(country => country.value === form.country)
+    const country = selectedCountry?.[language] ?? form.country
     try {
-      await apiFetch('/admin/cases/generate', { method: 'POST', body: JSON.stringify({ ...form, difficulty: `tp${form.target_tp}` }) })
+      await apiFetch('/admin/cases/generate', {
+        method: 'POST',
+        body: JSON.stringify({ ...form, country, language, difficulty: `tp${form.target_tp}` }),
+      })
       await load()
     } finally { setGen(false) }
   }
@@ -50,11 +136,11 @@ export default function AdminPage() {
   }
 
   const approve = async (id: string) => {
-    await apiFetch(`/admin/cases/${id}/approve`, { method: 'POST', body: JSON.stringify({ reviewer: reviewer || 'Dozent' }) })
+    await apiFetch(`/admin/cases/${id}/approve`, { method: 'POST', body: JSON.stringify({ reviewer: reviewer || text.reviewerFallback }) })
     load()
   }
   const reject = async (id: string) => {
-    await apiFetch(`/admin/cases/${id}/reject`, { method: 'POST', body: JSON.stringify({ reviewer: reviewer || 'Dozent' }) })
+    await apiFetch(`/admin/cases/${id}/reject`, { method: 'POST', body: JSON.stringify({ reviewer: reviewer || text.reviewerFallback }) })
     load()
   }
 
@@ -63,48 +149,47 @@ export default function AdminPage() {
     approved: 'rgba(21,99,61,0.15)',
     rejected: 'rgba(192,57,43,0.1)',
   }
-  const STATUS_LABEL: Record<string, string> = { draft: 'Entwurf', approved: 'Freigegeben', rejected: 'Abgelehnt' }
 
   return (
     <>
       <Nav />
       <main className="pt-28 pb-20 px-8 max-w-4xl mx-auto">
         <div className="mb-12">
-          <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>Dozenten-Interface</p>
-          <h1 className="font-display text-5xl leading-none">Admin</h1>
+          <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>{text.eyebrow}</p>
+          <h1 className="font-display text-5xl leading-none">{text.title}</h1>
         </div>
 
         <div className="divider mb-10" />
 
         {/* Generator form */}
         <section className="mb-14">
-          <p className="text-xs tracking-widest uppercase mb-6" style={{ color: 'var(--muted)' }}>Neuen Case generieren</p>
+          <p className="text-xs tracking-widest uppercase mb-6" style={{ color: 'var(--muted)' }}>{text.generateHeading}</p>
           <div className="grid grid-cols-3 gap-4 mb-6">
             {[
-              { label: 'Branche', key: 'industry', options: INDUSTRIES },
-              { label: 'Land',    key: 'country',  options: COUNTRIES },
+              { label: text.industry, key: 'industry' as const, options: INDUSTRIES.map(value => ({ value, label: value })) },
+              { label: text.country, key: 'country' as const, options: COUNTRY_OPTIONS.map(country => ({ value: country.value, label: country[language] })) },
             ].map(f => (
               <div key={f.key}>
                 <label className="block text-xs mb-2 font-medium" style={{ color: 'var(--line)' }}>{f.label}</label>
                 <select
-                  value={(form as any)[f.key]}
+                  value={form[f.key]}
                   onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
                   className="w-full px-3 py-2.5 text-sm bg-transparent outline-none"
                   style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
                 >
-                  {f.options.map(o => <option key={o}>{o}</option>)}
+                  {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
             ))}
             <div>
-              <label className="block text-xs mb-2 font-medium" style={{ color: 'var(--line)' }}>Ziel-TP</label>
+              <label className="block text-xs mb-2 font-medium" style={{ color: 'var(--line)' }}>{text.targetTp}</label>
               <select
                 value={form.target_tp}
                 onChange={e => setForm(p => ({ ...p, target_tp: Number(e.target.value) }))}
                 className="w-full px-3 py-2.5 text-sm bg-transparent outline-none"
                 style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
               >
-                {TP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {TP_OPTIONS[language].map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
           </div>
@@ -117,17 +202,17 @@ export default function AdminPage() {
             onMouseLeave={e => (e.currentTarget.style.background = 'var(--ink)')}
           >
             <Plus size={14} />
-            {generating ? 'Wird generiert…' : 'Case generieren'}
+            {generating ? text.generating : text.generate}
           </button>
         </section>
 
         {/* Reviewer name */}
         <div className="mb-8 flex items-center gap-4">
-          <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>Reviewer</p>
+          <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>{text.reviewer}</p>
           <input
             value={reviewer}
             onChange={e => setReviewer(e.target.value)}
-            placeholder="Dein Name"
+            placeholder={text.reviewerPlaceholder}
             className="px-3 py-1.5 text-sm bg-transparent outline-none"
             style={{ border: '1px solid rgba(53,40,30,0.2)', color: 'var(--ink)', width: '180px' }}
           />
@@ -151,7 +236,7 @@ export default function AdminPage() {
                   </button>
                   <div className="flex items-center gap-3">
                     <span className="text-xs px-2 py-0.5" style={{ background: STATUS_STYLE[c.status], color: 'var(--ink)' }}>
-                      {STATUS_LABEL[c.status] ?? c.status}
+                      {text.status[c.status as keyof typeof text.status] ?? c.status}
                     </span>
                     {c.status === 'draft' && (
                       <>
@@ -159,15 +244,15 @@ export default function AdminPage() {
                           onClick={() => approve(c.case_id)}
                           className="p-1.5 transition-all"
                           style={{ background: 'rgba(21,99,61,0.1)', color: 'var(--accent)' }}
-                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent)', (e.currentTarget as any).style.color = 'white')}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(21,99,61,0.1)', (e.currentTarget as any).style.color = 'var(--accent)')}
-                          title="Freigeben"
+                          onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'white' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(21,99,61,0.1)'; e.currentTarget.style.color = 'var(--accent)' }}
+                          title={text.approve}
                         ><Check size={13} /></button>
                         <button
                           onClick={() => reject(c.case_id)}
                           className="p-1.5 transition-all"
                           style={{ background: 'rgba(192,57,43,0.08)', color: '#c0392b' }}
-                          title="Ablehnen"
+                          title={text.reject}
                         ><X size={13} /></button>
                       </>
                     )}
@@ -185,10 +270,10 @@ export default function AdminPage() {
                       </div>
                     ))}
                     <div>
-                      <p className="text-xs font-medium mb-2">Fragen ({detail[c.case_id].questions.length})</p>
+                      <p className="text-xs font-medium mb-2">{text.questions} ({detail[c.case_id].questions.length})</p>
                       {detail[c.case_id].questions.map((q, qi) => (
                         <p key={q.question_id} className="text-xs leading-5 mb-1" style={{ color: 'var(--muted)' }}>
-                          {qi+1}. {q.text.slice(0, 120)}… <span style={{ color: 'var(--accent)' }}>({q.max_points} Pkt)</span>
+                          {qi+1}. {q.text.slice(0, 120)}... <span style={{ color: 'var(--accent)' }}>({q.max_points} {text.points})</span>
                         </p>
                       ))}
                     </div>

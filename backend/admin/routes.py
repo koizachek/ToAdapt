@@ -22,6 +22,7 @@ class GenerateCaseRequest(BaseModel):
     country: str
     target_tp: int            # 1–4
     difficulty: str = CaseDifficulty.TP1
+    language: str = "de"      # "de" | "en"
 
 
 class ReviewCaseRequest(BaseModel):
@@ -36,6 +37,9 @@ class ReviewCaseRequest(BaseModel):
 @router.post("/cases/generate", response_model=Case)
 async def generate_case(body: GenerateCaseRequest):
     """Generiert einen AI-Draft-Case und legt ihn im Pool ab."""
+    if body.language not in {"de", "en"}:
+        raise HTTPException(status_code=400, detail="Ungültige Sprache")
+
     api_key = get_openrouter_key()
     if not api_key:
         raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
@@ -48,6 +52,7 @@ async def generate_case(body: GenerateCaseRequest):
             country=body.country,
             target_tp=body.target_tp,
             difficulty=body.difficulty,
+            language=body.language,
         )
     except Exception as e:
         logger.error("case_generation_failed", error=str(e))
