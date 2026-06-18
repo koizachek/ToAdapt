@@ -59,6 +59,8 @@ interface CanvasBlock {
   hint: string
 }
 
+type GlossaryHighlightTargets = Map<string, string>
+
 const AGENT_LABEL: Record<Locale, Record<string, string>> = {
   de: {
     metacognitive: 'Reflexion',
@@ -274,6 +276,35 @@ function buildGlossaryMatcher(terms: GlossaryTerm[]) {
   return new RegExp(`(${sortedTerms.map(({ term }) => escapeRegExp(term)).join('|')})`, 'gi')
 }
 
+function glossaryHighlightKey(sectionId: string, paragraphIndex: number, partIndex: number) {
+  return `${sectionId}:${paragraphIndex}:${partIndex}`
+}
+
+function buildGlossaryHighlightTargets(
+  sections: CaseSection[],
+  glossaryMap: Map<string, GlossaryTerm>,
+  glossaryPattern: RegExp | null,
+): GlossaryHighlightTargets {
+  const targets: GlossaryHighlightTargets = new Map()
+  if (!glossaryPattern) return targets
+
+  sections.forEach(section => {
+    splitParagraphs(section.content).forEach((paragraph, paragraphIndex) => {
+      paragraph.split(glossaryPattern).filter(Boolean).forEach((part, partIndex) => {
+        const match = glossaryMap.get(part.toLowerCase())
+        if (!match) return
+
+        const normalizedTerm = match.term.toLowerCase()
+        if (!targets.has(normalizedTerm)) {
+          targets.set(normalizedTerm, glossaryHighlightKey(section.section_id, paragraphIndex, partIndex))
+        }
+      })
+    })
+  })
+
+  return targets
+}
+
 function getAnswerRequirement(questionIndex: number): AnswerRequirement {
   if (questionIndex <= 1) return { minWords: 50, maxWords: 200 }
   if (questionIndex <= 3) return { minWords: 100, maxWords: 200 }
@@ -482,15 +513,21 @@ function BusinessModelCanvasGuide({ language }: { language: Locale }) {
 
 function RichText({
   text,
+  sectionId,
+  paragraphIndex,
   glossaryMap,
   glossaryPattern,
+  highlightTargets,
   activeTerm,
   onDiscuss,
   language,
 }: {
   text: string
+  sectionId: string
+  paragraphIndex: number
   glossaryMap: Map<string, GlossaryTerm>
   glossaryPattern: RegExp | null
+  highlightTargets: GlossaryHighlightTargets
   activeTerm: string | null
   onDiscuss: (term: GlossaryTerm) => void
   language: Locale
@@ -500,6 +537,9 @@ function RichText({
   return text.split(glossaryPattern).filter(Boolean).map((part, index) => {
     const match = glossaryMap.get(part.toLowerCase())
     if (!match) return <Fragment key={`${part}-${index}`}>{part}</Fragment>
+    if (highlightTargets.get(match.term.toLowerCase()) !== glossaryHighlightKey(sectionId, paragraphIndex, index)) {
+      return <Fragment key={`${match.term}-plain-${index}`}>{part}</Fragment>
+    }
 
     return (
       <GlossaryChip
@@ -679,6 +719,10 @@ export default function CasePage() {
     [glossaryTerms],
   )
   const glossaryPattern = useMemo(() => buildGlossaryMatcher(glossaryTerms), [glossaryTerms])
+  const glossaryHighlightTargets = useMemo(
+    () => buildGlossaryHighlightTargets(caseData?.sections ?? [], glossaryMap, glossaryPattern),
+    [caseData?.sections, glossaryMap, glossaryPattern],
+  )
 
   const sendChatMessage = async (content: string) => {
     if (!content.trim() || !sessionId || sending) return false
@@ -823,8 +867,11 @@ export default function CasePage() {
                         <div key={`${section.section_id}-${index}`}>
                           <RichText
                             text={paragraph}
+                            sectionId={section.section_id}
+                            paragraphIndex={index}
                             glossaryMap={glossaryMap}
                             glossaryPattern={glossaryPattern}
+                            highlightTargets={glossaryHighlightTargets}
                             activeTerm={activeTerm}
                             onDiscuss={startGlossaryChat}
                             language={language}
