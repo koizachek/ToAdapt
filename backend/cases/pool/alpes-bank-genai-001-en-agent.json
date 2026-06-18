@@ -1,0 +1,57 @@
+{
+  "case_id": "alpes-bank-genai-001-en",
+  "agent_guidance": {
+    "case_summary": "Alpes Bank, a traditional Swiss universal bank, is under pressure from AI-driven competitors. Tamara Maurer has 12 weeks to deliver a GenAI pilot. She chooses an email assistant, develops it with the startup AILabs, and achieves 21% time savings - but the pilot also raises new questions about governance and organization design.",
+    "key_tensions": [
+      "Traditional branch model vs. digital competitive pressure (external pressure meets internal setup)",
+      "Speed (12 weeks) vs. quality and compliance (bank culture)",
+      "External dependency on AILabs vs. control and responsibility inside the bank",
+      "Definition of ready: technically ready vs. ready from the bank's business perspective",
+      "GenAI as automation of individual tasks vs. redesign of entire processes"
+    ],
+    "learning_objectives": [
+      "Identify challenges at the interface between environment and organization (TP1)",
+      "Formulate a strategic recommendation with competitive logic and trade-offs (TP2)",
+      "Derive a make-or-buy decision with risks and countermeasures (TP3)",
+      "Understand decisions as a system and recognize cascading effects (TP4)"
+    ],
+    "scaffolding_questions": {
+      "metacognitive": [
+        "What is the hardest part of this analysis for you, and why?",
+        "Which assumptions are you making about Alpes Bank that the case does not state explicitly?",
+        "If you were Tamara, what would keep you awake at night?"
+      ],
+      "strategic": [
+        "What would happen if Alpes Bank started all three use cases at the same time?",
+        "Which stakeholder has the greatest influence on the pilot's success, and why?",
+        "The CEO says 'do not break anything' - what does that mean concretely for the decision?",
+        "Why might the email assistant be harder to imitate than the website chatbot?",
+        "What is lost if Alpes Bank outsources development completely?"
+      ],
+      "conceptual": [
+        "What makes a resource or capability difficult to imitate?",
+        "When deciding whether something should be done internally or externally, which factors matter most?",
+        "How would you describe the link between what happens outside in the market and what happens inside the organization?",
+        "What does scalability mean concretely for a business model like Alpes Bank's?"
+      ],
+      "procedural": [
+        "You now have several arguments - which one is central and which one is only background?",
+        "Can you summarize your recommendation in one sentence before expanding it?",
+        "A causal chain shows cause, effect, and pressure to act. Do you have all three steps?",
+        "What is the difference between an observation and a reasoned decision?"
+      ]
+    },
+    "common_mistakes": [
+      "Treating all three use cases as equally good without prioritizing",
+      "Making the make-or-buy decision based only on cost, without considering specificity and control",
+      "Naming stakeholders without analyzing their expectations or influence mechanisms",
+      "Naming trade-offs without showing why both sides really matter",
+      "Treating GenAI as a purely technical issue and ignoring organizational and cultural dimensions"
+    ],
+    "forbidden_in_feedback": [
+      "Direct model answers or phrases like 'the correct answer is...'",
+      "Framework names such as Porter, RBV, VRIO, TCE, or transaction cost theory",
+      "Phrases such as 'you should write...' or 'add...'"
+    ]
+  }
+}

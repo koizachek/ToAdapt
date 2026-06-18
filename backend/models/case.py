@@ -53,6 +53,8 @@ class Case(BaseModel):
     tagline: str            # Ein-Satz-Beschreibung
     difficulty: str         # CaseDifficulty
     target_tp: int          # 1–4 oder 0 für FULL
+    language: str = "de"    # "de" | "en"
+    translated_from: str | None = None
 
     sections: list[CaseSection] = Field(default_factory=list)
     exhibits: list[CaseExhibit] = Field(default_factory=list)
@@ -75,3 +77,5 @@ class CaseSummary(BaseModel):
     difficulty: str
     status: str
     created_at: datetime
+    language: str = "de"
+    translated_from: str | None = None

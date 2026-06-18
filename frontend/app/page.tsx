@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, BookOpen, LayoutDashboard, ShieldCheck } from 'lucide-react'
+import { languageFromSearchParams, Locale } from '@/lib/i18n'
+import { useLanguage } from '@/lib/useLanguage'
 
 interface LoginPageContentProps {
   prolificPid?: string
@@ -10,10 +12,54 @@ interface LoginPageContentProps {
   prolificSessionId?: string
   initialMode?: AppMode
   teacherLoginError?: boolean
+  initialLanguage?: Locale | null
 }
 
 const EXPERIMENT_NAME = 'prolific_experimental_run'
 type AppMode = 'student' | 'teacher'
+
+const LOGIN_TEXT = {
+  de: {
+    taglineStudent: 'Transfer-Learning mit Business Cases',
+    taglineTeacher: 'Lehrkräftebereich',
+    modeAria: 'Modus wählen',
+    studentMode: 'Studierende',
+    teacherMode: 'Lehrkräfte',
+    studentSection: 'Anmeldung',
+    participantLabel: 'Matrikelnummer',
+    participantMissing: 'Bitte Prolific-ID eingeben.',
+    integrityNote: 'Mit dem Absenden bestätigst du, dass deine Antwort eigenständig verfasst ist. Mit ChatGPT oder anderen KI-Tools generierte Antworten werden mit GPTZero überprüft.',
+    loading: 'Wird geladen...',
+    continue: 'Weiter',
+    teacherSection: 'Lehrkräfte',
+    accessCode: 'Zugangscode',
+    accessPlaceholder: 'Code eingeben',
+    accessError: 'Code nicht korrekt.',
+    openTeacher: 'Lehrkräftebereich öffnen',
+    privacyNote: 'Deine Matrikelnummer wird für die Studienzuordnung erfasst. Chat-Logs bleiben aus dem Dozierenden-Dashboard ausgeschlossen.',
+    languageAria: 'Sprache wählen',
+  },
+  en: {
+    taglineStudent: 'Transfer learning with business cases',
+    taglineTeacher: 'Teacher area',
+    modeAria: 'Choose mode',
+    studentMode: 'Students',
+    teacherMode: 'Teachers',
+    studentSection: 'Login',
+    participantLabel: 'Participant ID',
+    participantMissing: 'Please enter your Prolific ID.',
+    integrityNote: 'By submitting, you confirm that your answer is your own work. Answers generated with ChatGPT or other AI tools will be checked with GPTZero.',
+    loading: 'Loading...',
+    continue: 'Continue',
+    teacherSection: 'Teachers',
+    accessCode: 'Access code',
+    accessPlaceholder: 'Enter code',
+    accessError: 'Incorrect code.',
+    openTeacher: 'Open teacher area',
+    privacyNote: 'Your participant ID is stored for study assignment. Chat logs remain excluded from the teacher dashboard.',
+    languageAria: 'Choose language',
+  },
+} satisfies Record<Locale, Record<string, string>>
 
 function LoginPageContent({
   prolificPid = '',
@@ -21,25 +67,33 @@ function LoginPageContent({
   prolificSessionId = '',
   initialMode = 'student',
   teacherLoginError = false,
+  initialLanguage = null,
 }: LoginPageContentProps) {
   const router = useRouter()
+  const [language, setLanguage] = useLanguage()
   const [mode, setMode] = useState<AppMode>(() => {
     if (typeof window === 'undefined') return 'student'
     if (prolificPid) return 'student'
     if (initialMode === 'teacher') return 'teacher'
     return sessionStorage.getItem('app_mode') === 'teacher' ? 'teacher' : 'student'
   })
-  const [participantIdInput, setParticipantIdInput] = useState('')
+  const [participantIdInput, setParticipantIdInput] = useState(prolificPid)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const resolvedParticipantId = participantIdInput.trim() || prolificPid.trim()
+  const text = LOGIN_TEXT[language]
+
+  useEffect(() => {
+    if (initialLanguage && initialLanguage !== language) {
+      setLanguage(initialLanguage)
+    }
+  }, [initialLanguage, language, setLanguage])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
 
     if (prolificPid) {
-      setMode('student')
       sessionStorage.setItem('app_mode', 'student')
     }
     if (mode === 'teacher') {
@@ -55,14 +109,14 @@ function LoginPageContent({
       prolific_pid: resolvedParticipantId || undefined,
       prolific_study_id: studyId || undefined,
       prolific_session_id: prolificSessionId || undefined,
+      metadata: { language },
     }))
 
     if (prolificPid) {
-      setParticipantIdInput(current => current || prolificPid)
       sessionStorage.setItem('matrikelnummer', prolificPid)
       sessionStorage.setItem('user_id', `prolific_${prolificPid}`)
     }
-  }, [mode, prolificPid, prolificSessionId, resolvedParticipantId, studyId])
+  }, [language, mode, prolificPid, prolificSessionId, resolvedParticipantId, studyId])
 
   const switchMode = (nextMode: AppMode) => {
     setMode(nextMode)
@@ -74,7 +128,7 @@ function LoginPageContent({
     e.preventDefault()
     const participantId = resolvedParticipantId
     if (!participantId) {
-      setError('Bitte Prolific-ID eingeben.')
+      setError(text.participantMissing)
       return
     }
     setLoading(true)
@@ -86,6 +140,7 @@ function LoginPageContent({
       prolific_pid: participantId,
       prolific_study_id: studyId || undefined,
       prolific_session_id: prolificSessionId || undefined,
+      metadata: { language },
     }))
 
     sessionStorage.setItem('matrikelnummer', participantId)
@@ -95,6 +150,31 @@ function LoginPageContent({
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6">
+      <div
+        className="fixed right-6 top-6 flex items-center gap-1 p-1"
+        style={{ border: '1px solid rgba(53,40,30,0.16)', background: 'rgba(250,250,248,0.45)' }}
+        aria-label={text.languageAria}
+      >
+        {(['de', 'en'] as Locale[]).map(option => {
+          const active = language === option
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setLanguage(option)}
+              className="px-2.5 py-1.5 text-xs font-medium tracking-widest transition-colors"
+              style={{
+                background: active ? 'var(--ink)' : 'transparent',
+                color: active ? 'var(--white)' : 'var(--ink)',
+              }}
+              aria-pressed={active}
+            >
+              {option.toUpperCase()}
+            </button>
+          )
+        })}
+      </div>
+
       <div className="mb-20 text-center select-none">
         <h1
           className="font-display leading-none tracking-tight"
@@ -103,7 +183,7 @@ function LoginPageContent({
           ToAdapt
         </h1>
         <p className="mt-3 text-sm tracking-[0.2em] uppercase" style={{ color: 'var(--muted)' }}>
-          {mode === 'student' ? 'Tansfer-Learning mit Business Cases' : 'Lehrkräftebereich'}
+          {mode === 'student' ? text.taglineStudent : text.taglineTeacher}
         </p>
       </div>
 
@@ -111,11 +191,11 @@ function LoginPageContent({
         <div
           className="mb-8 flex w-full max-w-sm items-center gap-1 p-1"
           style={{ border: '1px solid rgba(53,40,30,0.16)', background: 'rgba(250,250,248,0.45)' }}
-          aria-label="Modus wählen"
+          aria-label={text.modeAria}
         >
           {[
-            { id: 'student' as const, label: 'Studierende' },
-            { id: 'teacher' as const, label: 'Lehrkräfte' },
+            { id: 'student' as const, label: text.studentMode },
+            { id: 'teacher' as const, label: text.teacherMode },
           ].map(option => {
             const active = mode === option.id
             return (
@@ -144,12 +224,12 @@ function LoginPageContent({
         {mode === 'student' ? (
           <>
             <p className="text-xs tracking-widest uppercase mb-6" style={{ color: 'var(--muted)' }}>
-              Anmeldung
+              {text.studentSection}
             </p>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
                 <label className="block text-xs mb-2 font-medium tracking-wide" style={{ color: 'var(--line)' }}>
-                  Matrikelnummer
+                  {text.participantLabel}
                 </label>
                 <input
                   type="text"
@@ -164,8 +244,7 @@ function LoginPageContent({
                 />
                 {error && <p className="mt-2 text-xs" style={{ color: '#c0392b' }}>{error}</p>}
                 <p className="mt-2 text-xs leading-5" style={{ color: '#ad3f2b' }}>
-                  Mit dem Absenden bestätigst du, dass deine Antwort eigenständig verfasst ist. Mit ChatGPT oder
-                  anderen KI-Tools generierte Antworten werden mit GPTZero überprüft.
+                  {text.integrityNote}
                 </p>
               </div>
 
@@ -177,7 +256,7 @@ function LoginPageContent({
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'var(--ink)')}
               >
-                {loading ? 'Wird geladen…' : 'Weiter'}
+                {loading ? text.loading : text.continue}
                 <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-1" />
               </button>
             </form>
@@ -185,23 +264,23 @@ function LoginPageContent({
         ) : (
           <form action="/teacher-login" method="post" className="flex flex-col gap-4">
             <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>
-              Lehrkräfte
+              {text.teacherSection}
             </p>
             <div>
               <label className="block text-xs mb-2 font-medium tracking-wide" style={{ color: 'var(--line)' }}>
-                Zugangscode
+                {text.accessCode}
               </label>
               <input
                 type="password"
                 inputMode="numeric"
                 name="teacher_code"
-                placeholder="Code eingeben"
+                placeholder={text.accessPlaceholder}
                 className="w-full px-4 py-3 text-sm bg-transparent outline-none transition-all"
                 style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
                 onFocus={event => { event.currentTarget.style.borderColor = 'var(--accent)' }}
                 onBlur={event => { event.currentTarget.style.borderColor = 'rgba(53,40,30,0.25)' }}
               />
-              {teacherLoginError && <p className="mt-2 text-xs" style={{ color: '#c0392b' }}>Code nicht korrekt.</p>}
+              {teacherLoginError && <p className="mt-2 text-xs" style={{ color: '#c0392b' }}>{text.accessError}</p>}
             </div>
 
             <button
@@ -211,7 +290,7 @@ function LoginPageContent({
               onMouseEnter={event => { event.currentTarget.style.background = 'var(--accent)' }}
               onMouseLeave={event => { event.currentTarget.style.background = 'var(--ink)' }}
             >
-              Lehrkräftebereich öffnen
+              {text.openTeacher}
               <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-1" />
             </button>
 
@@ -226,7 +305,7 @@ function LoginPageContent({
 
       {mode === 'student' && (
         <p className="mt-10 text-xs text-center max-w-xs" style={{ color: 'var(--muted)' }}>
-          Deine Matrikelnummer wird für die Studienzuordnung erfasst. Chat-Logs bleiben aus dem Dozierenden-Dashboard ausgeschlossen.
+          {text.privacyNote}
         </p>
       )}
     </main>
@@ -243,6 +322,7 @@ function LoginPageInner() {
       prolificSessionId={searchParams.get('SESSION_ID') ?? searchParams.get('session_id') ?? ''}
       initialMode={searchParams.get('mode') === 'teacher' ? 'teacher' : 'student'}
       teacherLoginError={searchParams.get('teacher_error') === '1'}
+      initialLanguage={languageFromSearchParams(new URLSearchParams(searchParams.toString()))}
     />
   )
 }

@@ -6,6 +6,8 @@ import clsx from 'clsx'
 import { BookOpenText, FileText, MessageSquare, Send } from 'lucide-react'
 import Nav from '@/components/Nav'
 import { apiFetch } from '@/lib/api'
+import { languageFromCaseId, Locale } from '@/lib/i18n'
+import { useLanguage } from '@/lib/useLanguage'
 
 interface CaseSection { section_id: string; title: string; content: string }
 interface CaseExhibit { exhibit_id: string; title: string; content: string; exhibit_type: string }
@@ -57,24 +59,124 @@ interface CanvasBlock {
   hint: string
 }
 
-const AGENT_LABEL: Record<string, string> = {
-  metacognitive: 'Reflexion',
-  strategic: 'Strategie',
-  conceptual: 'Konzept',
-  procedural: 'Format',
+const AGENT_LABEL: Record<Locale, Record<string, string>> = {
+  de: {
+    metacognitive: 'Reflexion',
+    strategic: 'Strategie',
+    conceptual: 'Konzept',
+    procedural: 'Format',
+  },
+  en: {
+    metacognitive: 'Reflection',
+    strategic: 'Strategy',
+    conceptual: 'Concept',
+    procedural: 'Format',
+  },
 }
 
-const BUSINESS_MODEL_CANVAS_BLOCKS: CanvasBlock[] = [
-  { key: 'value_propositions', label: 'Value Propositions', hint: 'Welchen konkreten Nutzen verspricht Alpes Bank ihren Kundinnen und Kunden?' },
-  { key: 'customer_segments', label: 'Customer Segments', hint: 'Welche Kundengruppen sind besonders relevant oder betroffen?' },
-  { key: 'channels', label: 'Channels', hint: 'Über welche Kanäle wird Leistung erbracht oder verändert sich der Zugang?' },
-  { key: 'customer_relationships', label: 'Customer Relationships', hint: 'Wie verändert sich die Kundenbeziehung, Beratung oder das Vertrauen?' },
-  { key: 'revenue_streams', label: 'Revenue Streams', hint: 'Welche Ertragslogik wird gestärkt, bedroht oder verändert?' },
-  { key: 'key_resources', label: 'Key Resources', hint: 'Welche Ressourcen, Fähigkeiten, Daten oder Kompetenzen tragen die Lösung?' },
-  { key: 'key_activities', label: 'Key Activities', hint: 'Welche zentralen Aktivitäten oder Prozesse müssen neu gestaltet werden?' },
-  { key: 'key_partners', label: 'Key Partners', hint: 'Welche Partner spielen eine tragende Rolle für Umsetzung oder Risiko?' },
-  { key: 'cost_structure', label: 'Cost Structure', hint: 'Welche Kosten-, Effizienz- oder Investitionsfolgen sind zentral?' },
-]
+const BUSINESS_MODEL_CANVAS_BLOCKS: Record<Locale, CanvasBlock[]> = {
+  de: [
+    { key: 'value_propositions', label: 'Value Propositions', hint: 'Welchen konkreten Nutzen verspricht Alpes Bank ihren Kundinnen und Kunden?' },
+    { key: 'customer_segments', label: 'Customer Segments', hint: 'Welche Kundengruppen sind besonders relevant oder betroffen?' },
+    { key: 'channels', label: 'Channels', hint: 'Über welche Kanäle wird Leistung erbracht oder verändert sich der Zugang?' },
+    { key: 'customer_relationships', label: 'Customer Relationships', hint: 'Wie verändert sich die Kundenbeziehung, Beratung oder das Vertrauen?' },
+    { key: 'revenue_streams', label: 'Revenue Streams', hint: 'Welche Ertragslogik wird gestärkt, bedroht oder verändert?' },
+    { key: 'key_resources', label: 'Key Resources', hint: 'Welche Ressourcen, Fähigkeiten, Daten oder Kompetenzen tragen die Lösung?' },
+    { key: 'key_activities', label: 'Key Activities', hint: 'Welche zentralen Aktivitäten oder Prozesse müssen neu gestaltet werden?' },
+    { key: 'key_partners', label: 'Key Partners', hint: 'Welche Partner spielen eine tragende Rolle für Umsetzung oder Risiko?' },
+    { key: 'cost_structure', label: 'Cost Structure', hint: 'Welche Kosten-, Effizienz- oder Investitionsfolgen sind zentral?' },
+  ],
+  en: [
+    { key: 'value_propositions', label: 'Value Propositions', hint: 'What concrete value does Alpes Bank promise to its customers?' },
+    { key: 'customer_segments', label: 'Customer Segments', hint: 'Which customer groups are especially relevant or affected?' },
+    { key: 'channels', label: 'Channels', hint: 'Through which channels is value delivered, or how does access change?' },
+    { key: 'customer_relationships', label: 'Customer Relationships', hint: 'How do advice, trust, or the customer relationship change?' },
+    { key: 'revenue_streams', label: 'Revenue Streams', hint: 'Which revenue logic is strengthened, threatened, or changed?' },
+    { key: 'key_resources', label: 'Key Resources', hint: 'Which resources, capabilities, data, or competencies support the solution?' },
+    { key: 'key_activities', label: 'Key Activities', hint: 'Which core activities or processes need to be redesigned?' },
+    { key: 'key_partners', label: 'Key Partners', hint: 'Which partners are central for implementation or risk?' },
+    { key: 'cost_structure', label: 'Cost Structure', hint: 'Which cost, efficiency, or investment effects matter most?' },
+  ],
+}
+
+const CASE_PAGE_TEXT = {
+  de: {
+    loading: 'Wird geladen...',
+    taskMaterials: 'Task Materials',
+    questions: 'Fragen',
+    teacherPreview: 'Lehrkräfte-Vorschau',
+    exhibits: 'Exhibits',
+    canvasEyebrow: 'Verbindlicher Analyserahmen',
+    canvasTitle: 'Business Model Canvas',
+    canvasRequired: 'Pflicht für die Bearbeitung',
+    canvasIntro: 'Bearbeite die Fragen auf Basis des Business Model Canvas. Strukturiere deine Antwort entlang der relevanten Canvas-Bausteine und zeige, wie sich Entscheidung, Risiko und Wirkung auf das Geschäftsmodell von Alpes Bank auswirken.',
+    canvasQuality: 'Gute Antworten nennen nicht nur Begriffe, sondern wenden die passenden Canvas-Bausteine konkret auf den Fall an. Entscheidend ist, wie sauber du den Zusammenhang zwischen Geschäftsmodell, Wettbewerb, Umsetzung und Risiko erklärst.',
+    answerRule: 'Schreibe in ganzen Sätzen. Für Frage 1-2 gilt 50-200 Wörter, für Frage 3-4 100-200 Wörter.',
+    points: 'Pkt',
+    teacherAnswerRequirement: (min: number, max: number) => `Antwortvorgabe fuer Studierende: ${min}-${max} Woerter, ganze Saetze.`,
+    answerPlaceholder: (min: number, max: number) => `Deine Antwort in ganzen Sätzen (${min}-${max} Wörter)...`,
+    requirement: (min: number, max: number) => `Vorgabe: ${min}-${max} Wörter, ganze Sätze`,
+    words: (count: number) => `${count} Wörter`,
+    sentenceHint: 'Bitte in ganzen Sätzen formulieren.',
+    invalidQuestion: (index: number, min: number, max: number) => `Frage ${index + 1} muss zwischen ${min} und ${max} Wörtern liegen.`,
+    evaluationError: 'Die Auswertung konnte nicht abgeschlossen werden.',
+    evaluating: 'Auswertung laeuft. Bitte Seite nicht schliessen.',
+    submit: 'Abgeben & auswerten',
+    submitting: 'Wird ausgewertet...',
+    preview: 'Vorschau',
+    industry: 'Branche',
+    country: 'Land',
+    sections: 'Abschnitte',
+    showQuestions: 'Fragen anzeigen',
+    learningChat: 'Lernchat',
+    chatIntro: 'Markierte Begriffe starten eine gezielte Diskussion, ohne dass du den Lesekontext verlierst.',
+    activeTopic: 'Aktives Thema',
+    askAgent: 'Frag den Agenten zum Material...',
+    writing: 'schreibt...',
+    contextTerm: 'Begriff im Kontext',
+    discussWithAgent: 'Mit Agent besprechen',
+    discussTermAria: (term: string) => `${term} mit dem Lernagenten besprechen`,
+    initialAgentMessage: 'Hallo! Ich bin dein Lernbegleiter für diesen Case. Markierte Fachbegriffe starten direkt eine kontextbezogene Diskussion. Wo möchtest du einsteigen?',
+  },
+  en: {
+    loading: 'Loading...',
+    taskMaterials: 'Task Materials',
+    questions: 'Questions',
+    teacherPreview: 'Teacher preview',
+    exhibits: 'Exhibits',
+    canvasEyebrow: 'Required analysis frame',
+    canvasTitle: 'Business Model Canvas',
+    canvasRequired: 'Required for this task',
+    canvasIntro: 'Answer the questions using the Business Model Canvas. Structure your answer around the relevant canvas blocks and show how decision, risk, and impact affect Alpes Bank\'s business model.',
+    canvasQuality: 'Strong answers do not just name terms; they apply the relevant canvas blocks concretely to the case. What matters is how clearly you explain the link between business model, competition, implementation, and risk.',
+    answerRule: 'Write in complete sentences. Questions 1-2 require 50-200 words; questions 3-4 require 100-200 words.',
+    points: 'pts',
+    teacherAnswerRequirement: (min: number, max: number) => `Student answer requirement: ${min}-${max} words, complete sentences.`,
+    answerPlaceholder: (min: number, max: number) => `Your answer in complete sentences (${min}-${max} words)...`,
+    requirement: (min: number, max: number) => `Requirement: ${min}-${max} words, complete sentences`,
+    words: (count: number) => `${count} words`,
+    sentenceHint: 'Please use complete sentences.',
+    invalidQuestion: (index: number, min: number, max: number) => `Question ${index + 1} must be between ${min} and ${max} words.`,
+    evaluationError: 'The evaluation could not be completed.',
+    evaluating: 'Evaluation is running. Please do not close this page.',
+    submit: 'Submit & evaluate',
+    submitting: 'Evaluating...',
+    preview: 'Preview',
+    industry: 'Industry',
+    country: 'Country',
+    sections: 'Sections',
+    showQuestions: 'Show questions',
+    learningChat: 'Learning chat',
+    chatIntro: 'Highlighted terms start a focused discussion without losing your reading context.',
+    activeTopic: 'Active topic',
+    askAgent: 'Ask the agent about the material...',
+    writing: 'is writing...',
+    contextTerm: 'Term in context',
+    discussWithAgent: 'Discuss with agent',
+    discussTermAria: (term: string) => `Discuss ${term} with the learning agent`,
+    initialAgentMessage: 'Hi. I am your learning companion for this case. Highlighted terms start a context-specific discussion. Where would you like to begin?',
+  },
+}
 
 const CASE_GLOSSARY: Record<string, GlossaryTerm[]> = {
   'alpes-bank-genai-001': [
@@ -114,9 +216,44 @@ const CASE_GLOSSARY: Record<string, GlossaryTerm[]> = {
       starterPrompt: 'Erkläre mir kurz den Begriff "MVP" und ordne in einem Satz ein, welche Rolle er in diesem Case spielt.',
     },
   ],
+  'alpes-bank-genai-001-en': [
+    {
+      term: 'value chain',
+      explanation: 'Describes the connected activities through which a company creates value for customers across several steps.',
+      starterPrompt: 'Briefly explain the term "value chain" and state in one sentence what role it plays in this case.',
+    },
+    {
+      term: 'silos',
+      explanation: 'Organizational separations between units that make information flow, collaboration, and shared responsibility harder.',
+      starterPrompt: 'Briefly explain the term "silos" and state in one sentence what role it plays in this case.',
+    },
+    {
+      term: 'governance model',
+      explanation: 'Defines who decides, who controls, and under which rules technology is operated responsibly.',
+      starterPrompt: 'Briefly explain the term "governance model" and state in one sentence what role it plays in this case.',
+    },
+    {
+      term: 'control point',
+      explanation: 'A role or person who checks outputs, catches errors, and takes responsibility for quality.',
+      starterPrompt: 'Briefly explain the term "control point" and state in one sentence what role it plays in this case.',
+    },
+    {
+      term: 'rollout',
+      explanation: 'The gradual introduction of a system into real operations, often with a defined scope and risk limits.',
+      starterPrompt: 'Briefly explain the term "rollout" and state in one sentence what role it plays in this case.',
+    },
+    {
+      term: 'use case',
+      explanation: 'A clearly defined area of application in which technology should solve a concrete problem or create value.',
+      starterPrompt: 'Briefly explain the term "use case" and state in one sentence what role it plays in this case.',
+    },
+    {
+      term: 'MVP',
+      explanation: 'A minimum viable product that makes the core value testable quickly without being fully mature yet.',
+      starterPrompt: 'Briefly explain the term "MVP" and state in one sentence what role it plays in this case.',
+    },
+  ],
 }
-
-const INITIAL_AGENT_MESSAGE = 'Hallo! Ich bin dein Lernbegleiter für diesen Case. Markierte Fachbegriffe starten direkt eine kontextbezogene Diskussion. Wo möchtest du einsteigen?'
 
 function hasCookie(name: string, value: string) {
   if (typeof document === 'undefined') return false
@@ -157,24 +294,33 @@ function readExperimentContext(): ExperimentContext | null {
   }
 }
 
-function readClientIdentity(): ClientIdentity {
+function readClientIdentity(language: Locale): ClientIdentity {
   const participantId = sessionStorage.getItem('matrikelnummer') ?? ''
   const userId = sessionStorage.getItem('user_id') ?? (participantId ? `prolific_${participantId}` : 'u_anon')
   const storedExperiment = readExperimentContext()
-  const experiment = storedExperiment ?? (participantId
+  const experiment = storedExperiment
+    ? {
+      ...storedExperiment,
+      metadata: {
+        ...(storedExperiment.metadata ?? {}),
+        language,
+      },
+    }
+    : (participantId
     ? {
       provider: 'prolific',
       experiment_name: 'prolific_experimental_run',
       run_id: participantId,
       prolific_pid: participantId,
+      metadata: { language },
     }
     : null)
 
-  if (participantId && !storedExperiment) {
-    sessionStorage.setItem('experiment_context', JSON.stringify(experiment))
-  }
-
   return { userId, participantId, experiment }
+}
+
+function messageFromError(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback
 }
 
 function hasSentenceStructure(text: string): boolean {
@@ -277,7 +423,9 @@ function ExhibitTable({ content }: { content: string }) {
   )
 }
 
-function BusinessModelCanvasGuide() {
+function BusinessModelCanvasGuide({ language }: { language: Locale }) {
+  const text = CASE_PAGE_TEXT[language]
+
   return (
     <section
       className="rounded-[28px] border p-6"
@@ -289,26 +437,24 @@ function BusinessModelCanvasGuide() {
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
-            Verbindlicher Analyserahmen
+            {text.canvasEyebrow}
           </p>
-          <h2 className="font-display text-2xl leading-tight">Business Model Canvas</h2>
+          <h2 className="font-display text-2xl leading-tight">{text.canvasTitle}</h2>
         </div>
         <span
           className="shrink-0 rounded-full px-3 py-1 text-xs font-medium tracking-wide"
           style={{ background: 'rgba(21,99,61,0.14)', color: 'var(--accent)' }}
         >
-          Pflicht für die Bearbeitung
+          {text.canvasRequired}
         </span>
       </div>
 
       <p className="mb-5 text-sm leading-7" style={{ color: 'var(--ink)' }}>
-        Bearbeite die Fragen auf Basis des Business Model Canvas. Strukturiere deine Antwort entlang der
-        relevanten Canvas-Bausteine und zeige, wie sich Entscheidung, Risiko und Wirkung auf das
-        Geschäftsmodell von Alpes Bank auswirken.
+        {text.canvasIntro}
       </p>
 
       <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {BUSINESS_MODEL_CANVAS_BLOCKS.map(block => (
+        {BUSINESS_MODEL_CANVAS_BLOCKS[language].map(block => (
           <div
             key={block.key}
             className="rounded-2xl px-4 py-4"
@@ -328,32 +474,32 @@ function BusinessModelCanvasGuide() {
         className="rounded-2xl px-4 py-4 text-sm leading-7"
         style={{ background: 'rgba(53,40,30,0.05)', color: 'var(--ink)' }}
       >
-        Gute Antworten nennen nicht nur Begriffe, sondern wenden die passenden Canvas-Bausteine konkret auf
-        den Fall an. Entscheidend ist, wie sauber du den Zusammenhang zwischen Geschäftsmodell,
-        Wettbewerb, Umsetzung und Risiko erklärst.
+        {text.canvasQuality}
       </div>
     </section>
   )
 }
 
-function renderRichText(
-  text: string,
-  glossaryMap: Map<string, GlossaryTerm>,
-  glossaryPattern: RegExp | null,
-  highlightedTerms: Set<string>,
-  activeTerm: string | null,
-  onDiscuss: (term: GlossaryTerm) => void,
-) {
+function RichText({
+  text,
+  glossaryMap,
+  glossaryPattern,
+  activeTerm,
+  onDiscuss,
+  language,
+}: {
+  text: string
+  glossaryMap: Map<string, GlossaryTerm>
+  glossaryPattern: RegExp | null
+  activeTerm: string | null
+  onDiscuss: (term: GlossaryTerm) => void
+  language: Locale
+}) {
   if (!glossaryPattern) return text
 
   return text.split(glossaryPattern).filter(Boolean).map((part, index) => {
     const match = glossaryMap.get(part.toLowerCase())
     if (!match) return <Fragment key={`${part}-${index}`}>{part}</Fragment>
-    if (highlightedTerms.has(match.term)) {
-      return <Fragment key={`${match.term}-plain-${index}`}>{part}</Fragment>
-    }
-
-    highlightedTerms.add(match.term)
 
     return (
       <GlossaryChip
@@ -361,6 +507,7 @@ function renderRichText(
         term={match}
         active={activeTerm === match.term}
         onDiscuss={onDiscuss}
+        language={language}
       />
     )
   })
@@ -370,12 +517,15 @@ function GlossaryChip({
   term,
   active,
   onDiscuss,
+  language,
 }: {
   term: GlossaryTerm
   active: boolean
   onDiscuss: (term: GlossaryTerm) => void
+  language: Locale
 }) {
   const [open, setOpen] = useState(false)
+  const text = CASE_PAGE_TEXT[language]
 
   return (
     <span
@@ -392,7 +542,7 @@ function GlossaryChip({
         style={active
           ? { background: 'var(--accent)', color: 'var(--white)' }
           : { background: 'rgba(21,99,61,0.14)', color: 'var(--accent)' }}
-        aria-label={`${term.term} mit dem Lernagenten besprechen`}
+        aria-label={text.discussTermAria(term.term)}
       >
         {term.term}
       </button>
@@ -413,7 +563,7 @@ function GlossaryChip({
           <MessageSquare size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
           <span>
             <span className="text-xs font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--muted)' }}>
-              Begriff im Kontext
+              {text.contextTerm}
             </span>
             <span className="mt-1 block text-sm leading-6">{term.explanation}</span>
           </span>
@@ -427,7 +577,7 @@ function GlossaryChip({
           style={{ color: 'var(--accent)' }}
         >
           <BookOpenText size={14} />
-          Mit Agent besprechen
+          {text.discussWithAgent}
         </button>
       </span>
     </span>
@@ -437,6 +587,9 @@ function GlossaryChip({
 export default function CasePage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const [storedLanguage, setLanguage] = useLanguage()
+  const language = languageFromCaseId(id)
+  const text = CASE_PAGE_TEXT[language]
   const [isTeacherMode] = useState(() => {
     if (typeof window === 'undefined') return false
     return hasCookie('teacher_mode', 'true')
@@ -452,10 +605,19 @@ export default function CasePage() {
   const [submitting, setSubmitting] = useState(false)
   const [activeTerm, setActiveTerm] = useState<string | null>(null)
   const [submissionError, setSubmissionError] = useState<string | null>(null)
-  const [clientIdentity, setClientIdentity] = useState<ClientIdentity | null>(null)
   const chatScrollRef = useRef<HTMLDivElement>(null)
   const historyRef = useRef<{ role: string; content: string }[]>([])
-  const hasStartedExperimentRef = useRef(false)
+  const startedExperimentCaseRef = useRef<string | null>(null)
+  const clientIdentity = useMemo(() => {
+    if (typeof window === 'undefined' || isTeacherMode) return null
+    return readClientIdentity(language)
+  }, [isTeacherMode, language])
+
+  useEffect(() => {
+    if (storedLanguage !== language) {
+      setLanguage(language)
+    }
+  }, [language, setLanguage, storedLanguage])
 
   useEffect(() => {
     if (isTeacherMode) {
@@ -464,7 +626,6 @@ export default function CasePage() {
     }
 
     sessionStorage.setItem('app_mode', 'student')
-    setClientIdentity(readClientIdentity())
   }, [isTeacherMode])
 
   useEffect(() => {
@@ -472,8 +633,18 @@ export default function CasePage() {
   }, [id])
 
   useEffect(() => {
-    if (isTeacherMode || !id || !clientIdentity || hasStartedExperimentRef.current) return
-    hasStartedExperimentRef.current = true
+    if (isTeacherMode || !id || !clientIdentity || startedExperimentCaseRef.current === id) return
+    startedExperimentCaseRef.current = id
+    void Promise.resolve().then(() => {
+      setAnswers({})
+      setSubmissionId(null)
+      setSessionId(null)
+      setChat([])
+      setChatInput('')
+      setActiveTerm(null)
+      setSubmissionError(null)
+      historyRef.current = []
+    })
 
     apiFetch<{ submission_id: string }>('/submissions', {
       method: 'POST',
@@ -492,9 +663,9 @@ export default function CasePage() {
     }).then(r => {
       setSessionId(r.session_id)
       historyRef.current = []
-      setChat([{ role: 'agent', content: INITIAL_AGENT_MESSAGE, agent_type: 'metacognitive' }])
+      setChat([{ role: 'agent', content: text.initialAgentMessage, agent_type: 'metacognitive' }])
     }).catch(console.error)
-  }, [clientIdentity, id, isTeacherMode])
+  }, [clientIdentity, id, isTeacherMode, text.initialAgentMessage])
 
   useEffect(() => {
     const node = chatScrollRef.current
@@ -526,9 +697,12 @@ export default function CasePage() {
       historyRef.current = [...historyRef.current, { role: 'assistant', content: res.content }]
       setChat(current => [...current, { role: 'agent', content: res.content, agent_type: res.agent_type }])
       return true
-    } catch (error: any) {
-      const messageText = error?.message || 'Unbekannter Fehler'
-      setChat(current => [...current, { role: 'agent', content: `Fehler: ${messageText}`, agent_type: 'metacognitive' }])
+    } catch (error: unknown) {
+      const messageText = messageFromError(error, language === 'en' ? 'Unknown error' : 'Unbekannter Fehler')
+      setChat(current => [
+        ...current,
+        { role: 'agent', content: `${language === 'en' ? 'Error' : 'Fehler'}: ${messageText}`, agent_type: 'metacognitive' },
+      ])
       return false
     } finally {
       setSending(false)
@@ -570,7 +744,7 @@ export default function CasePage() {
       const questionIndex = caseData.questions.findIndex(q => q.question_id === invalidQuestion.question_id)
       const requirement = getAnswerRequirement(questionIndex)
       setSubmissionError(
-        `Frage ${questionIndex + 1} muss zwischen ${requirement.minWords} und ${requirement.maxWords} Wörtern liegen.`,
+        text.invalidQuestion(questionIndex, requirement.minWords, requirement.maxWords),
       )
       return
     }
@@ -582,11 +756,11 @@ export default function CasePage() {
       await Promise.all(caseData.questions.map(question =>
         saveAnswer(question.question_id, answers[question.question_id] ?? ''),
       ))
-      const result = await apiFetch<any>(`/submissions/${submissionId}/submit`, { method: 'POST' })
+      const result = await apiFetch<unknown>(`/submissions/${submissionId}/submit`, { method: 'POST' })
       sessionStorage.setItem(`result_${submissionId}`, JSON.stringify(result))
       router.replace('/goodbye')
-    } catch (error: any) {
-      setSubmissionError(error?.message || 'Die Auswertung konnte nicht abgeschlossen werden.')
+    } catch (error: unknown) {
+      setSubmissionError(messageFromError(error, text.evaluationError))
     } finally {
       setSubmitting(false)
     }
@@ -596,16 +770,15 @@ export default function CasePage() {
     return (
       <>
         <Nav />
-        <main className="px-8 pt-32 text-sm" style={{ color: 'var(--muted)' }}>Wird geladen…</main>
+        <main className="px-8 pt-32 text-sm" style={{ color: 'var(--muted)' }}>{text.loading}</main>
       </>
     )
   }
 
   const tabs = [
-    { key: 'case' as const, label: 'Task Materials', icon: <FileText size={14} /> },
-    { key: 'questions' as const, label: 'Fragen', icon: <FileText size={14} /> },
+    { key: 'case' as const, label: text.taskMaterials, icon: <FileText size={14} /> },
+    { key: 'questions' as const, label: text.questions, icon: <FileText size={14} /> },
   ]
-  const highlightedTerms = new Set<string>()
 
   return (
     <>
@@ -613,7 +786,7 @@ export default function CasePage() {
       <main className="mx-auto max-w-[1400px] px-6 pb-12 pt-24 lg:px-8">
         <div className="py-6">
           <p className="mb-1 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
-            {isTeacherMode ? 'Lehrkräfte-Vorschau' : `${caseData.industry} · ${caseData.country}`}
+            {isTeacherMode ? text.teacherPreview : `${caseData.industry} · ${caseData.country}`}
           </p>
           <h1 className="font-display text-3xl leading-tight">{caseData.title}</h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>{caseData.tagline}</p>
@@ -648,14 +821,14 @@ export default function CasePage() {
                     <div className="flex flex-col gap-5 text-sm leading-8">
                       {splitParagraphs(section.content).map((paragraph, index) => (
                         <div key={`${section.section_id}-${index}`}>
-                          {renderRichText(
-                            paragraph,
-                            glossaryMap,
-                            glossaryPattern,
-                            highlightedTerms,
-                            activeTerm,
-                            startGlossaryChat,
-                          )}
+                          <RichText
+                            text={paragraph}
+                            glossaryMap={glossaryMap}
+                            glossaryPattern={glossaryPattern}
+                            activeTerm={activeTerm}
+                            onDiscuss={startGlossaryChat}
+                            language={language}
+                          />
                         </div>
                       ))}
                     </div>
@@ -664,7 +837,7 @@ export default function CasePage() {
 
                 {caseData.exhibits.length > 0 && (
                   <section>
-                    <h2 className="mb-5 text-base font-medium">Exhibits</h2>
+                    <h2 className="mb-5 text-base font-medium">{text.exhibits}</h2>
                     <div className="flex flex-col gap-6">
                       {caseData.exhibits.map(exhibit => (
                         <div
@@ -695,14 +868,14 @@ export default function CasePage() {
 
             {tab === 'questions' && (
               <div className="flex max-w-3xl flex-col gap-8 pr-0 xl:pr-4">
-                <BusinessModelCanvasGuide />
+                <BusinessModelCanvasGuide language={language} />
 
                 {!isTeacherMode && (
                   <div
                     className="rounded-2xl px-5 py-4 text-sm leading-7"
                     style={{ background: 'rgba(21,99,61,0.08)', color: 'var(--ink)' }}
                   >
-                    Schreibe in ganzen Sätzen. Für Frage 1–2 gilt 50–200 Wörter, für Frage 3–4 100–200 Wörter.
+                    {text.answerRule}
                   </div>
                 )}
 
@@ -728,7 +901,7 @@ export default function CasePage() {
                         className="shrink-0 rounded-full px-2.5 py-1 text-xs"
                         style={{ background: 'rgba(21,99,61,0.1)', color: 'var(--accent)' }}
                       >
-                        {question.max_points} Pkt
+                        {question.max_points} {text.points}
                       </span>
                     </div>
 
@@ -737,7 +910,7 @@ export default function CasePage() {
                         className="ml-8 rounded-2xl px-4 py-3 text-xs leading-6"
                         style={{ border: '1px solid rgba(53,40,30,0.14)', color: 'var(--muted)' }}
                       >
-                        Antwortvorgabe fuer Studierende: {requirement.minWords}–{requirement.maxWords} Woerter, ganze Saetze.
+                        {text.teacherAnswerRequirement(requirement.minWords, requirement.maxWords)}
                       </div>
                     ) : (
                       <>
@@ -746,7 +919,7 @@ export default function CasePage() {
                           onChange={event => setAnswers(current => ({ ...current, [question.question_id]: event.target.value }))}
                           onBlur={event => saveAnswer(question.question_id, event.target.value)}
                           rows={6}
-                          placeholder={`Deine Antwort in ganzen Sätzen (${requirement.minWords}–${requirement.maxWords} Wörter)…`}
+                          placeholder={text.answerPlaceholder(requirement.minWords, requirement.maxWords)}
                           className="ml-8 w-full resize-none rounded-2xl bg-transparent px-4 py-3 text-sm outline-none transition-all"
                           style={{
                             border: `1px solid ${answerText.trim().length > 0 && !isWithinRange ? 'rgba(173,63,43,0.45)' : 'rgba(53,40,30,0.2)'}`,
@@ -761,14 +934,14 @@ export default function CasePage() {
                         />
                         <div className="ml-8 mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                           <span style={{ color: 'var(--muted)' }}>
-                            Vorgabe: {requirement.minWords}–{requirement.maxWords} Wörter, ganze Sätze
+                            {text.requirement(requirement.minWords, requirement.maxWords)}
                           </span>
                           <span style={{ color: answerText.trim().length === 0 || isWithinRange ? 'var(--accent)' : '#ad3f2b' }}>
-                            {wordCount} Wörter
+                            {text.words(wordCount)}
                           </span>
                           {sentenceHintVisible && (
                             <span style={{ color: '#ad3f2b' }}>
-                              Bitte in ganzen Sätzen formulieren.
+                              {text.sentenceHint}
                             </span>
                           )}
                         </div>
@@ -790,7 +963,7 @@ export default function CasePage() {
 
                 {!isTeacherMode && submitting && (
                   <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                    Auswertung laeuft. Bitte Seite nicht schliessen.
+                    {text.evaluating}
                   </p>
                 )}
 
@@ -804,7 +977,7 @@ export default function CasePage() {
                     onMouseEnter={event => { if (!submitting) event.currentTarget.style.background = 'var(--accent)' }}
                     onMouseLeave={event => { if (!submitting) event.currentTarget.style.background = 'var(--ink)' }}
                   >
-                    {submitting ? 'Wird ausgewertet…' : 'Abgeben & auswerten'}
+                    {submitting ? text.submitting : text.submit}
                   </button>
                 )}
               </div>
@@ -818,27 +991,27 @@ export default function CasePage() {
                 style={{ background: 'rgba(250,250,248,0.7)', borderColor: 'rgba(53,40,30,0.12)' }}
               >
                 <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--muted)' }}>
-                  Vorschau
+                  {text.preview}
                 </p>
                 <div className="flex flex-col gap-3 text-sm">
                   <div className="flex items-center justify-between">
-                    <span style={{ color: 'var(--muted)' }}>Branche</span>
+                    <span style={{ color: 'var(--muted)' }}>{text.industry}</span>
                     <span className="font-medium">{caseData.industry}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span style={{ color: 'var(--muted)' }}>Land</span>
+                    <span style={{ color: 'var(--muted)' }}>{text.country}</span>
                     <span className="font-medium">{caseData.country}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span style={{ color: 'var(--muted)' }}>Abschnitte</span>
+                    <span style={{ color: 'var(--muted)' }}>{text.sections}</span>
                     <span className="font-medium">{caseData.sections.length}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span style={{ color: 'var(--muted)' }}>Exhibits</span>
+                    <span style={{ color: 'var(--muted)' }}>{text.exhibits}</span>
                     <span className="font-medium">{caseData.exhibits.length}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span style={{ color: 'var(--muted)' }}>Fragen</span>
+                    <span style={{ color: 'var(--muted)' }}>{text.questions}</span>
                     <span className="font-medium">{caseData.questions.length}</span>
                   </div>
                 </div>
@@ -850,7 +1023,7 @@ export default function CasePage() {
                   onMouseEnter={event => { event.currentTarget.style.background = 'var(--accent)' }}
                   onMouseLeave={event => { event.currentTarget.style.background = 'var(--ink)' }}
                 >
-                  Fragen anzeigen
+                  {text.showQuestions}
                 </button>
               </div>
             ) : (
@@ -871,12 +1044,12 @@ export default function CasePage() {
                     <MessageSquare size={18} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Lernchat</p>
+                    <p className="text-sm font-medium">{text.learningChat}</p>
                   </div>
                 </div>
 
                 <p className="mt-3 text-sm leading-6" style={{ color: 'var(--muted)' }}>
-                  Markierte Begriffe starten eine gezielte Diskussion, ohne dass du den Lesekontext verlierst.
+                  {text.chatIntro}
                 </p>
 
                 {activeTerm && (
@@ -885,7 +1058,7 @@ export default function CasePage() {
                     style={{ background: 'rgba(21,99,61,0.1)', color: 'var(--accent)' }}
                   >
                     <BookOpenText size={13} />
-                    Aktives Thema: {activeTerm}
+                    {text.activeTopic}: {activeTerm}
                   </div>
                 )}
               </div>
@@ -897,7 +1070,7 @@ export default function CasePage() {
                       <div key={index} className={clsx('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}>
                         {message.role === 'agent' && (
                           <span className="mr-2 mt-2 shrink-0 text-xs font-medium" style={{ color: 'var(--accent)' }}>
-                            {AGENT_LABEL[message.agent_type ?? ''] ?? 'Agent'}
+                            {AGENT_LABEL[language][message.agent_type ?? ''] ?? 'Agent'}
                           </span>
                         )}
 
@@ -915,7 +1088,7 @@ export default function CasePage() {
                     {sending && (
                       <div className="flex items-center gap-2">
                         <span className="text-xs" style={{ color: 'var(--accent)' }}>Agent</span>
-                        <span className="text-xs" style={{ color: 'var(--muted)' }}>schreibt…</span>
+                        <span className="text-xs" style={{ color: 'var(--muted)' }}>{text.writing}</span>
                       </div>
                     )}
                   </div>
@@ -932,7 +1105,7 @@ export default function CasePage() {
                           void sendChat()
                         }
                       }}
-                      placeholder="Frag den Agenten zum Material…"
+                      placeholder={text.askAgent}
                       className="min-w-0 flex-1 bg-transparent px-4 py-3 text-sm outline-none"
                       style={{ color: 'var(--ink)' }}
                     />

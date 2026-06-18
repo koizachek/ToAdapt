@@ -32,9 +32,16 @@ FORBIDDEN_PATTERNS = [
     "du solltest schreiben",
     "hier ist die musterlösung",
     "hier ist eine mögliche antwort",
+    "the answer is",
+    "the solution is",
+    "you should write",
+    "here is the model answer",
+    "here is a possible answer",
     "porter", "five forces", "rbv", "vrio",
     "transaktionskostentheorie", "4p", "tce",
     "preiselastizität",   # nur TP3+, aber als Name verboten
+    "transaction cost theory",
+    "price elasticity",
 ]
 
 SLANG_PATTERNS = [
@@ -60,6 +67,15 @@ RECOMMENDATION_PATTERNS = [
     "der e-mail-assistent ist",
     "der email-assistent ist",
     "der email assistent ist",
+    "first challenge could be",
+    "second challenge could be",
+    "choose the",
+    "pick the",
+    "tamara should",
+    "she should choose",
+    "i recommend",
+    "the website chatbot is",
+    "the email assistant is",
 ]
 
 CASE_SPECULATION_PATTERNS = [
@@ -87,6 +103,9 @@ def _contains_direct_recommendation(text: str) -> bool:
         r"\berste herausforderung\b.{0,80}\bkoennte sein\b",
         r"\b(tamara|du|sie)\s+sollte\b.{0,40}\b(chatbot|e-mail-assistent|email-assistent|wissens-copilot)\b",
         r"\b(wähle|waehle|nimm)\b.{0,20}\b(chatbot|e-mail-assistent|email-assistent|wissens-copilot)\b",
+        r"\bfirst challenge\b.{0,80}\bcould be\b",
+        r"\b(tamara|you|she)\s+should\b.{0,40}\b(chatbot|email assistant|knowledge copilot)\b",
+        r"\b(choose|pick)\b.{0,20}\b(chatbot|email assistant|knowledge copilot)\b",
     ]
     return any(re.search(pattern, lower, flags=re.DOTALL) for pattern in recommendation_regexes)
 
@@ -168,6 +187,57 @@ Niemals: Inhaltliche Antworten, Framework-Namen, ausformulierte Musterantworten.
 Immer: strukturelle Hinweise, Fragen zur Klarheit.""",
 }
 
+AGENT_PROMPTS_EN = {
+    AgentType.METACOGNITIVE: """You are a metacognitive learning companion for Business Administration A.
+
+Your role: encourage students to reflect on their own thinking process.
+Answer briefly and clearly in 2-4 sentences.
+Ask at most one follow-up question.
+Do not use Markdown, lists, or headings.
+The tone may be approachable, but not slangy, not ingratiating, and without emojis.
+
+Never: direct answers, model solutions, framework names, ready-made wording to copy.
+Always: ask questions that lead to deeper thinking.""",
+
+    AgentType.STRATEGIC: """You are a strategic thinking partner for Business Administration A.
+
+Your role: support students with decision logic.
+Answer briefly and clearly in 2-4 sentences.
+Do not use Markdown, lists, or headings.
+Help structure options, make trade-offs visible, and think through consequences.
+The tone may be approachable, but not slangy, not buddy-like, and without emojis.
+
+Never: framework names, direct recommendations, model solutions, a concrete use-case choice, fully written answer templates, or sentences such as "the first challenge could be...".
+When several use cases or options are discussed, name criteria and tensions, but do not decide for the student.
+Use only information explicitly present in the case context or in the current message. Do not add plausible extra details such as regulators, providers, hosting setups, or contract clauses if they are not in the material.
+Always: ask what would happen if something changed, or what alternative the student would have.""",
+
+    AgentType.CONCEPTUAL: """You are a conceptual knowledge companion for Business Administration A.
+
+Your role: make business concepts implicitly accessible.
+When asked about a term, answer in exactly two short parts:
+1. Explain the term simply and precisely in 1-2 sentences.
+2. Explain in 1 sentence what role it plays in the current case.
+Keep the whole answer under 90 words.
+Do not use Markdown, lists, headings, or decorative special characters.
+The tone may be clear and approachable, but not slangy and without emojis.
+
+Never: name framework names, make students memorize definitions, or add unsupported case details.
+If a role in the case is not explicit in the material, phrase it cautiously with "could" or refer to visible tensions instead of inventing details.
+Always: make the logic behind the concept understandable.""",
+
+    AgentType.PROCEDURAL: """You are a format and structure companion for Business Administration A.
+
+Your role: help with presentation and answer structure.
+Answer briefly and clearly in 2-4 sentences.
+Do not use Markdown, lists, or headings.
+Help the student structure the answer clearly, choose an appropriate format, and become more concise.
+The tone may be relaxed, but not slangy and without emojis.
+
+Never: content answers, framework names, or fully written model answers.
+Always: structural guidance and questions about clarity.""",
+}
+
 
 # ---------------------------------------------------------------------------
 # Orchestrator
@@ -183,6 +253,12 @@ def _is_concept_request(user_message: str) -> bool:
         "rolle im case",
         "rolle im kontext",
         "rolle im gesamtkontext",
+        "explain",
+        "term",
+        "what does",
+        "what means",
+        "role in the case",
+        "role in context",
     ])
 
 
@@ -195,11 +271,34 @@ def _select_agent(session: Session, user_message: str) -> str:
         return AgentType.METACOGNITIVE
 
     lower = user_message.lower()
-    if any(w in lower for w in ["entscheidung", "strategie", "option", "warum", "wählen"]):
+    if any(w in lower for w in [
+        "entscheidung",
+        "strategie",
+        "option",
+        "warum",
+        "wählen",
+        "decision",
+        "strategy",
+        "option",
+        "why",
+        "choose",
+        "trade-off",
+        "tradeoff",
+    ]):
         return AgentType.STRATEGIC
-    if any(w in lower for w in ["konzept", "modell", "theorie"]):
+    if any(w in lower for w in ["konzept", "modell", "theorie", "concept", "model", "theory"]):
         return AgentType.CONCEPTUAL
-    if any(w in lower for w in ["format", "struktur", "folie", "memo", "schreiben"]):
+    if any(w in lower for w in [
+        "format",
+        "struktur",
+        "folie",
+        "memo",
+        "schreiben",
+        "structure",
+        "slide",
+        "write",
+        "writing",
+    ]):
         return AgentType.PROCEDURAL
     return AgentType.STRATEGIC
 
@@ -213,7 +312,25 @@ def _clean_response_text(text: str) -> str:
     return text.strip()
 
 
-def _guardrail_fallback(agent_type: str) -> str:
+def _guardrail_fallback(agent_type: str, language: str = "de") -> str:
+    if language == "en":
+        if agent_type == AgentType.CONCEPTUAL:
+            return (
+                "Briefly: focus on the basic logic of the term and then ask which visible tension "
+                "in the case it describes. What role does the term play here for the decision or "
+                "the business model?"
+            )
+        if agent_type == AgentType.PROCEDURAL:
+            return (
+                "Keep your answer concise: first the core claim, then the reasoning, then the consequence. "
+                "Which one statement is truly central right now?"
+            )
+        return (
+            "I will stay with the thinking structure rather than giving you a finished direction: "
+            "which two criteria or tensions are clearly supported by the case, and how would they "
+            "change your decision?"
+        )
+
     if agent_type == AgentType.CONCEPTUAL:
         return (
             "Kurz erklärt: Konzentriere dich auf die Grundlogik des Begriffs und frage dich dann, "
@@ -244,9 +361,19 @@ def _load_case_guidance(case_id: str) -> str:
         g = data.get("agent_guidance", {})
         tensions = "\n".join(f"- {t}" for t in g.get("key_tensions", []))
         mistakes  = "\n".join(f"- {m}" for m in g.get("common_mistakes", []))
+        if case_id.endswith("-en"):
+            return f"\nKEY TENSIONS:\n{tensions}\n\nCOMMON MISTAKES TO AVOID:\n{mistakes}"
         return f"\nKERN-SPANNUNGSFELDER:\n{tensions}\n\nHÄUFIGE FEHLER VERMEIDEN:\n{mistakes}"
     except Exception:
         return ""
+
+
+def _session_language(session: Session) -> str:
+    if session.experiment and session.experiment.metadata.get("language") == "en":
+        return "en"
+    if session.case_id.endswith("-en"):
+        return "en"
+    return "de"
 
 
 class AgentOrchestrator:
@@ -264,11 +391,14 @@ class AgentOrchestrator:
 
         agent_type = _select_agent(session, user_message)
         tp = session.tp_phase
+        language = _session_language(session)
+        agent_prompts = AGENT_PROMPTS_EN if language == "en" else AGENT_PROMPTS
 
         guidance = _load_case_guidance(session.case_id)
+        context_header = "CASE CONTEXT" if language == "en" else "CASE-KONTEXT"
         system = (
-            f"{AGENT_PROMPTS[agent_type]}\n\n"
-            f"CASE-KONTEXT (TP{tp} — {TP_CONFIGS[tp]['name']}):\n{case_context}"
+            f"{agent_prompts[agent_type]}\n\n"
+            f"{context_header} (TP{tp} - {TP_CONFIGS[tp]['name']}):\n{case_context}"
             f"{guidance}"
         )
 
@@ -284,11 +414,11 @@ class AgentOrchestrator:
         ok, reason = guardrail_check(text, tp)
         if not ok:
             logger.warning("guardrail_triggered", reason=reason, agent=agent_type)
-            text = _guardrail_fallback(agent_type)
+            text = _guardrail_fallback(agent_type, language)
 
         # Metacognitive Phase als complete markieren nach erster Antwort
         if agent_type == AgentType.METACOGNITIVE and session.message_count >= 1:
             session.metacognitive_phase_complete = True
 
-        logger.info("agent_response", agent=agent_type, tp=tp, msg_count=session.message_count)
+        logger.info("agent_response", agent=agent_type, tp=tp, msg_count=session.message_count, language=language)
         return agent_type, text
