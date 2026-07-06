@@ -57,9 +57,22 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+def _allowed_origins() -> list[str]:
+    """Erlaubte CORS-Origins aus ALLOWED_ORIGINS (kommagetrennt).
+
+    Fällt in der Entwicklung auf localhost zurück. In Produktion MUSS
+    ALLOWED_ORIGINS auf die konkrete Frontend-Domain gesetzt werden —
+    ein Wildcard ist mit allow_credentials=True ohnehin unzulässig.
+    """
+    raw = os.environ.get("ALLOWED_ORIGINS", "").strip()
+    if raw:
+        return [origin.strip() for origin in raw.split(",") if origin.strip()]
+    return ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -78,8 +91,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error("unhandled_exception", error=str(exc), path=request.url.path)
     return JSONResponse(
         status_code=500,
-        content={"detail": str(exc)},
-        headers={"Access-Control-Allow-Origin": "*"},
+        content={"detail": "Internal server error"},
     )
 
 

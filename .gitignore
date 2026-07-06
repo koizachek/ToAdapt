@@ -9,3 +9,4 @@ backend/db/submissions/*.json
 data/prolific_runs/**
 !data/prolific_runs/
 !data/prolific_runs/README.md
+SECURITY.md

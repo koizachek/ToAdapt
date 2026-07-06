@@ -1,0 +1,38 @@
+# Secrets & environment
+.env
+.env.*
+*.env
+frontend/.env.local
+
+# Version control
+.git
+.gitignore
+
+# Python virtual env & caches
+.venv/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+
+# Node / frontend (backend image does not need it)
+frontend/
+
+# Research & participant data (never ship into the image)
+data/
+backend/db/submissions/
+backend/db/runtime_submissions/
+backend/db/dashboard_seed/
+
+# Local runtime artifacts & docs
+logs/
+research_data/
+docs/
+images/
+dev-docs/
+
+# OS / editor cruft
+.DS_Store
+**/.DS_Store
+
+# Project instructions (not needed at runtime)
+CLAUDE.md
