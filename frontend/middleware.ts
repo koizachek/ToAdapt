@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyTeacherSession, TEACHER_COOKIE } from '@/lib/teacherAuth'
 
-export function middleware(request: NextRequest) {
-  const hasTeacherAccess = request.cookies.get('teacher_access')?.value === 'true'
+export async function middleware(request: NextRequest) {
+  const token = request.cookies.get(TEACHER_COOKIE)?.value
+  const hasTeacherAccess = await verifyTeacherSession(token)
 
   if (!hasTeacherAccess) {
     const redirectUrl = new URL('/?mode=teacher', request.url)

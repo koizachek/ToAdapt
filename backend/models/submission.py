@@ -1,6 +1,7 @@
 """Submission-Datenmodell — Studierenden-Antworten und Scoring."""
 
 from datetime import datetime
+from backend.timeutils import naive_utcnow
 
 from pydantic import BaseModel, Field
 
@@ -56,7 +57,7 @@ class Submission(BaseModel):
 
     status: str = SubmissionStatus.IN_PROGRESS
 
-    started_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: datetime = Field(default_factory=naive_utcnow)
     submitted_at: datetime | None = None
     evaluated_at: datetime | None = None
 

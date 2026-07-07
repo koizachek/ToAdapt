@@ -1,6 +1,7 @@
 """Nachrichten-Datenmodell."""
 
 from datetime import datetime
+from backend.timeutils import naive_utcnow
 from pydantic import BaseModel, Field
 
 
@@ -19,4 +20,4 @@ class Message(BaseModel):
     content: str
     agent_type: str | None = None
     guardrails_triggered: list[str] = Field(default_factory=list)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=naive_utcnow)

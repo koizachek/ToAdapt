@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
-import { apiFetch } from '@/lib/api'
+import { teacherFetch } from '@/lib/api'
 import { Plus, Check, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { APP_MODE_STORAGE_KEY } from '@/lib/appMode'
 import { languageQuery, Locale } from '@/lib/i18n'
@@ -104,7 +104,7 @@ export default function AdminPage() {
   const text = ADMIN_TEXT[language]
 
   const load = useCallback(
-    () => apiFetch<CaseSummary[]>(`/admin/cases?${languageQuery(language)}`).then(setCases),
+    () => teacherFetch<CaseSummary[]>(`/admin/cases?${languageQuery(language)}`).then(setCases),
     [language],
   )
 
@@ -118,7 +118,7 @@ export default function AdminPage() {
     const selectedCountry = COUNTRY_OPTIONS.find(country => country.value === form.country)
     const country = selectedCountry?.[language] ?? form.country
     try {
-      await apiFetch('/admin/cases/generate', {
+      await teacherFetch('/admin/cases/generate', {
         method: 'POST',
         body: JSON.stringify({ ...form, country, language, difficulty: `tp${form.target_tp}` }),
       })
@@ -130,17 +130,17 @@ export default function AdminPage() {
     if (expanded === id) { setExpanded(null); return }
     setExpanded(id)
     if (!detail[id]) {
-      const c = await apiFetch<Case>(`/admin/cases/${id}`)
+      const c = await teacherFetch<Case>(`/admin/cases/${id}`)
       setDetail(d => ({ ...d, [id]: c }))
     }
   }
 
   const approve = async (id: string) => {
-    await apiFetch(`/admin/cases/${id}/approve`, { method: 'POST', body: JSON.stringify({ reviewer: reviewer || text.reviewerFallback }) })
+    await teacherFetch(`/admin/cases/${id}/approve`, { method: 'POST', body: JSON.stringify({ reviewer: reviewer || text.reviewerFallback }) })
     load()
   }
   const reject = async (id: string) => {
-    await apiFetch(`/admin/cases/${id}/reject`, { method: 'POST', body: JSON.stringify({ reviewer: reviewer || text.reviewerFallback }) })
+    await teacherFetch(`/admin/cases/${id}/reject`, { method: 'POST', body: JSON.stringify({ reviewer: reviewer || text.reviewerFallback }) })
     load()
   }
 

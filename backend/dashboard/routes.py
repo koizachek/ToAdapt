@@ -6,11 +6,17 @@ from pathlib import Path
 import json
 
 import structlog
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from backend.auth import require_api_key
+
 logger = structlog.get_logger(__name__)
-router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+router = APIRouter(
+    prefix="/dashboard",
+    tags=["dashboard"],
+    dependencies=[Depends(require_api_key)],
+)
 
 SUBMISSIONS_DIR = Path(__file__).parent.parent / "db" / "submissions"
 SUBMISSIONS_DIR.mkdir(parents=True, exist_ok=True)

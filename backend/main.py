@@ -6,12 +6,13 @@ import os
 from pathlib import Path
 
 import structlog
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
+from backend.auth import require_api_key
 from backend.api.routes import router as session_router
 from backend.admin.routes import router as admin_router
 from backend.dashboard.routes import router as dashboard_router
@@ -26,25 +27,17 @@ BUILD_MARKER = "railway-mongo-env-diagnostics-2026-05-14-1809z"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     key = os.environ.get("OPENROUTER_API_KEY", "")
-    all_keys = [k for k in os.environ.keys() if "OPENROUTER" in k.upper()]
     mongo = experiment_logger.diagnostics
+    # Kein Key-Material (auch keine Prefixe) und keine Env-Key-Namen loggen —
+    # nur boolescher Konfigurationsstatus.
     logger.info(
         "toadapt_startup",
         tp_phase=current_tp_phase(),
         llm_provider="openrouter",
         llm_model=os.environ.get("OPENROUTER_MODEL", DEFAULT_OPENROUTER_MODEL),
+        openrouter_api_key_configured=bool(key),
         mongo_logging_enabled=mongo["enabled"],
         mongo_connection_mode=mongo["connection_mode"],
-        mongo_database=mongo["database"],
-        mongo_collection=mongo["collection"],
-        mongo_env_keys=mongo["mongo_env_keys"],
-        mongodb_host_len=mongo["mongodb_host_len"],
-        mongodb_mas_name_len=mongo["mongodb_mas_name_len"],
-        mongodb_mas_key_len=mongo["mongodb_mas_key_len"],
-        mongodb_uri_len=mongo["mongodb_uri_len"],
-        api_key_len=len(key),
-        api_key_prefix=key[:12] if key else "MISSING",
-        openrouter_env_keys=all_keys,
     )
     yield
     logger.info("toadapt_shutdown")
@@ -57,9 +50,22 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+def _allowed_origins() -> list[str]:
+    """Erlaubte CORS-Origins aus ALLOWED_ORIGINS (kommagetrennt).
+
+    Fällt in der Entwicklung auf localhost zurück. In Produktion MUSS
+    ALLOWED_ORIGINS auf die konkrete Frontend-Domain gesetzt werden —
+    ein Wildcard ist mit allow_credentials=True ohnehin unzulässig.
+    """
+    raw = os.environ.get("ALLOWED_ORIGINS", "").strip()
+    if raw:
+        return [origin.strip() for origin in raw.split(",") if origin.strip()]
+    return ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -78,13 +84,22 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error("unhandled_exception", error=str(exc), path=request.url.path)
     return JSONResponse(
         status_code=500,
-        content={"detail": str(exc)},
-        headers={"Access-Control-Allow-Origin": "*"},
+        content={"detail": "Internal server error"},
     )
 
 
 @app.get("/health", tags=["meta"])
 async def health() -> dict:
+    # Bewusst minimal: keine Infrastruktur-Details (Mongo-Host/-Setup,
+    # Env-Key-Namen, Feldlängen) auf einem öffentlichen Endpunkt.
+    return {
+        "status": "ok",
+        "version": "0.2.0",
+    }
+
+
+@app.get("/health/diagnostics", tags=["meta"], dependencies=[Depends(require_api_key)])
+async def health_diagnostics() -> dict:
     mongo = experiment_logger.diagnostics
     return {
         "status": "ok",

@@ -3,6 +3,7 @@
 import json
 import uuid
 from datetime import datetime
+from backend.timeutils import naive_utcnow
 from pathlib import Path
 from typing import Any
 
@@ -156,7 +157,7 @@ async def chat(session_id: str, body: ChatRequest):
     )
 
     session.message_count += 1
-    session.last_activity = datetime.utcnow()
+    session.last_activity = naive_utcnow()
 
     try:
         agent_type, response_text = await orchestrator.respond(
@@ -265,7 +266,7 @@ async def submit_and_evaluate(submission_id: str):
     evaluator = RubricEvaluator(api_key=api_key)
 
     sub.status = SubmissionStatus.SUBMITTED
-    sub.submitted_at = datetime.utcnow()
+    sub.submitted_at = naive_utcnow()
     submission_store.save(sub)
 
     _log_experiment_event(
@@ -280,7 +281,7 @@ async def submit_and_evaluate(submission_id: str):
     result = await evaluator.evaluate_submission(sub, case)
 
     sub.status = SubmissionStatus.EVALUATED
-    sub.evaluated_at = datetime.utcnow()
+    sub.evaluated_at = naive_utcnow()
     sub.scores = result.scores
     sub.total_points = result.total_points
     sub.max_points = result.max_points

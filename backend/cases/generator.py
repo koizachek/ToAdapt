@@ -10,6 +10,7 @@ Workflow:
 import json
 import uuid
 from datetime import datetime
+from backend.timeutils import naive_utcnow
 
 import structlog
 
@@ -249,7 +250,7 @@ class CaseGenerator:
             questions=[CaseQuestion(**q) for q in data["questions"]],
             status=CaseStatus.DRAFT,
             generated_by="ai",
-            created_at=datetime.utcnow(),
+            created_at=naive_utcnow(),
         )
 
         logger.info("case_generation_complete", case_id=case.case_id, title=case.title, language=language)
