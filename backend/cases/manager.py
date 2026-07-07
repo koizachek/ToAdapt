@@ -7,6 +7,7 @@ from pathlib import Path
 import structlog
 
 from backend.models.case import Case, CaseStatus, CaseSummary
+from backend.timeutils import naive_utcnow
 
 logger = structlog.get_logger(__name__)
 
@@ -67,8 +68,7 @@ class CaseManager:
         case.status = CaseStatus.APPROVED
         case.reviewed_by = reviewer
         case.review_notes = notes
-        from datetime import datetime
-        case.approved_at = datetime.utcnow()
+        case.approved_at = naive_utcnow()
         self.save(case)
         return case
 

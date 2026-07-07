@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
-import { apiFetch } from '@/lib/api'
+import { teacherFetch } from '@/lib/api'
 import { APP_MODE_STORAGE_KEY } from '@/lib/appMode'
 import { Locale } from '@/lib/i18n'
 import { useLanguage } from '@/lib/useLanguage'
@@ -132,8 +132,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     sessionStorage.setItem(APP_MODE_STORAGE_KEY, 'teacher')
-    apiFetch<Overview>('/dashboard/overview').then(setOverview)
-    apiFetch<StudentRow[]>('/dashboard/students').then(setStudents)
+    teacherFetch<Overview>('/dashboard/overview').then(setOverview)
+    teacherFetch<StudentRow[]>('/dashboard/students').then(setStudents)
   }, [])
 
   const filtered = students.filter(s => s.matrikelnummer.includes(search))

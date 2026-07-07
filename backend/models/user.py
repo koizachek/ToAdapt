@@ -1,6 +1,7 @@
 """Nutzer-Datenmodell — individuell, Matrikelnummer-basiert."""
 
 from datetime import datetime
+from backend.timeutils import naive_utcnow
 
 
 from pydantic import BaseModel, Field
@@ -18,7 +19,7 @@ class User(BaseModel):
     display_name: str = ""
     role: str = UserRole.STUDENT
     language: str = "de"           # "de" | "en"
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=naive_utcnow)
 
 
 class UserCreate(BaseModel):

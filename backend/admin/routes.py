@@ -1,9 +1,10 @@
 """Admin-Interface — Case-Generierung und Approval-Workflow."""
 
 import structlog
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from backend.auth import require_api_key
 from backend.cases.generator import CaseGenerator
 from backend.cases.manager import case_manager
 from backend.llm import get_openrouter_key
@@ -34,7 +35,7 @@ class ReviewCaseRequest(BaseModel):
 # Routes
 # ---------------------------------------------------------------------------
 
-@router.post("/cases/generate", response_model=Case)
+@router.post("/cases/generate", response_model=Case, dependencies=[Depends(require_api_key)])
 async def generate_case(body: GenerateCaseRequest):
     """Generiert einen AI-Draft-Case und legt ihn im Pool ab."""
     if body.language not in {"de", "en"}:
@@ -78,7 +79,7 @@ async def get_case(case_id: str):
     return case
 
 
-@router.post("/cases/{case_id}/approve", response_model=Case)
+@router.post("/cases/{case_id}/approve", response_model=Case, dependencies=[Depends(require_api_key)])
 async def approve_case(case_id: str, body: ReviewCaseRequest):
     """Gibt einen Case-Draft frei."""
     case = case_manager.approve(case_id, reviewer=body.reviewer, notes=body.notes)
@@ -88,7 +89,7 @@ async def approve_case(case_id: str, body: ReviewCaseRequest):
     return case
 
 
-@router.post("/cases/{case_id}/reject", response_model=Case)
+@router.post("/cases/{case_id}/reject", response_model=Case, dependencies=[Depends(require_api_key)])
 async def reject_case(case_id: str, body: ReviewCaseRequest):
     """Lehnt einen Case-Draft ab."""
     case = case_manager.reject(case_id, reviewer=body.reviewer, notes=body.notes)
