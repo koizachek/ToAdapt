@@ -1,11 +1,22 @@
 .venv/
 .env
+.env.local
 __pycache__/
 *.pyc
+.pytest_cache/
+.DS_Store
 CLAUDE.md
 dev-docs/frontend/.next
 frontend/node_modules
+frontend/tsconfig.tsbuildinfo
+
+# Laufzeit- und Forschungsdaten mit personenbezogenen Inhalten (Prolific-IDs,
+# Freitextantworten) — dürfen NICHT ins Repo.
 backend/db/submissions/*.json
+backend/db/runtime_submissions/
+backend/db/dashboard_seed/
+data/submission_states.json
+data/experiment_events.json
 data/prolific_runs/**
 !data/prolific_runs/
 !data/prolific_runs/README.md

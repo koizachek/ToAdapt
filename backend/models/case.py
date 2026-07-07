@@ -1,6 +1,7 @@
 """Case-Datenmodell — Mini-Cases für den Transfer-Trainer."""
 
 from datetime import datetime
+from backend.timeutils import naive_utcnow
 
 
 from pydantic import BaseModel, Field
@@ -65,7 +66,7 @@ class Case(BaseModel):
     reviewed_by: str | None = None
     review_notes: str = ""
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=naive_utcnow)
     approved_at: datetime | None = None
 
 

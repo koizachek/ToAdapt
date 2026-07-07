@@ -16,7 +16,18 @@ def test_health():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
-    assert "tp_phase" in data
+    # /health ist bewusst minimal — Infrastruktur-Details liegen unter
+    # /health/diagnostics (API-Key-geschützt).
+    assert "mongo_env_keys" not in data
+
+
+def test_health_diagnostics_requires_key():
+    # Ohne konfigurierten/übergebenen Key: fail-closed.
+    assert client.get("/health/diagnostics").status_code in (401, 503)
+
+
+def test_dashboard_requires_key():
+    assert client.get("/dashboard/overview").status_code in (401, 503)
 
 
 def test_create_session():

@@ -1,6 +1,7 @@
 """Session-Datenmodell — individuell (kein Gruppen-State)."""
 
 from datetime import datetime
+from backend.timeutils import naive_utcnow
 
 from pydantic import BaseModel, Field
 
@@ -17,8 +18,8 @@ class Session(BaseModel):
     # Metacognitive-First: Reflexionsphase abgeschlossen?
     metacognitive_phase_complete: bool = False
 
-    started_at: datetime = Field(default_factory=datetime.utcnow)
-    last_activity: datetime = Field(default_factory=datetime.utcnow)
+    started_at: datetime = Field(default_factory=naive_utcnow)
+    last_activity: datetime = Field(default_factory=naive_utcnow)
     message_count: int = 0
 
 
