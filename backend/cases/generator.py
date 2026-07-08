@@ -99,7 +99,19 @@ Erstelle einen Case mit diesem exakten JSON-Schema:
       "max_points": 9,
       "rubric_reference": "tp{target_tp}_rubric.json",
       "allowed_frameworks": ["..."],
-      "forbidden_framework_names": ["..."]
+      "forbidden_framework_names": ["..."],
+      "evaluation_focus": [
+        "2–4 inhaltliche Prüfkriterien: Was muss eine starke Antwort leisten?"
+      ],
+      "required_canvas_blocks": [
+        {{
+          "block": "value_propositions",
+          "label": "Value Propositions",
+          "accepted_keywords": ["5–8 Signal-Keywords in Case-Sprache, kleingeschrieben"],
+          "expectation": "Was die Antwort zu diesem Baustein konkret zeigen muss",
+          "weight": 1.0
+        }}
+      ]
     }}
   ]
 }}
@@ -110,7 +122,14 @@ Anforderungen:
 - {num_questions} Fragen, die exakt die Bloom-Stufen {bloom_levels} abdecken
 - Jede Frage impliziert ein Framework, nennt es aber nicht
 - Gesamtpunktzahl aller Fragen: {total_points}
-- Case-Länge: entspricht ca. {page_count} Seiten A4"""
+- Case-Länge: entspricht ca. {page_count} Seiten A4
+- Jede Frage erhält 2–3 required_canvas_blocks aus den 9 Business-Model-Canvas-Bausteinen
+  (key_partners, key_activities, key_resources, value_propositions,
+  customer_relationships, channels, customer_segments, cost_structure,
+  revenue_streams) mit je 5–8 accepted_keywords, die in einer guten Antwort
+  realistisch vorkommen (Synonyme und case-spezifische Begriffe mischen)
+- evaluation_focus beschreibt Prüfkriterien pfadoffen (mehrere vertretbare
+  Antwortwege müssen volle Punkte erreichen können)"""
 
 CASE_GENERATION_PROMPT_EN = """Create a complete mini-case for the transfer trainer.
 
@@ -155,7 +174,19 @@ Create a case with this exact JSON schema:
       "max_points": 9,
       "rubric_reference": "tp{target_tp}_rubric.json",
       "allowed_frameworks": ["..."],
-      "forbidden_framework_names": ["..."]
+      "forbidden_framework_names": ["..."],
+      "evaluation_focus": [
+        "2-4 assessment criteria: what must a strong answer accomplish?"
+      ],
+      "required_canvas_blocks": [
+        {{
+          "block": "value_propositions",
+          "label": "Value Propositions",
+          "accepted_keywords": ["5-8 signal keywords in the case language, lowercase"],
+          "expectation": "What the answer must concretely show for this block",
+          "weight": 1.0
+        }}
+      ]
     }}
   ]
 }}
@@ -166,7 +197,15 @@ Requirements:
 - {num_questions} questions that cover exactly the Bloom levels {bloom_levels}
 - Each question implies a framework but does not name it
 - Total points across all questions: {total_points}
-- Case length: approximately {page_count} A4 pages"""
+- Case length: approximately {page_count} A4 pages
+- Each question gets 2-3 required_canvas_blocks from the 9 Business Model
+  Canvas blocks (key_partners, key_activities, key_resources,
+  value_propositions, customer_relationships, channels, customer_segments,
+  cost_structure, revenue_streams) with 5-8 accepted_keywords each that
+  would realistically appear in a good answer (mix synonyms and
+  case-specific terms)
+- evaluation_focus states criteria in a path-open way (several defensible
+  answer paths must be able to reach full points)"""
 
 TP_NAMES_EN = {
     1: "Analysis & stakeholders",
@@ -271,7 +310,9 @@ class CaseGenerator:
         raw = await self.client.complete(
             system=system_prompt,
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=4096,
+            # Case + eingebettetes Bewertungspaket (Canvas-Blöcke, Fokus)
+            # brauchen mehr Raum als der reine Case-Text.
+            max_tokens=8192,
         )
         data = json.loads(_strip_json_fences(raw))
 

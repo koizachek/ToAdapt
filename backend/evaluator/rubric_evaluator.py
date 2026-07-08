@@ -119,6 +119,36 @@ REPAIR_PROMPT = """Deine letzte Antwort war kein valides JSON.
 
 Gib jetzt ausschliesslich ein valides JSON-Objekt zurueck, ohne Markdown, ohne Code-Fences, ohne Erklaerungen."""
 
+# Generische Kalibrierungsanker pro Bloom-Stufe — greifen NUR, wenn der Case
+# keine eigenen calibration_notes mitbringt (neu generierte Cases vor der
+# Nachkalibrierung). Case-agnostisch formuliert; die case-spezifischen Anker
+# des Alpes-Bank-Cases liegen in dessen Case-JSON.
+BLOOM_CALIBRATION_ANCHORS: dict[int, list[str]] = {
+    2: [
+        "Verständnis zeigt sich in eigenen Worten mit konkretem Fallbezug; reine Definitionswiedergabe begrenzt den Score.",
+        "Zentrale Fallmerkmale müssen korrekt wiedergegeben werden, nicht nur allgemeines Branchenwissen.",
+    ],
+    3: [
+        "Anwendung verlangt die Übertragung auf konkrete Fallmerkmale; generische Aussagen ohne Fallbezug begrenzen den Score deutlich.",
+        "Die Antwort muss zeigen, WIE ein Vorgehen im Fall funktioniert, nicht nur DASS es sinnvoll wäre.",
+    ],
+    4: [
+        "Analyse verlangt Zerlegung in Teilaspekte UND deren Wechselwirkung (z.B. externer Druck vs. interne Gegebenheiten).",
+        "Reine Aufzählungen ohne Begründungslogik oder Wirkungskette begrenzen den Score deutlich.",
+        "Verfehlt die Antwort die strategische Kernfrage zugunsten reiner Umsetzungsdetails, wird das streng bewertet.",
+    ],
+    5: [
+        "Evaluation verlangt eine eindeutige Priorisierung oder Entscheidung mit nachvollziehbaren Kriterien; Optionen nur zu beschreiben reicht nicht.",
+        "Ein Zielkonflikt muss aus der eigenen Empfehlung folgen, nicht nur allgemein als Risiko erwähnt werden.",
+        "Behauptete Vorteile brauchen eine Verankerung in Fallfakten, nicht nur Plausibilität.",
+    ],
+    6: [
+        "Synthese verlangt die integrierte Betrachtung früherer Teilentscheidungen; eine isolierte neue Strategie ist nur teilweise passend.",
+        "Honoriere Integrations- und Kaskadenlogik (Konsequenzen einer Entscheidung für andere Teile) auch bei unkonventionellen, schlüssig begründeten Wegen.",
+        "Vergleichende Begründung (warum diese Entscheidung riskanter/wichtiger als Alternativen ist) zählt mehr als bloßes Benennen.",
+    ],
+}
+
 
 class RubricEvaluator:
     def __init__(self, api_key: str):
@@ -153,29 +183,19 @@ class RubricEvaluator:
         return "\n".join(lines)
 
     def _format_calibration_notes(self, question: CaseQuestion) -> str:
-        notes_by_question = {
-            "q1": [
-                "Die Aufgabe verlangt zwei klar getrennte Herausforderungen; nur eine Herausforderung begrenzt den Score deutlich.",
-                "Externer Druck und interne Gegebenheiten müssen bei mindestens einer Herausforderung als Wechselwirkung sichtbar sein.",
-                "Lehrende bestrafen reine Piloten-/Umsetzungsprobleme, wenn die strategische Geschäftsmodellfrage verfehlt wird.",
-            ],
-            "q2": [
-                "Ohne eindeutige Priorisierung eines der drei definierten Use Cases bleibt der Score niedrig.",
-                "Langfristiger Wettbewerbsvorteil braucht interne Stärken und Imitationsschutz; bloße Effizienzbehauptungen reichen nicht.",
-                "Ein Zielkonflikt muss aus der eigenen Empfehlung folgen, nicht nur allgemein als Risiko erwähnt werden.",
-            ],
-            "q3": [
-                "Die Entscheidung muss Make-or-Buy-Faktoren nutzen: Spezifität, Häufigkeit und Unsicherheit.",
-                "Eine klare Entscheidung plus Risiko reicht nur teilweise, wenn Key Partners, Key Activities und Key Resources implizit bleiben.",
-                "Lehrende bewerten fehlende Canvas-Verankerung strenger als eine nur plausible allgemeine Outsourcing-Argumentation.",
-            ],
-            "q4": [
-                "Die Antwort muss frühere Entscheidungen integriert betrachten; eine isolierte neue Strategie ist nur teilweise passend.",
-                "Die riskanteste Entscheidung soll vergleichend begründet werden, nicht nur genannt.",
-                "Eine Revision muss Konsequenzen für andere Empfehlungsteile zeigen; bloße Wiederholung der Präferenz reicht nicht.",
-            ],
-        }
-        notes = notes_by_question.get(question.question_id, [])
+        """Zweistufige Kalibrierung: case-spezifische Anker haben Vorrang.
+
+        Case-spezifische Anker (question.calibration_notes) stammen aus dem
+        Case-Paket — für den Alpes-Bank-Case sind das die per Teacher-
+        Alignment-Studie validierten Anker. Fehlen sie (neu generierte,
+        noch nicht nachkalibrierte Cases), greifen generische Anker pro
+        Bloom-Stufe. Früher erbten generierte Cases hier fälschlich die
+        Alpes-Anker, weil sie dieselben q1–q4-IDs verwenden.
+        """
+        if question.calibration_notes:
+            return "\n".join(f"- {note}" for note in question.calibration_notes)
+
+        notes = BLOOM_CALIBRATION_ANCHORS.get(question.bloom_level, [])
         if not notes:
             return "- Keine spezifischen Kalibrierungsanker vorhanden."
         return "\n".join(f"- {note}" for note in notes)

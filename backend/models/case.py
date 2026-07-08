@@ -35,15 +35,34 @@ class CaseSection(BaseModel):
     content: str
 
 
+class CanvasBlockSpec(BaseModel):
+    """Case-eigene Canvas-Vorgabe pro Frage (Teil des Case-Pakets)."""
+    block: str              # z.B. "value_propositions"
+    label: str              # Anzeigename, z.B. "Value Propositions"
+    accepted_keywords: list[str] = Field(default_factory=list)
+    expectation: str = ""   # Was die Antwort zeigen muss
+    weight: float = 1.0
+
+
 class CaseQuestion(BaseModel):
     question_id: str
     phase: int              # 1–4, entspricht TP/Bloom-Stufe
     bloom_level: int        # 2–6
     text: str
     max_points: int
-    rubric_reference: str   # z.B. "tp2_rubric.json"
+    rubric_reference: str   # z.B. "tp2_rubric.json" — Datei-FALLBACK für Alt-Cases
     allowed_frameworks: list[str] = Field(default_factory=list)
     forbidden_framework_names: list[str] = Field(default_factory=list)
+
+    # Eingebettetes Case-Paket (hat Vorrang vor der rubric_reference-Datei):
+    # Bewertungsfokus + Canvas-Signale werden mit dem Case generiert und von
+    # der Lehrperson im Editor kuratiert. calibration_notes sind die case-
+    # spezifischen Bewertungs-Anker (ersetzen die generischen Bloom-Anker).
+    evaluation_focus: list[str] = Field(default_factory=list)
+    required_canvas_blocks: list[CanvasBlockSpec] = Field(default_factory=list)
+    calibration_notes: list[str] = Field(default_factory=list)
+    exemplar_threshold_pct: float | None = None
+    score_floor_pct: float | None = None
 
 
 class CaseEditEvent(BaseModel):

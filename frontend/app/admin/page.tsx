@@ -11,10 +11,16 @@ import { useLanguage } from '@/lib/useLanguage'
 interface CaseSummary { case_id: string; title: string; industry: string; difficulty: string; status: string }
 interface Section { section_id: string; title: string; content: string }
 interface Exhibit { exhibit_id: string; title: string; content: string; exhibit_type: string }
+interface CanvasBlockSpec {
+  block: string; label: string; accepted_keywords: string[]; expectation: string; weight: number
+}
 interface Question {
   question_id: string; phase: number; bloom_level: number; text: string
   max_points: number; rubric_reference: string
   allowed_frameworks: string[]; forbidden_framework_names: string[]
+  evaluation_focus: string[]
+  required_canvas_blocks: CanvasBlockSpec[]
+  calibration_notes: string[]
 }
 interface Case extends CaseSummary {
   country: string; tagline: string; revision: number; review_notes: string
@@ -84,6 +90,12 @@ const ADMIN_TEXT = {
     regenerating: 'Regeneriert...',
     unsaved: 'Ungespeicherte Änderungen',
     error: 'Aktion fehlgeschlagen — bitte erneut versuchen.',
+    rubricFocus: 'Prüfkriterien (eines pro Zeile)',
+    calibrationNotes: 'Bewertungs-Anker für den Judge (einer pro Zeile — leer = generische Bloom-Anker)',
+    canvasBlocks: 'Canvas-Bausteine',
+    blockKeywords: 'Signal-Keywords (kommagetrennt)',
+    blockExpectation: 'Erwartung an die Antwort',
+    noBlocks: 'Keine Canvas-Bausteine — der Judge nutzt den Alpes-Bank-Datei-Fallback!',
   },
   en: {
     eyebrow: 'Teacher interface',
@@ -122,6 +134,12 @@ const ADMIN_TEXT = {
     regenerating: 'Regenerating...',
     unsaved: 'Unsaved changes',
     error: 'Action failed — please try again.',
+    rubricFocus: 'Assessment criteria (one per line)',
+    calibrationNotes: 'Judge calibration anchors (one per line — empty = generic Bloom anchors)',
+    canvasBlocks: 'Canvas blocks',
+    blockKeywords: 'Signal keywords (comma-separated)',
+    blockExpectation: 'Expectation for the answer',
+    noBlocks: 'No canvas blocks — the judge falls back to the Alpes-Bank file rubric!',
   },
 }
 
@@ -502,6 +520,57 @@ export default function AdminPage() {
                               />
                             </label>
                             <span>{text.bloom} {q.bloom_level}</span>
+                          </div>
+
+                          {/* Eingebettetes Bewertungspaket */}
+                          <div className="mt-3 flex flex-col gap-2 pl-3" style={{ borderLeft: '2px solid rgba(53,40,30,0.12)' }}>
+                            <label className="text-xs font-medium" style={{ color: 'var(--line)' }}>{text.rubricFocus}</label>
+                            <textarea
+                              value={(q.evaluation_focus ?? []).join('\n')}
+                              onChange={e => updateDraft({ questions: draft.questions.map((x, i2) => i2 === qi ? { ...x, evaluation_focus: e.target.value.split('\n').filter(l => l.trim()) } : x) })}
+                              rows={3}
+                              className="w-full px-3 py-2 text-xs leading-5 bg-transparent outline-none resize-y"
+                              style={INPUT_STYLE}
+                            />
+
+                            <label className="text-xs font-medium" style={{ color: 'var(--line)' }}>{text.canvasBlocks}</label>
+                            {(q.required_canvas_blocks ?? []).length === 0 && (
+                              <p className="text-xs" style={{ color: '#c0392b' }}>{text.noBlocks}</p>
+                            )}
+                            {(q.required_canvas_blocks ?? []).map((b, bi) => (
+                              <div key={b.block || bi} className="flex flex-col gap-1 mb-1">
+                                <p className="text-xs font-medium">{b.label || b.block}</p>
+                                <input
+                                  value={b.accepted_keywords.join(', ')}
+                                  placeholder={text.blockKeywords}
+                                  onChange={e => updateDraft({ questions: draft.questions.map((x, i2) => i2 === qi ? {
+                                    ...x,
+                                    required_canvas_blocks: x.required_canvas_blocks.map((y, yi) => yi === bi ? { ...y, accepted_keywords: e.target.value.split(',').map(k => k.trim()).filter(Boolean) } : y),
+                                  } : x) })}
+                                  className="w-full px-3 py-1.5 text-xs bg-transparent outline-none"
+                                  style={INPUT_STYLE}
+                                />
+                                <input
+                                  value={b.expectation}
+                                  placeholder={text.blockExpectation}
+                                  onChange={e => updateDraft({ questions: draft.questions.map((x, i2) => i2 === qi ? {
+                                    ...x,
+                                    required_canvas_blocks: x.required_canvas_blocks.map((y, yi) => yi === bi ? { ...y, expectation: e.target.value } : y),
+                                  } : x) })}
+                                  className="w-full px-3 py-1.5 text-xs bg-transparent outline-none"
+                                  style={INPUT_STYLE}
+                                />
+                              </div>
+                            ))}
+
+                            <label className="text-xs font-medium" style={{ color: 'var(--line)' }}>{text.calibrationNotes}</label>
+                            <textarea
+                              value={(q.calibration_notes ?? []).join('\n')}
+                              onChange={e => updateDraft({ questions: draft.questions.map((x, i2) => i2 === qi ? { ...x, calibration_notes: e.target.value.split('\n').filter(l => l.trim()) } : x) })}
+                              rows={2}
+                              className="w-full px-3 py-2 text-xs leading-5 bg-transparent outline-none resize-y"
+                              style={INPUT_STYLE}
+                            />
                           </div>
                           {regenControl('question', q.question_id)}
                         </div>

@@ -67,8 +67,75 @@
       "text": "Identifizieren Sie die zwei Herausforderungen, die für die zukünftige Entwicklung von Alpes Bank am kritischsten sind. Erläutern Sie für jede, worin sie konkret besteht und warum sie für das Geschäftsmodell relevant ist. Zeigen Sie bei mindestens einer Herausforderung, warum sie sich aus dem Zusammenspiel von externen Entwicklungen und internen Gegebenheiten ergibt.",
       "max_points": 25,
       "rubric_reference": "tp1_rubric.json",
-      "allowed_frameworks": ["SGMM (Umwelt-Organisation-Spannungsfeld)", "Stakeholder-Mapping (Einfluss/Betroffenheit)"],
-      "forbidden_framework_names": ["Porter", "Five Forces", "RBV", "VRIO", "Transaktionskosten", "Preiselastizität"]
+      "allowed_frameworks": [
+        "SGMM (Umwelt-Organisation-Spannungsfeld)",
+        "Stakeholder-Mapping (Einfluss/Betroffenheit)"
+      ],
+      "forbidden_framework_names": [
+        "Porter",
+        "Five Forces",
+        "RBV",
+        "VRIO",
+        "Transaktionskosten",
+        "Preiselastizität"
+      ],
+      "evaluation_focus": [
+        "Identifiziert die kritischsten Herausforderungen der Bank statt nur Symptome aufzuzählen.",
+        "Verknüpft jede Herausforderung sichtbar mit dem Geschäftsmodell von Alpes Bank.",
+        "Zeigt mindestens bei einer Herausforderung das Zusammenspiel von externem Druck und internen Gegebenheiten."
+      ],
+      "required_canvas_blocks": [
+        {
+          "block": "customer_relationships",
+          "label": "Customer Relationships",
+          "accepted_keywords": [
+            "customer relationships",
+            "kundenbeziehung",
+            "persönliche beratung",
+            "service",
+            "vertrauen",
+            "betreuung"
+          ],
+          "expectation": "Erkennt, wie KI-Druck und Serviceversprechen die Kundenbeziehung und das Premium-Beratungsmodell tangieren.",
+          "weight": 1.0
+        },
+        {
+          "block": "channels",
+          "label": "Channels",
+          "accepted_keywords": [
+            "channels",
+            "kanäle",
+            "filiale",
+            "app",
+            "online-banking",
+            "e-mail",
+            "telefon"
+          ],
+          "expectation": "Zeigt, dass die Herausforderung mit der Kanalstruktur und dem Spannungsfeld Filiale versus digitale Kanäle zusammenhängt.",
+          "weight": 1.0
+        },
+        {
+          "block": "revenue_streams",
+          "label": "Revenue Streams",
+          "accepted_keywords": [
+            "revenue streams",
+            "erlös",
+            "marge",
+            "preis",
+            "profitabel",
+            "premiumisierung"
+          ],
+          "expectation": "Macht deutlich, warum die Herausforderung für Erträge, Zahlungsbereitschaft oder Profitabilität des Modells relevant ist.",
+          "weight": 1.0
+        }
+      ],
+      "exemplar_threshold_pct": 80.0,
+      "score_floor_pct": 75.0,
+      "calibration_notes": [
+        "Die Aufgabe verlangt zwei klar getrennte Herausforderungen; nur eine Herausforderung begrenzt den Score deutlich.",
+        "Externer Druck und interne Gegebenheiten müssen bei mindestens einer Herausforderung als Wechselwirkung sichtbar sein.",
+        "Lehrende bestrafen reine Piloten-/Umsetzungsprobleme, wenn die strategische Geschäftsmodellfrage verfehlt wird."
+      ]
     },
     {
       "question_id": "q2",
@@ -77,8 +144,80 @@
       "text": "Tamara muss entscheiden, welchen GenAI-Anwendungsfall sie priorisiert. Entwickeln Sie eine klare Empfehlung: Welchen der drei Anwendungsfälle sollte Alpes Bank zuerst umsetzen — und worauf soll der Wettbewerbsvorteil langfristig basieren? Benennen Sie konkret, welche internen Stärken diesen Vorteil tragen, warum er für Wettbewerber schwer zu imitieren ist, und welchen zentralen Zielkonflikt Ihre Empfehlung mit sich bringt.",
       "max_points": 24,
       "rubric_reference": "tp2_rubric.json",
-      "allowed_frameworks": ["SGMM", "Stakeholder-Mapping", "Wettbewerbslogik (Kosten vs. Differenzierung)", "Ressourcenbasierte Logik (VRIO-Prinzip, ohne Namen)", "KPI und Steuerungslogik"],
-      "forbidden_framework_names": ["Porter", "Five Forces", "RBV", "VRIO", "Transaktionskosten", "Preiselastizität", "4P", "Marketing-Mix"]
+      "allowed_frameworks": [
+        "SGMM",
+        "Stakeholder-Mapping",
+        "Wettbewerbslogik (Kosten vs. Differenzierung)",
+        "Ressourcenbasierte Logik (VRIO-Prinzip, ohne Namen)",
+        "KPI und Steuerungslogik"
+      ],
+      "forbidden_framework_names": [
+        "Porter",
+        "Five Forces",
+        "RBV",
+        "VRIO",
+        "Transaktionskosten",
+        "Preiselastizität",
+        "4P",
+        "Marketing-Mix"
+      ],
+      "evaluation_focus": [
+        "Empfiehlt einen der drei Use Cases klar und begründet die Wahl mit langfristiger Wettbewerbslogik.",
+        "Zeigt, welche internen Stärken den Vorteil tragen und warum sie schwer imitierbar sind.",
+        "Benannt einen echten Zielkonflikt statt nur Chancen aufzuzählen."
+      ],
+      "required_canvas_blocks": [
+        {
+          "block": "value_propositions",
+          "label": "Value Propositions",
+          "accepted_keywords": [
+            "value proposition",
+            "wertversprechen",
+            "kundennutzen",
+            "servicequalität",
+            "geschwindigkeit",
+            "qualität"
+          ],
+          "expectation": "Leitet her, welchen konkreten Kundennutzen der priorisierte Use Case schafft und wie er das Leistungsversprechen verändert.",
+          "weight": 1.0
+        },
+        {
+          "block": "key_resources",
+          "label": "Key Resources",
+          "accepted_keywords": [
+            "key resources",
+            "ressourcen",
+            "daten",
+            "wissen",
+            "mitarbeitende",
+            "kompetenzen",
+            "marke"
+          ],
+          "expectation": "Verbindet den empfohlenen Vorteil mit tragenden internen Ressourcen oder Fähigkeiten von Alpes Bank.",
+          "weight": 1.0
+        },
+        {
+          "block": "cost_structure",
+          "label": "Cost Structure",
+          "accepted_keywords": [
+            "cost structure",
+            "kostenstruktur",
+            "kosten",
+            "effizienz",
+            "investition",
+            "betriebskosten"
+          ],
+          "expectation": "Adressiert den Zielkonflikt zwischen Nutzen, Aufwand, Risiko oder Effizienz des gewählten Use Cases.",
+          "weight": 1.0
+        }
+      ],
+      "exemplar_threshold_pct": 82.0,
+      "score_floor_pct": 75.0,
+      "calibration_notes": [
+        "Ohne eindeutige Priorisierung eines der drei definierten Use Cases bleibt der Score niedrig.",
+        "Langfristiger Wettbewerbsvorteil braucht interne Stärken und Imitationsschutz; bloße Effizienzbehauptungen reichen nicht.",
+        "Ein Zielkonflikt muss aus der eigenen Empfehlung folgen, nicht nur allgemein als Risiko erwähnt werden."
+      ]
     },
     {
       "question_id": "q3",
@@ -87,8 +226,74 @@
       "text": "Tamara entscheidet sich, die KI-Entwicklung mit dem externen Partner AILabs durchzuführen, statt alles intern zu bauen. Treffen Sie eine begründete Make-or-Buy-Entscheidung für die Entwicklung des E-Mail-Assistenten: Welche Faktoren — etwa wie spezifisch die benötigte Leistung ist, wie häufig sie gebraucht wird, und wie unsicher die Qualitätsanforderungen sind — sprechen für oder gegen eine externe Lösung? Welches konkrete Risiko entsteht aus Ihrer Entscheidung, und welche Massnahme würden Sie ergreifen?",
       "max_points": 22,
       "rubric_reference": "tp3_rubric.json",
-      "allowed_frameworks": ["Alle aus TP1+TP2", "Transaktionskostenlogik (implizit)", "Make-or-Buy-Logik"],
-      "forbidden_framework_names": ["Transaktionskostentheorie", "TCE", "Williamson", "4P", "Marketing-Mix"]
+      "allowed_frameworks": [
+        "Alle aus TP1+TP2",
+        "Transaktionskostenlogik (implizit)",
+        "Make-or-Buy-Logik"
+      ],
+      "forbidden_framework_names": [
+        "Transaktionskostentheorie",
+        "TCE",
+        "Williamson",
+        "4P",
+        "Marketing-Mix"
+      ],
+      "evaluation_focus": [
+        "Trifft eine klare Make-or-Buy-Entscheidung für den E-Mail-Assistenten.",
+        "Diskutiert Spezifität, Häufigkeit und Unsicherheit nachvollziehbar.",
+        "Leitet ein konkretes Risiko und eine passende Gegenmassnahme ab."
+      ],
+      "required_canvas_blocks": [
+        {
+          "block": "key_partners",
+          "label": "Key Partners",
+          "accepted_keywords": [
+            "key partners",
+            "partner",
+            "ailabs",
+            "extern",
+            "lieferant",
+            "outsourcing"
+          ],
+          "expectation": "Bewertet die Rolle des externen Partners explizit als Teil der Wertschöpfungslogik und Governance der Bank.",
+          "weight": 1.0
+        },
+        {
+          "block": "key_activities",
+          "label": "Key Activities",
+          "accepted_keywords": [
+            "key activities",
+            "entwicklung",
+            "betrieb",
+            "integration",
+            "training",
+            "überwachung"
+          ],
+          "expectation": "Zeigt, welche kritischen Aktivitäten intern bleiben sollten und welche extern erbracht werden können.",
+          "weight": 1.0
+        },
+        {
+          "block": "key_resources",
+          "label": "Key Resources",
+          "accepted_keywords": [
+            "key resources",
+            "ressourcen",
+            "daten",
+            "know-how",
+            "compliance",
+            "bankwissen"
+          ],
+          "expectation": "Begründet die Entscheidung mit Blick auf schwer ersetzbare interne Ressourcen oder Wissen der Bank.",
+          "weight": 1.0
+        }
+      ],
+      "exemplar_threshold_pct": 80.0,
+      "score_floor_pct": 72.0,
+      "calibration_notes": [
+        "Die Entscheidung muss Make-or-Buy-Faktoren nutzen: Spezifität, Häufigkeit und Unsicherheit.",
+        "Eine klare Entscheidung plus Risiko reicht nur teilweise, wenn Key Partners, Key Activities und Key Resources implizit bleiben.",
+        "Lehrende bewerten fehlende Canvas-Verankerung strenger als eine nur plausible allgemeine Outsourcing-Argumentation."
+      ]
     },
     {
       "question_id": "q4",
@@ -97,8 +302,82 @@
       "text": "Betrachten Sie Ihre Entscheidungen aus den vorigen Aufgaben als Ganzes. Welche strategische Stossrichtung sollte Alpes Bank in den nächsten 12–24 Monaten priorisieren — und welche Ihrer Entscheidungen halten Sie im Rückblick für die riskanteste? Begründen Sie, warum diese Entscheidung das grösste Risiko birgt, und zeigen Sie, welche Konsequenzen eine Revision dieser Entscheidung für die anderen Teile Ihrer Empfehlung hätte.",
       "max_points": 30,
       "rubric_reference": "tp4_rubric.json",
-      "allowed_frameworks": ["Alle aus TP1–TP3", "Geschäftsmodell-Logik (Wertversprechen, Wertschöpfung, Erlös)", "SGMM-Gestaltungsdimensionen"],
-      "forbidden_framework_names": []
+      "allowed_frameworks": [
+        "Alle aus TP1–TP3",
+        "Geschäftsmodell-Logik (Wertversprechen, Wertschöpfung, Erlös)",
+        "SGMM-Gestaltungsdimensionen"
+      ],
+      "forbidden_framework_names": [],
+      "evaluation_focus": [
+        "Integriert die früheren Entscheidungen zu einer konsistenten strategischen Stossrichtung.",
+        "Identifiziert die riskanteste Entscheidung und erklärt die Interdependenzen bei einer Revision.",
+        "Denkt in Wertschöpfung über Silos hinweg statt isoliert nach Funktionen."
+      ],
+      "required_canvas_blocks": [
+        {
+          "block": "value_propositions",
+          "label": "Value Propositions",
+          "accepted_keywords": [
+            "value proposition",
+            "wertversprechen",
+            "kundennutzen",
+            "premium",
+            "serviceversprechen"
+          ],
+          "expectation": "Verankert die strategische Stossrichtung sichtbar im zukünftigen Leistungsversprechen der Bank.",
+          "weight": 1.0
+        },
+        {
+          "block": "key_activities",
+          "label": "Key Activities",
+          "accepted_keywords": [
+            "key activities",
+            "wertschöpfungskette",
+            "prozesse",
+            "governance",
+            "rollout",
+            "steuerung"
+          ],
+          "expectation": "Zeigt, welche Aktivitäten oder Prozessketten priorisiert umgebaut werden müssen.",
+          "weight": 1.0
+        },
+        {
+          "block": "key_resources",
+          "label": "Key Resources",
+          "accepted_keywords": [
+            "key resources",
+            "ressourcen",
+            "kompetenzen",
+            "daten",
+            "mitarbeitende",
+            "fähigkeiten"
+          ],
+          "expectation": "Benennt die kritischen Fähigkeiten oder Ressourcen, die für die strategische Richtung aufgebaut oder geschützt werden müssen.",
+          "weight": 1.0
+        },
+        {
+          "block": "cost_structure",
+          "label": "Cost Structure",
+          "accepted_keywords": [
+            "cost structure",
+            "kostenstruktur",
+            "kosten",
+            "effizienz",
+            "investition",
+            "risko",
+            "risiko"
+          ],
+          "expectation": "Macht die Kosten-, Risiko- oder Governance-Folgen der priorisierten Richtung transparent.",
+          "weight": 1.0
+        }
+      ],
+      "exemplar_threshold_pct": 82.0,
+      "score_floor_pct": 75.0,
+      "calibration_notes": [
+        "Die Antwort muss frühere Entscheidungen integriert betrachten; eine isolierte neue Strategie ist nur teilweise passend.",
+        "Die riskanteste Entscheidung soll vergleichend begründet werden, nicht nur genannt.",
+        "Eine Revision muss Konsequenzen für andere Empfehlungsteile zeigen; bloße Wiederholung der Präferenz reicht nicht."
+      ]
     }
   ]
 }

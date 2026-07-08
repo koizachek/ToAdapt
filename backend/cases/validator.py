@@ -102,6 +102,27 @@ def validate_case(case: Case) -> CaseValidationReport:
             message=f"{len(case.exhibits)} Exhibits (erwartet 3–5).", location="exhibits",
         ))
 
+    # Warnung: Fragen ohne eingebettetes Bewertungspaket fallen auf die
+    # tp{n}_rubric.json-Dateien zurück — die sind auf den Alpes-Bank-Case
+    # kalibriert und passen inhaltlich nicht zu neuen Cases.
+    for q in case.questions:
+        if not q.required_canvas_blocks:
+            issues.append(ValidationIssue(
+                level="warning", code="missing_embedded_rubric",
+                message="Frage hat keine eigenen required_canvas_blocks — der Judge nutzt den "
+                        "Alpes-Bank-kalibrierten Datei-Fallback. Canvas-Blöcke im Editor ergänzen.",
+                location=f"question:{q.question_id}",
+            ))
+        else:
+            for block in q.required_canvas_blocks:
+                if not block.accepted_keywords:
+                    issues.append(ValidationIssue(
+                        level="warning", code="canvas_block_without_keywords",
+                        message=f"Canvas-Baustein „{block.label}“ hat keine Signal-Keywords — "
+                                "Abdeckungs-Anzeige und Judge-Signal bleiben dafür blind.",
+                        location=f"question:{q.question_id}",
+                    ))
+
     if tp_cfg:
         expected_blooms = set(tp_cfg["bloom_levels"])
         covered = {q.bloom_level for q in case.questions}

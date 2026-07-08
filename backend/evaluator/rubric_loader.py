@@ -30,6 +30,28 @@ class QuestionRubric(BaseModel):
 
 
 def load_question_rubric(question: CaseQuestion) -> QuestionRubric | None:
+    # Eingebettetes Case-Paket hat Vorrang: neue Cases tragen ihre Rubric
+    # selbst; die tp{n}_rubric.json-Dateien bleiben Fallback für Alt-Cases
+    # (sie sind auf den Alpes-Bank-Case kalibriert).
+    if question.evaluation_focus or question.required_canvas_blocks:
+        return QuestionRubric(
+            rubric_reference=question.rubric_reference or "embedded",
+            question_id=question.question_id,
+            evaluation_focus=list(question.evaluation_focus),
+            required_canvas_blocks=[
+                CanvasBlockCriterion.model_validate(block.model_dump())
+                for block in question.required_canvas_blocks
+            ],
+            exemplar_threshold_pct=(
+                question.exemplar_threshold_pct
+                if question.exemplar_threshold_pct is not None else 80.0
+            ),
+            score_floor_pct=(
+                question.score_floor_pct
+                if question.score_floor_pct is not None else 75.0
+            ),
+        )
+
     rubric_path = RUBRICS_DIR / question.rubric_reference
     if not rubric_path.exists():
         return None
