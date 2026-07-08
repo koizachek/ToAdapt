@@ -35,7 +35,14 @@ export async function teacherFetch<T>(path: string, opts?: RequestInit): Promise
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || `API error ${res.status}`)
+    // detail kann ein Objekt sein (z.B. Validierungs-Report bei 422) —
+    // als JSON durchreichen, damit der Aufrufer es parsen kann.
+    const detail = err.detail
+    throw new Error(
+      typeof detail === 'string' ? detail
+      : detail ? JSON.stringify(detail)
+      : `API error ${res.status}`,
+    )
   }
   return res.json()
 }
