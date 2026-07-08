@@ -1,11 +1,22 @@
-"""Rubric-Evaluator — Bewertet Studierenden-Antworten gegen Bloom-Lernziele.
+"""Rubric-Evaluator — bewertet Studierenden-Antworten gegen Bloom-Lernziele.
 
 Prinzipien:
-- Pfadoffenheit: mehrere valide Antwortpfade möglich
+- Pfadoffenheit: mehrere valide Antwortpfade können volle Punkte erreichen
 - Kein Answer-Reveal: Feedback scaffolded, nicht lösungsgebend
-- Bloom-Stufen-Scoring: separate Scores pro Lernziel-Dimension
+- Konservativ: Unsicherheit → needs_human_review, nie stilles Raten
+
+Aufbau der Datei:
+1. Konstanten (Schwellen, Prompts, Bloom-Anker, Verbotslisten)
+2. Reine Modul-Helfer (JSON-Extraktion — ohne LLM, direkt testbar)
+3. RubricEvaluator: Prompt-Bau → LLM-Call mit Repair → Score-Bau → Aggregate
+
+Robustheits-Kette pro Frage: Erst-Call → JSON-Parse (3 Kandidaten) →
+Repair-Call → technical_fallback (0 Punkte, needs_human_review=True).
+Auch typ-ungültige Zahlen im Judge-JSON landen im technical_fallback
+statt als 500 beim Studierenden.
 """
 
+import asyncio
 import json
 import re
 
@@ -17,6 +28,43 @@ from backend.models.case import Case, CaseQuestion
 from backend.models.submission import QuestionScore, Submission, SubmissionResult
 
 logger = structlog.get_logger(__name__)
+
+# ---------------------------------------------------------------------------
+# Konstanten — Werte sind durch die Teacher-Alignment-Studie (2026-05-31)
+# kalibriert; Änderungen sind Änderungsklasse B (Alignment-Recheck!).
+# ---------------------------------------------------------------------------
+
+EVALUATOR_MAX_TOKENS = 1200
+
+# Punktband-Anker im Prompt: mid/low relativ zur Maximalpunktzahl.
+MID_BAND_FACTOR = 0.55
+LOW_BAND_FACTOR = 0.25
+
+# rubric_fit = Score und Canvas-Anwendung, 70/30 gewichtet.
+RUBRIC_FIT_SCORE_WEIGHT = 0.7
+RUBRIC_FIT_CANVAS_WEIGHT = 0.3
+
+# Exemplar-Defaults, falls keine Rubric Schwellen liefert (min() über Rubrics).
+FALLBACK_EXEMPLAR_CANVAS_PCT = 80.0
+FALLBACK_EXEMPLAR_SCORE_PCT = 75.0
+
+# Gesamtfeedback-Bänder (Prozent).
+OVERALL_STRONG_PCT = 80
+OVERALL_SOLID_PCT = 60
+OVERALL_SURFACE_PCT = 40
+
+# Canvas-Summary-Bänder (Prozent).
+CANVAS_BROAD_PCT = 70
+CANVAS_PARTIAL_PCT = 40
+
+# Lernziel-Tags pro Bloom-Stufe (Fallback: "analyse").
+BLOOM_TAGS: dict[int, list[str]] = {
+    2: ["verstehen", "identifizieren"],
+    3: ["anwenden", "transfer"],
+    4: ["analysieren", "wirkungskette", "stakeholder"],
+    5: ["evaluieren", "trade-off", "kpi"],
+    6: ["synthese", "integration", "reflexion"],
+}
 
 DISALLOWED_FEEDBACK_PATTERNS = [
     "du solltest schreiben",
@@ -51,7 +99,7 @@ FEEDBACK-FORMAT (pro Frage):
 - Was gut funktioniert (1–2 Sätze)
 - Was fehlt oder schwach ist (1–2 Sätze, als Frage formuliert)
 - Keine direkte Antwort nennen
-- Keine Satzbausteine zum Abschreiben wie "du solltest schreiben..." 
+- Keine Satzbausteine zum Abschreiben wie "du solltest schreiben..."
 - Ton: klar, ruhig, nicht slangig, keine Emojis
 
 Wenn eine Canvas-Rubric vorliegt, prüfst du explizit, ob die relevanten Business-Model-Canvas-Bausteine inhaltlich angewendet wurden.
@@ -150,19 +198,63 @@ BLOOM_CALIBRATION_ANCHORS: dict[int, list[str]] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Reine Helfer — JSON-Extraktion aus LLM-Antworten (ohne LLM testbar)
+# ---------------------------------------------------------------------------
+
+def extract_json_candidates(text: str) -> list[str]:
+    """Drei Kandidaten in fester Reihenfolge: roh, ohne Code-Fences,
+    Substring vom ersten '{' bis zum letzten '}'."""
+    stripped = text.strip()
+    candidates: list[str] = []
+
+    if stripped:
+        candidates.append(stripped)
+
+    fenced = re.sub(r"^```(?:json)?\s*|\s*```$", "", stripped, flags=re.IGNORECASE | re.DOTALL).strip()
+    if fenced and fenced not in candidates:
+        candidates.append(fenced)
+
+    start = stripped.find("{")
+    end = stripped.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        json_slice = stripped[start:end + 1].strip()
+        if json_slice and json_slice not in candidates:
+            candidates.append(json_slice)
+
+    return candidates
+
+
+def parse_evaluation_payload(text: str) -> dict:
+    """Erster Kandidat, der als JSON-Objekt parst, gewinnt."""
+    for candidate in extract_json_candidates(text):
+        try:
+            data = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(data, dict):
+            return data
+    raise ValueError("LLM evaluation response was not valid JSON")
+
+
+def _as_string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
+# ---------------------------------------------------------------------------
+# Evaluator
+# ---------------------------------------------------------------------------
+
 class RubricEvaluator:
     def __init__(self, api_key: str):
         self.client = OpenRouterClient(api_key=api_key)
 
+    # -- Prompt-Bausteine ---------------------------------------------------
+
     def _make_tags(self, question: CaseQuestion) -> list[str]:
-        base = {
-            2: ["verstehen", "identifizieren"],
-            3: ["anwenden", "transfer"],
-            4: ["analysieren", "wirkungskette", "stakeholder"],
-            5: ["evaluieren", "trade-off", "kpi"],
-            6: ["synthese", "integration", "reflexion"],
-        }
-        return base.get(question.bloom_level, ["analyse"])
+        return BLOOM_TAGS.get(question.bloom_level, ["analyse"])
 
     def _format_rubric_focus(self, rubric: QuestionRubric | None) -> str:
         if not rubric or not rubric.evaluation_focus:
@@ -189,8 +281,7 @@ class RubricEvaluator:
         Case-Paket — für den Alpes-Bank-Case sind das die per Teacher-
         Alignment-Studie validierten Anker. Fehlen sie (neu generierte,
         noch nicht nachkalibrierte Cases), greifen generische Anker pro
-        Bloom-Stufe. Früher erbten generierte Cases hier fälschlich die
-        Alpes-Anker, weil sie dieselben q1–q4-IDs verwenden.
+        Bloom-Stufe.
         """
         if question.calibration_notes:
             return "\n".join(f"- {note}" for note in question.calibration_notes)
@@ -200,37 +291,72 @@ class RubricEvaluator:
             return "- Keine spezifischen Kalibrierungsanker vorhanden."
         return "\n".join(f"- {note}" for note in notes)
 
-    def _canvas_exemplar_candidate(
+    def _build_prompt(
         self,
-        percentage: float,
-        canvas_alignment_pct: float,
-        rubrics: list[QuestionRubric | None],
-    ) -> bool:
-        thresholds = [rubric.exemplar_threshold_pct for rubric in rubrics if rubric]
-        score_floors = [rubric.score_floor_pct for rubric in rubrics if rubric]
-        canvas_threshold = min(thresholds) if thresholds else 80.0
-        score_threshold = min(score_floors) if score_floors else 75.0
-        return percentage >= score_threshold and canvas_alignment_pct >= canvas_threshold
+        *,
+        case: Case,
+        question: CaseQuestion,
+        rubric: QuestionRubric | None,
+        tags: list[str],
+        answer_text: str,
+    ) -> str:
+        return EVALUATE_PROMPT.format(
+            case_title=case.title,
+            case_industry=case.industry,
+            question_text=question.text,
+            max_points=question.max_points,
+            bloom_level=question.bloom_level,
+            tags=", ".join(tags),
+            rubric_focus=self._format_rubric_focus(rubric),
+            canvas_blocks=self._format_canvas_blocks(rubric),
+            calibration_notes=self._format_calibration_notes(question),
+            answer=answer_text,
+            mid_points=round(question.max_points * MID_BAND_FACTOR, 1),
+            low_points=round(question.max_points * LOW_BAND_FACTOR, 1),
+        )
 
-    def _extract_json_candidates(self, text: str) -> list[str]:
-        stripped = text.strip()
-        candidates: list[str] = []
+    # -- LLM-Aufruf & Parsing -------------------------------------------------
 
-        if stripped:
-            candidates.append(stripped)
+    async def _request_repair(self, prompt: str, raw_text: str) -> str:
+        return await self.client.complete(
+            system=EVALUATOR_SYSTEM,
+            messages=[
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": raw_text},
+                {"role": "user", "content": REPAIR_PROMPT},
+            ],
+            max_tokens=EVALUATOR_MAX_TOKENS,
+        )
 
-        fenced = re.sub(r"^```(?:json)?\s*|\s*```$", "", stripped, flags=re.IGNORECASE | re.DOTALL).strip()
-        if fenced and fenced not in candidates:
-            candidates.append(fenced)
+    async def _evaluate_with_repair(
+        self, *, prompt: str, submission_id: str, question_id: str, tags: list[str],
+    ) -> dict:
+        """Erst-Call → Parse → Repair-Call → technical_fallback."""
+        text = await self.client.complete(
+            system=EVALUATOR_SYSTEM,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=EVALUATOR_MAX_TOKENS,
+        )
+        try:
+            return parse_evaluation_payload(text)
+        except ValueError:
+            logger.warning(
+                "evaluation_json_parse_failed",
+                submission_id=submission_id,
+                question_id=question_id,
+                raw_preview=text[:500],
+            )
 
-        start = stripped.find("{")
-        end = stripped.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            json_slice = stripped[start:end + 1].strip()
-            if json_slice and json_slice not in candidates:
-                candidates.append(json_slice)
-
-        return candidates
+        try:
+            repaired_text = await self._request_repair(prompt, text)
+            return parse_evaluation_payload(repaired_text)
+        except ValueError:
+            logger.error(
+                "evaluation_json_repair_failed",
+                submission_id=submission_id,
+                question_id=question_id,
+            )
+            return self._fallback_payload(tags)
 
     def _fallback_payload(self, tags: list[str]) -> dict:
         return {
@@ -250,7 +376,9 @@ class RubricEvaluator:
             "main_penalties": ["Technischer Fallback; keine belastbare automatische Bewertung."],
         }
 
-    def _sanitize_feedback(self, feedback: str, tags: list[str]) -> str:
+    # -- Sanitizing -----------------------------------------------------------
+
+    def _sanitize_feedback(self, feedback: str) -> str:
         text = (feedback or "").strip()
         lower = text.lower()
         if not text or any(pattern in lower for pattern in DISALLOWED_FEEDBACK_PATTERNS):
@@ -268,33 +396,60 @@ class RubricEvaluator:
             return "Die Begründung bleibt bei den im Case sichtbaren Hinweisen und vermeidet nicht belegte Zusatzdetails."
         return text or None
 
-    def _parse_evaluation_payload(self, text: str, tags: list[str]) -> dict:
-        for candidate in self._extract_json_candidates(text):
-            try:
-                data = json.loads(candidate)
-            except json.JSONDecodeError:
-                continue
+    # -- Score-Bau ------------------------------------------------------------
 
-            if isinstance(data, dict):
-                return data
+    def _score_from_payload(
+        self,
+        *,
+        question: CaseQuestion,
+        rubric: QuestionRubric | None,
+        data: dict,
+        tags: list[str],
+    ) -> QuestionScore:
+        """Baut den QuestionScore; wirft TypeError/ValueError bei typ-
+        ungültigen Zahlen im Payload (Aufrufer fällt dann auf den
+        technical_fallback zurück)."""
+        canvas_alignment_score = max(0.0, min(float(data.get("canvas_alignment_score", 0.0)), 1.0))
+        awarded = max(0.0, min(float(data.get("awarded_points", 0.0)), question.max_points))
 
-        raise ValueError("LLM evaluation response was not valid JSON")
+        needs_human_review = bool(data.get("needs_human_review", False))
+        judge_confidence = str(data.get("judge_confidence", "") or "").lower() or None
+        if judge_confidence == "low":
+            needs_human_review = True
+        review_reason = data.get("review_reason")
 
-    def _as_string_list(self, value: object) -> list[str]:
-        if not isinstance(value, list):
-            return []
-        return [str(item).strip() for item in value if str(item).strip()]
-
-    async def _request_repair(self, prompt: str, raw_text: str) -> str:
-        return await self.client.complete(
-            system=EVALUATOR_SYSTEM,
-            messages=[
-                {"role": "user", "content": prompt},
-                {"role": "assistant", "content": raw_text},
-                {"role": "user", "content": REPAIR_PROMPT},
+        return QuestionScore(
+            question_id=question.question_id,
+            bloom_level=question.bloom_level,
+            max_points=question.max_points,
+            awarded_points=awarded,
+            feedback=self._sanitize_feedback(data.get("feedback", "")),
+            learning_objective_tags=data.get("learning_objective_tags", tags),
+            rubric_reference=question.rubric_reference,
+            canvas_alignment_score=canvas_alignment_score,
+            canvas_alignment_pct=round(canvas_alignment_score * 100, 1),
+            required_canvas_blocks=(
+                [block.block for block in rubric.required_canvas_blocks] if rubric else []
+            ),
+            addressed_canvas_blocks=[
+                block for block in data.get("addressed_canvas_blocks", [])
+                if isinstance(block, str)
             ],
-            max_tokens=1200,
+            missing_canvas_blocks=[
+                block for block in data.get("missing_canvas_blocks", [])
+                if isinstance(block, str)
+            ],
+            canvas_rationale=self._sanitize_canvas_rationale(data.get("canvas_rationale")),
+            evaluation_status=str(data.get("evaluation_status", "ok") or "ok"),
+            needs_human_review=needs_human_review,
+            review_reason=str(review_reason).strip() if review_reason else None,
+            judge_confidence=judge_confidence,
+            score_band=str(data.get("score_band", "") or "").lower() or None,
+            main_strengths=_as_string_list(data.get("main_strengths")),
+            main_penalties=_as_string_list(data.get("main_penalties")),
         )
+
+    # -- Öffentliche API --------------------------------------------------------
 
     async def evaluate_question(
         self,
@@ -304,7 +459,7 @@ class RubricEvaluator:
         question_id: str,
         answer_text: str,
     ) -> tuple[QuestionScore, QuestionRubric | None]:
-        question = {q.question_id: q for q in case.questions}.get(question_id)
+        question = next((q for q in case.questions if q.question_id == question_id), None)
         if not question:
             raise ValueError(f"Unknown question_id: {question_id}")
         if not answer_text.strip():
@@ -312,96 +467,69 @@ class RubricEvaluator:
 
         rubric = load_question_rubric(question)
         tags = self._make_tags(question)
-        mid = round(question.max_points * 0.55, 1)
-        low = round(question.max_points * 0.25, 1)
-
-        prompt = EVALUATE_PROMPT.format(
-            case_title=case.title,
-            case_industry=case.industry,
-            question_text=question.text,
-            max_points=question.max_points,
-            bloom_level=question.bloom_level,
-            tags=", ".join(tags),
-            rubric_focus=self._format_rubric_focus(rubric),
-            canvas_blocks=self._format_canvas_blocks(rubric),
-            calibration_notes=self._format_calibration_notes(question),
-            answer=answer_text,
-            mid_points=mid,
-            low_points=low,
+        prompt = self._build_prompt(
+            case=case, question=question, rubric=rubric, tags=tags, answer_text=answer_text,
         )
 
-        text = await self.client.complete(
-            system=EVALUATOR_SYSTEM,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1200,
+        data = await self._evaluate_with_repair(
+            prompt=prompt,
+            submission_id=submission.submission_id,
+            question_id=question_id,
+            tags=tags,
         )
+
         try:
-            data = self._parse_evaluation_payload(text, tags)
-        except ValueError:
-            logger.warning(
-                "evaluation_json_parse_failed",
+            score = self._score_from_payload(question=question, rubric=rubric, data=data, tags=tags)
+        except (TypeError, ValueError):
+            # Valides JSON, aber unbrauchbare Typen (z.B. awarded_points="acht")
+            # → gleicher Weg wie Parse-Versagen: technischer Fallback.
+            logger.error(
+                "evaluation_payload_invalid_types",
                 submission_id=submission.submission_id,
                 question_id=question_id,
-                raw_preview=text[:500],
             )
-            try:
-                repaired_text = await self._request_repair(prompt, text)
-                data = self._parse_evaluation_payload(repaired_text, tags)
-            except ValueError:
-                logger.error(
-                    "evaluation_json_repair_failed",
-                    submission_id=submission.submission_id,
-                    question_id=question_id,
-                )
-                data = self._fallback_payload(tags)
+            score = self._score_from_payload(
+                question=question, rubric=rubric, data=self._fallback_payload(tags), tags=tags,
+            )
 
-        canvas_alignment_score = max(0.0, min(float(data.get("canvas_alignment_score", 0.0)), 1.0))
-        required_canvas_blocks = [
-            block.block for block in rubric.required_canvas_blocks
-        ] if rubric else []
-        addressed_canvas_blocks = [
-            block for block in data.get("addressed_canvas_blocks", [])
-            if isinstance(block, str)
-        ]
-        missing_canvas_blocks = [
-            block for block in data.get("missing_canvas_blocks", [])
-            if isinstance(block, str)
-        ]
-        evaluation_status = str(data.get("evaluation_status", "ok") or "ok")
-        needs_human_review = bool(data.get("needs_human_review", False))
-        judge_confidence = str(data.get("judge_confidence", "") or "").lower() or None
-        if judge_confidence == "low":
-            needs_human_review = True
-        review_reason = data.get("review_reason")
+        return score, rubric
 
-        return (
-            QuestionScore(
-                question_id=question_id,
-                bloom_level=question.bloom_level,
-                max_points=question.max_points,
-                awarded_points=min(float(data.get("awarded_points", 0.0)), question.max_points),
-                feedback=self._sanitize_feedback(
-                    data.get("feedback", self._fallback_payload(tags)["feedback"]),
-                    tags,
-                ),
-                learning_objective_tags=data.get("learning_objective_tags", tags),
-                rubric_reference=question.rubric_reference,
-                canvas_alignment_score=canvas_alignment_score,
-                canvas_alignment_pct=round(canvas_alignment_score * 100, 1),
-                required_canvas_blocks=required_canvas_blocks,
-                addressed_canvas_blocks=addressed_canvas_blocks,
-                missing_canvas_blocks=missing_canvas_blocks,
-                canvas_rationale=self._sanitize_canvas_rationale(data.get("canvas_rationale")),
-                evaluation_status=evaluation_status,
-                needs_human_review=needs_human_review,
-                review_reason=str(review_reason).strip() if review_reason else None,
-                judge_confidence=judge_confidence,
-                score_band=str(data.get("score_band", "") or "").lower() or None,
-                main_strengths=self._as_string_list(data.get("main_strengths")),
-                main_penalties=self._as_string_list(data.get("main_penalties")),
-            ),
-            rubric,
+    async def evaluate_submission(self, submission: Submission, case: Case) -> SubmissionResult:
+        """Bewertet alle beantworteten Fragen PARALLEL (Reihenfolge stabil).
+
+        Das globale LLM-Concurrency-Limit (backend/llm.py) begrenzt die
+        tatsächliche Parallelität; ein Fehler in einer Frage bricht die
+        Auswertung ab (Aufrufer antwortet 503, Retry möglich).
+        """
+        items = [
+            (question_id, answer_text)
+            for question_id, answer_text in submission.answers.items()
+            if answer_text.strip()
+        ]
+        score_pairs = await asyncio.gather(*(
+            self.evaluate_question(
+                submission=submission, case=case,
+                question_id=question_id, answer_text=answer_text,
+            )
+            for question_id, answer_text in items
+        ))
+        scores = [pair[0] for pair in score_pairs]
+
+        result = self.result_from_scores(submission=submission, case=case, scores=scores)
+
+        logger.info(
+            "submission_evaluated",
+            submission_id=submission.submission_id,
+            case_id=case.case_id,
+            total=result.total_points,
+            max=result.max_points,
+            pct=result.percentage,
+            canvas_alignment_pct=result.canvas_alignment_pct,
+            rubric_fit_pct=result.rubric_fit_pct,
+            canvas_exemplar_candidate=result.canvas_exemplar_candidate,
         )
+
+        return result
 
     def result_from_scores(
         self,
@@ -410,13 +538,14 @@ class RubricEvaluator:
         case: Case,
         scores: list[QuestionScore],
     ) -> SubmissionResult:
+        questions_by_id = {q.question_id: q for q in case.questions}
         rubrics = [
             load_question_rubric(question)
             for score in scores
-            for question in case.questions
-            if question.question_id == score.question_id
+            if (question := questions_by_id.get(score.question_id)) is not None
             and question.rubric_reference
         ]
+
         total = sum(s.awarded_points for s in scores)
         maximum = sum(s.max_points for s in scores)
         pct = round((total / maximum * 100) if maximum > 0 else 0, 1)
@@ -426,12 +555,10 @@ class RubricEvaluator:
             ) if maximum > 0 else 0,
             1,
         )
-        rubric_fit_pct = round((pct * 0.7) + (canvas_alignment_pct * 0.3), 1)
-        exemplar_candidate = self._canvas_exemplar_candidate(
-            pct,
-            canvas_alignment_pct,
-            rubrics,
+        rubric_fit_pct = round(
+            (pct * RUBRIC_FIT_SCORE_WEIGHT) + (canvas_alignment_pct * RUBRIC_FIT_CANVAS_WEIGHT), 1,
         )
+        exemplar_candidate = self._canvas_exemplar_candidate(pct, canvas_alignment_pct, rubrics)
 
         return SubmissionResult(
             submission_id=submission.submission_id,
@@ -447,50 +574,42 @@ class RubricEvaluator:
             overall_feedback=self._overall_feedback(pct),
         )
 
-    async def evaluate_submission(self, submission: Submission, case: Case) -> SubmissionResult:
-        scores: list[QuestionScore] = []
+    # -- Aggregate ---------------------------------------------------------------
 
-        for question_id, answer_text in submission.answers.items():
-            if not answer_text.strip():
-                continue
-
-            score, _rubric = await self.evaluate_question(
-                submission=submission,
-                case=case,
-                question_id=question_id,
-                answer_text=answer_text,
-            )
-            scores.append(score)
-
-        result = self.result_from_scores(submission=submission, case=case, scores=scores)
-
-        logger.info(
-            "submission_evaluated",
-            submission_id=submission.submission_id,
-            total=result.total_points,
-            max=result.max_points,
-            pct=result.percentage,
-            canvas_alignment_pct=result.canvas_alignment_pct,
-            rubric_fit_pct=result.rubric_fit_pct,
-            canvas_exemplar_candidate=result.canvas_exemplar_candidate,
-        )
-
-        return result
+    def _canvas_exemplar_candidate(
+        self,
+        percentage: float,
+        canvas_alignment_pct: float,
+        rubrics: list[QuestionRubric | None],
+    ) -> bool:
+        thresholds = [rubric.exemplar_threshold_pct for rubric in rubrics if rubric]
+        score_floors = [rubric.score_floor_pct for rubric in rubrics if rubric]
+        canvas_threshold = min(thresholds) if thresholds else FALLBACK_EXEMPLAR_CANVAS_PCT
+        score_threshold = min(score_floors) if score_floors else FALLBACK_EXEMPLAR_SCORE_PCT
+        return percentage >= score_threshold and canvas_alignment_pct >= canvas_threshold
 
     def _overall_feedback(self, pct: float) -> str:
-        if pct >= 80:
+        if pct >= OVERALL_STRONG_PCT:
             return "Starke Analyse mit klaren Entscheidungen und gutem Case-Bezug. Prüfe, ob du Konsequenzen und Trade-offs überall explizit gemacht hast."
-        if pct >= 60:
+        if pct >= OVERALL_SOLID_PCT:
             return "Solide Grundlage. An mehreren Stellen fehlt die Verbindung zwischen Argument und Case-Kontext — was bedeutet das konkret für dieses Unternehmen?"
-        if pct >= 40:
+        if pct >= OVERALL_SURFACE_PCT:
             return "Die Analyse bleibt oft an der Oberfläche. Versuche, für jede Beobachtung eine Ursache und eine Konsequenz zu benennen."
         return "Die Antworten zeigen noch wenig betriebswirtschaftliches Denken. Fokussiere dich auf eine Herausforderung und arbeite sie vollständig durch."
 
     def _canvas_summary(self, canvas_alignment_pct: float, exemplar_candidate: bool) -> str:
         if exemplar_candidate:
             return "Die Lösung nutzt die relevanten Business-Model-Canvas-Bausteine stark und ist als Exemplar für spätere Auswertung geeignet."
-        if canvas_alignment_pct >= 70:
+        if canvas_alignment_pct >= CANVAS_BROAD_PCT:
             return "Die Lösung arbeitet mit mehreren passenden Canvas-Bausteinen, integriert sie aber noch nicht durchgängig."
-        if canvas_alignment_pct >= 40:
+        if canvas_alignment_pct >= CANVAS_PARTIAL_PCT:
             return "Einzelne Canvas-Bausteine werden erkennbar berührt, die Logik bleibt jedoch lückenhaft oder zu implizit."
         return "Die Antwort zeigt kaum belastbare Business-Model-Canvas-Logik."
+
+    # -- Abwärtskompatible Methoden-Aliase (Tests/Skripte älterer Stände) --------
+
+    def _extract_json_candidates(self, text: str) -> list[str]:
+        return extract_json_candidates(text)
+
+    def _parse_evaluation_payload(self, text: str, tags: list[str] | None = None) -> dict:
+        return parse_evaluation_payload(text)
