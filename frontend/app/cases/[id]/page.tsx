@@ -146,6 +146,21 @@ const CASE_PAGE_TEXT = {
     discussWithAgent: 'Mit Agent besprechen',
     discussTermAria: (term: string) => `${term} mit dem Lernagenten besprechen`,
     initialAgentMessage: 'Hallo! Ich bin dein Lernbegleiter für diesen Case. Markierte Fachbegriffe starten direkt eine kontextbezogene Diskussion. Wo möchtest du einsteigen?',
+    selfCheckTitle: 'Selbst-Check',
+    selfCheckItems: [
+      'Explizite Entscheidung oder These formuliert?',
+      'Begründung mit konkreten Case-Fakten (Zahlen, Exhibits)?',
+      'Konsequenz oder Trade-off benannt?',
+    ],
+    coverageTitle: 'Canvas-Bausteine im Entwurf',
+    coverageAddressed: 'angesprochen',
+    coverageMissing: 'noch nicht erkennbar',
+    hintButton: 'Denkanstoß einholen',
+    hintLoading: 'Denkanstoß wird geholt...',
+    hintLabel: 'Denkanstoß',
+    hintRemaining: (n: number) => `${n} verbleibend`,
+    hintExhausted: 'Denkanstöße für diese Frage aufgebraucht — nutze den Lernchat.',
+    hintError: 'Denkanstoß gerade nicht verfügbar — bitte gleich noch einmal versuchen.',
   },
   en: {
     loading: 'Loading...',
@@ -184,6 +199,21 @@ const CASE_PAGE_TEXT = {
     discussWithAgent: 'Discuss with agent',
     discussTermAria: (term: string) => `Discuss ${term} with the learning agent`,
     initialAgentMessage: 'Hi. I am your learning companion for this case. Highlighted terms start a context-specific discussion. Where would you like to begin?',
+    selfCheckTitle: 'Self-check',
+    selfCheckItems: [
+      'Explicit decision or thesis stated?',
+      'Justified with concrete case facts (numbers, exhibits)?',
+      'Consequence or trade-off named?',
+    ],
+    coverageTitle: 'Canvas blocks in your draft',
+    coverageAddressed: 'addressed',
+    coverageMissing: 'not yet visible',
+    hintButton: 'Get a thinking prompt',
+    hintLoading: 'Getting prompt...',
+    hintLabel: 'Thinking prompt',
+    hintRemaining: (n: number) => `${n} remaining`,
+    hintExhausted: 'No prompts left for this question — use the learning chat.',
+    hintError: 'Prompt unavailable right now — please try again shortly.',
   },
 }
 
@@ -626,6 +656,47 @@ function GlossaryChip({
   )
 }
 
+interface TypingStats {
+  typed: number
+  pasted: number
+  pasteCount: number
+  largestPaste: number
+  editMs: number
+  lastEditAt: number | null
+}
+
+// Tipp-Fluss-Telemetrie (nur Aggregate, keine Inhalte). Läuft ausschließlich
+// im onChange-Event-Handler — bewusst außerhalb der Komponente definiert.
+function trackInputStats(
+  statsMap: Record<string, TypingStats>,
+  pasteMap: Record<string, number>,
+  qid: string,
+  previous: string,
+  next: string,
+): void {
+  const stats = statsMap[qid] ?? {
+    typed: 0, pasted: 0, pasteCount: 0, largestPaste: 0, editMs: 0, lastEditAt: null,
+  }
+  const delta = next.length - previous.length
+  const pastedNow = pasteMap[qid] ?? 0
+  if (pastedNow > 0 && delta > 0) {
+    const pasteLen = Math.min(delta, pastedNow)
+    stats.pasted += pasteLen
+    stats.pasteCount += 1
+    stats.largestPaste = Math.max(stats.largestPaste, pasteLen)
+    stats.typed += Math.max(0, delta - pasteLen)
+  } else if (delta > 0) {
+    stats.typed += delta
+  }
+  pasteMap[qid] = 0
+  const now = Date.now()
+  if (stats.lastEditAt !== null && now - stats.lastEditAt < 60_000) {
+    stats.editMs += now - stats.lastEditAt
+  }
+  stats.lastEditAt = now
+  statsMap[qid] = stats
+}
+
 export default function CasePage() {
   const { id } = useParams<{ id: string }>()
   const path = usePathname()
@@ -649,6 +720,13 @@ export default function CasePage() {
   const [submitting, setSubmitting] = useState(false)
   const [activeTerm, setActiveTerm] = useState<string | null>(null)
   const [submissionError, setSubmissionError] = useState<string | null>(null)
+  const [coverage, setCoverage] = useState<Record<string, { block: string; label: string; addressed: boolean }[]>>({})
+  const [selfCheck, setSelfCheck] = useState<Record<string, boolean[]>>({})
+  const [hints, setHints] = useState<Record<string, { text?: string; remaining: number; loading: boolean; error?: string }>>({})
+  // Tipp-Fluss-Telemetrie: nur Aggregate (Zeichen, Paste-Events, Zeit) —
+  // niemals Inhalte. Integritäts-Hinweis für Tutor:innen, kein Beweis.
+  const typingStatsRef = useRef<Record<string, { typed: number; pasted: number; pasteCount: number; largestPaste: number; editMs: number; lastEditAt: number | null }>>({})
+  const pendingPasteRef = useRef<Record<string, number>>({})
   const chatScrollRef = useRef<HTMLDivElement>(null)
   const historyRef = useRef<{ role: string; content: string }[]>([])
   const startedExperimentCaseRef = useRef<string | null>(null)
@@ -790,12 +868,68 @@ export default function CasePage() {
     await sendChatMessage(term.starterPrompt)
   }
 
+  const HINTS_PER_QUESTION = 2
+
+  const trackInput = (qid: string, previous: string, next: string) => {
+    trackInputStats(typingStatsRef.current, pendingPasteRef.current, qid, previous, next)
+  }
+
   const saveAnswer = async (qid: string, text: string) => {
     if (!submissionId) return
+    const stats = typingStatsRef.current[qid]
     await apiFetch(`/submissions/${submissionId}/answer`, {
       method: 'POST',
-      body: JSON.stringify({ question_id: qid, answer_text: text }),
+      body: JSON.stringify({
+        question_id: qid,
+        answer_text: text,
+        stats: stats ? {
+          typed_chars: stats.typed,
+          pasted_chars: stats.pasted,
+          paste_count: stats.pasteCount,
+          largest_paste: stats.largestPaste,
+          edit_seconds: Math.round(stats.editMs / 100) / 10,
+        } : undefined,
+      }),
     })
+  }
+
+  const fetchCoverage = async (qid: string, draft: string) => {
+    if (!submissionId || !draft.trim()) return
+    try {
+      const res = await apiFetch<{ blocks: { block: string; label: string; addressed: boolean }[] }>(
+        `/submissions/${submissionId}/questions/${qid}/coverage`,
+        { method: 'POST', body: JSON.stringify({ answer_text: draft }) },
+      )
+      setCoverage(current => ({ ...current, [qid]: res.blocks }))
+    } catch {
+      // Coverage ist ein Komfort-Feature — Fehler still ignorieren.
+    }
+  }
+
+  const requestHint = async (qid: string) => {
+    const draft = answers[qid] ?? ''
+    const current = hints[qid] ?? { remaining: HINTS_PER_QUESTION, loading: false }
+    if (!submissionId || current.loading || current.remaining <= 0 || !draft.trim()) return
+    setHints(h => ({ ...h, [qid]: { ...current, loading: true, error: undefined } }))
+    try {
+      const res = await apiFetch<{ feedback: string; remaining: number }>(
+        `/submissions/${submissionId}/questions/${qid}/feedback`,
+        { method: 'POST', body: JSON.stringify({ answer_text: draft }) },
+      )
+      setHints(h => ({ ...h, [qid]: { text: res.feedback, remaining: res.remaining, loading: false } }))
+    } catch (error: unknown) {
+      const message = messageFromError(error, text.hintError)
+      const exhausted = /limit/i.test(message)
+      setHints(h => ({
+        ...h,
+        [qid]: {
+          ...current,
+          loading: false,
+          remaining: exhausted ? 0 : current.remaining,
+          error: exhausted ? text.hintExhausted : text.hintError,
+        },
+      }))
+    }
   }
 
   const handleSubmit = async () => {
@@ -824,7 +958,10 @@ export default function CasePage() {
       ))
       const result = await apiFetch<unknown>(`/submissions/${submissionId}/submit`, { method: 'POST' })
       sessionStorage.setItem(`result_${submissionId}`, JSON.stringify(result))
-      router.replace('/goodbye')
+      // Echte Prolific-Läufe (STUDY_ID in der URL) brauchen den Completion-
+      // Code auf /goodbye; alle anderen sehen ihr formatives Ergebnis.
+      const isProlificRun = Boolean(clientIdentity?.experiment?.prolific_study_id)
+      router.replace(isProlificRun ? '/goodbye' : `/results/${submissionId}`)
     } catch (error: unknown) {
       setSubmissionError(messageFromError(error, text.evaluationError))
     } finally {
@@ -985,8 +1122,18 @@ export default function CasePage() {
                       <>
                         <textarea
                           value={answerText}
-                          onChange={event => setAnswers(current => ({ ...current, [question.question_id]: event.target.value }))}
-                          onBlur={event => saveAnswer(question.question_id, event.target.value)}
+                          onPaste={event => {
+                            const pasted = event.clipboardData?.getData('text') ?? ''
+                            pendingPasteRef.current[question.question_id] = pasted.length
+                          }}
+                          onChange={event => {
+                            trackInput(question.question_id, answerText, event.target.value)
+                            setAnswers(current => ({ ...current, [question.question_id]: event.target.value }))
+                          }}
+                          onBlur={event => {
+                            saveAnswer(question.question_id, event.target.value)
+                            fetchCoverage(question.question_id, event.target.value)
+                          }}
                           rows={6}
                           placeholder={text.answerPlaceholder(requirement.minWords, requirement.maxWords)}
                           className="ml-8 w-full resize-none rounded-2xl bg-transparent px-4 py-3 text-sm outline-none transition-all"
@@ -1013,6 +1160,87 @@ export default function CasePage() {
                               {text.sentenceHint}
                             </span>
                           )}
+                        </div>
+
+                        {/* Canvas-Abdeckung (deterministisch, aktualisiert beim Verlassen des Felds) */}
+                        {(coverage[question.question_id]?.length ?? 0) > 0 && (
+                          <div className="ml-8 mt-3 flex flex-wrap items-center gap-2 text-xs">
+                            <span style={{ color: 'var(--muted)' }}>{text.coverageTitle}:</span>
+                            {coverage[question.question_id].map(b => (
+                              <span
+                                key={b.block}
+                                className="rounded-full px-2.5 py-1"
+                                style={{
+                                  background: b.addressed ? 'rgba(21,99,61,0.1)' : 'rgba(53,40,30,0.07)',
+                                  color: b.addressed ? 'var(--accent)' : 'var(--muted)',
+                                }}
+                                title={b.addressed ? text.coverageAddressed : text.coverageMissing}
+                              >
+                                {b.addressed ? '✓' : '○'} {b.label}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Selbst-Check (metakognitiv, nur lokal) */}
+                        <div className="ml-8 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs" style={{ color: 'var(--muted)' }}>
+                          <span>{text.selfCheckTitle}:</span>
+                          {text.selfCheckItems.map((item, itemIndex) => {
+                            const checks = selfCheck[question.question_id] ?? [false, false, false]
+                            return (
+                              <label key={itemIndex} className="flex cursor-pointer items-center gap-1.5">
+                                <input
+                                  type="checkbox"
+                                  checked={checks[itemIndex]}
+                                  onChange={() => setSelfCheck(current => {
+                                    const next = [...(current[question.question_id] ?? [false, false, false])]
+                                    next[itemIndex] = !next[itemIndex]
+                                    return { ...current, [question.question_id]: next }
+                                  })}
+                                />
+                                <span>{item}</span>
+                              </label>
+                            )
+                          })}
+                        </div>
+
+                        {/* Denkanstoß (formativ, ohne Punkte, max. 2 pro Frage) */}
+                        <div className="ml-8 mt-3">
+                          {(() => {
+                            const hint = hints[question.question_id] ?? { remaining: HINTS_PER_QUESTION, loading: false }
+                            return (
+                              <>
+                                <div className="flex items-center gap-3 text-xs">
+                                  <button
+                                    type="button"
+                                    onClick={() => requestHint(question.question_id)}
+                                    disabled={hint.loading || hint.remaining <= 0 || !answerText.trim()}
+                                    className="rounded-full px-3 py-1.5 font-medium transition-all"
+                                    style={{
+                                      border: '1px solid rgba(53,40,30,0.25)',
+                                      color: hint.remaining > 0 && answerText.trim() ? 'var(--ink)' : 'var(--muted)',
+                                      opacity: hint.loading ? 0.6 : 1,
+                                    }}
+                                  >
+                                    {hint.loading ? text.hintLoading : text.hintButton}
+                                  </button>
+                                  <span style={{ color: 'var(--muted)' }}>{text.hintRemaining(hint.remaining)}</span>
+                                </div>
+                                {hint.error && (
+                                  <p className="mt-2 text-xs" style={{ color: '#ad3f2b' }}>{hint.error}</p>
+                                )}
+                                {hint.text && (
+                                  <div
+                                    className="mt-2 rounded-2xl px-4 py-3 text-xs leading-6"
+                                    style={{ background: 'rgba(21,99,61,0.06)', color: 'var(--ink)' }}
+                                  >
+                                    <span className="font-medium">{text.hintLabel}: </span>
+                                    {hint.text}
+                                  </div>
+                                )}
+                              </>
+                            )
+                          })()}
                         </div>
                       </>
                     )}

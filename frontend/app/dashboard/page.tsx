@@ -34,6 +34,7 @@ interface StudentDifficulty {
   missing_canvas_blocks: PenaltyCount[]
   recurring_penalties: PenaltyCount[]
   needs_human_review_count: number
+  paste_heavy_answers: number
 }
 interface DifficultyOverview {
   threshold_pct: number
@@ -101,6 +102,7 @@ const DASHBOARD_TEXT = {
       weak_objective: 'Ein schwaches Lernziel',
       weak_bloom: 'Schwache Bloom-Stufe(n)',
       needs_review: 'Evaluator unsicher — Antwort selbst ansehen',
+      paste_heavy: 'Hoher Copy-Paste-Anteil (Hinweis, kein Beweis)',
     } as Record<string, string>,
     weakObjectives: 'Schwache Lernziele',
     weakBlooms: 'Schwache Bloom-Stufen',
@@ -139,6 +141,7 @@ const DASHBOARD_TEXT = {
       weak_objective: 'One weak objective',
       weak_bloom: 'Weak Bloom level(s)',
       needs_review: 'Evaluator uncertain — review the answer yourself',
+      paste_heavy: 'High copy-paste share (indicator, not proof)',
     } as Record<string, string>,
     weakObjectives: 'Weak objectives',
     weakBlooms: 'Weak Bloom levels',
@@ -375,6 +378,13 @@ export default function DashboardPage() {
                           </span>
                         ))}
                       </div>
+                      {s.paste_heavy_answers > 0 && (
+                        <p className="text-xs" style={{ color: '#ad3f2b' }}>
+                          {language === 'en'
+                            ? `${s.paste_heavy_answers} answer(s) with high paste share`
+                            : `${s.paste_heavy_answers} Antwort(en) mit hohem Paste-Anteil`}
+                        </p>
+                      )}
                       {Object.keys(s.weak_blooms).length > 0 && (
                         <p className="text-xs" style={{ color: 'var(--muted)' }}>
                           {text.weakBlooms}: {Object.entries(s.weak_blooms).map(([lvl, pct]) => `${BLOOM[language][Number(lvl)] ?? `Bloom ${lvl}`} (${pct.toFixed(0)}%)`).join(', ')}

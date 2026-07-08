@@ -72,6 +72,8 @@ class StudentDifficulty(BaseModel):
     missing_canvas_blocks: list[PenaltyCount]
     recurring_penalties: list[PenaltyCount]
     needs_human_review_count: int
+    # Integritäts-HINWEIS (kein Beweis): Antworten mit hohem Paste-Anteil
+    paste_heavy_answers: int = 0
 
 
 class DifficultyOverview(BaseModel):
@@ -182,6 +184,23 @@ def _review_counts(results: list[dict]) -> tuple[int, int]:
 # Unterhalb dieser Quote gilt ein Lernziel/Bloom-Level als Schwierigkeit.
 WEAK_THRESHOLD_PCT = 60.0
 
+# Paste-Hinweis: Antwort gilt als "paste-lastig", wenn mehr als die Hälfte
+# der Zeichen eingefügt wurde UND absolut substanziell Text eingefügt wurde.
+PASTE_SHARE_THRESHOLD = 0.5
+PASTE_MIN_CHARS = 300
+
+
+def _count_paste_heavy(results: list[dict]) -> int:
+    count = 0
+    for r in results:
+        for stats in (r.get("answer_stats") or {}).values():
+            typed = stats.get("typed_chars", 0) or 0
+            pasted = stats.get("pasted_chars", 0) or 0
+            total = typed + pasted
+            if total > 0 and pasted >= PASTE_MIN_CHARS and pasted / total > PASTE_SHARE_THRESHOLD:
+                count += 1
+    return count
+
 
 def _normalize_phrase(text: str) -> str:
     return " ".join(text.strip().rstrip(".!").split())
@@ -235,6 +254,7 @@ def _student_difficulty(matrikel: str, results: list[dict]) -> StudentDifficulty
     latest = _latest_result(results)
     latest_pct = latest.get("percentage") if latest else None
     review_count, _ = _review_counts(results)
+    paste_heavy = _count_paste_heavy(results)
 
     reasons: list[str] = []
     if avg_pct < 50:
@@ -249,6 +269,8 @@ def _student_difficulty(matrikel: str, results: list[dict]) -> StudentDifficulty
         reasons.append("weak_bloom")
     if review_count > 0:
         reasons.append("needs_review")
+    if paste_heavy > 0:
+        reasons.append("paste_heavy")
 
     if "low_avg" in reasons or "low_latest" in reasons or "multiple_weak_objectives" in reasons:
         attention = "high"
@@ -270,6 +292,7 @@ def _student_difficulty(matrikel: str, results: list[dict]) -> StudentDifficulty
         missing_canvas_blocks=_top_phrases(missing_blocks),
         recurring_penalties=_top_phrases(penalties),
         needs_human_review_count=review_count,
+        paste_heavy_answers=paste_heavy,
     )
 
 

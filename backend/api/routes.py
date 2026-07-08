@@ -18,7 +18,12 @@ from backend.db.dashboard_store import dashboard_store
 from backend.db.experiment_logger import experiment_logger
 from backend.db.session_store import session_store
 from backend.db.submission_store import submission_store
+from backend.evaluator.formative_feedback import (
+    MAX_FEEDBACK_PER_QUESTION,
+    generate_formative_feedback,
+)
 from backend.evaluator.rubric_evaluator import RubricEvaluator
+from backend.evaluator.rubric_loader import load_question_rubric
 from backend.llm import get_openrouter_key
 from backend.models.experiment import ExperimentContext
 from backend.models.session import Session, SessionCreate, SessionResponse
@@ -284,6 +289,8 @@ async def submit_answer(submission_id: str, body: AnswerSubmit):
     if sub.status == SubmissionStatus.SUBMITTED:
         raise HTTPException(status_code=400, detail="Submission bereits abgeschlossen")
     sub.answers[body.question_id] = body.answer_text
+    if body.stats is not None:
+        sub.answer_stats[body.question_id] = body.stats
     await asyncio.to_thread(submission_store.save, sub)
 
     _log_experiment_event(
@@ -299,9 +306,123 @@ async def submit_answer(submission_id: str, body: AnswerSubmit):
         question_id=body.question_id,
         answer_text=body.answer_text,
         answer_word_count=len(body.answer_text.split()),
+        typing_stats=body.stats.model_dump() if body.stats else None,
     )
 
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Live-Unterstützung in der Fragen-Section (formativ, keine Punkte)
+# ---------------------------------------------------------------------------
+
+class DraftAnswer(BaseModel):
+    answer_text: str
+
+
+def _get_case_question(sub: Submission, question_id: str):
+    case = case_manager.get(sub.case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="Case nicht gefunden")
+    question = next((q for q in case.questions if q.question_id == question_id), None)
+    if question is None:
+        raise HTTPException(status_code=404, detail="Frage nicht gefunden")
+    return case, question
+
+
+@router.post(
+    "/submissions/{submission_id}/questions/{question_id}/coverage",
+    dependencies=[Depends(rate_limit(30, 60, scope="coverage", by_path_param="submission_id"))],
+)
+async def answer_coverage(submission_id: str, question_id: str, body: DraftAnswer):
+    """Deterministische Canvas-Abdeckung des Entwurfs (kein LLM).
+
+    Matcht die accepted_keywords der Rubric serverseitig — die Keywords
+    selbst verlassen den Server nie (sonst würden Scoring-Signale leaken).
+    Zurück gehen nur Block-Label und ob er im Entwurf erkennbar ist.
+    """
+    sub = await _get_submission(submission_id)
+    if not sub:
+        raise HTTPException(status_code=404, detail="Submission nicht gefunden")
+    _case, question = _get_case_question(sub, question_id)
+
+    rubric = load_question_rubric(question)
+    if rubric is None or not rubric.required_canvas_blocks:
+        return {"blocks": []}
+
+    answer = body.answer_text.lower()
+    blocks = [
+        {
+            "block": criterion.block,
+            "label": criterion.label,
+            "addressed": any(kw.lower() in answer for kw in criterion.accepted_keywords),
+        }
+        for criterion in rubric.required_canvas_blocks
+    ]
+    return {"blocks": blocks}
+
+
+@router.post(
+    "/submissions/{submission_id}/questions/{question_id}/feedback",
+    dependencies=[Depends(rate_limit(5, 60, scope="formative", by_path_param="submission_id"))],
+)
+async def formative_feedback(submission_id: str, question_id: str, body: DraftAnswer):
+    """Denkanstoß zum Entwurf — sokratisch, ohne Punkte, max. 2 pro Frage."""
+    sub = await _get_submission(submission_id)
+    if not sub:
+        raise HTTPException(status_code=404, detail="Submission nicht gefunden")
+    if sub.status == SubmissionStatus.SUBMITTED:
+        raise HTTPException(status_code=400, detail="Submission bereits abgeschlossen")
+    if not body.answer_text.strip():
+        raise HTTPException(status_code=400, detail="Entwurf ist leer — schreib zuerst einen Ansatz.")
+
+    used = sub.feedback_requests.get(question_id, 0)
+    if used >= MAX_FEEDBACK_PER_QUESTION:
+        raise HTTPException(
+            status_code=429,
+            detail="Denkanstoß-Limit für diese Frage erreicht — nutzt den Lernchat für offene Fragen.",
+        )
+
+    case, question = _get_case_question(sub, question_id)
+
+    api_key = get_openrouter_key()
+    if not api_key:
+        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
+
+    try:
+        feedback = await generate_formative_feedback(
+            api_key=api_key, case=case, question=question, answer_text=body.answer_text,
+        )
+    except Exception as e:
+        logger.error("formative_feedback_error", error=str(e), type=type(e).__name__)
+        raise HTTPException(
+            status_code=503,
+            detail="Der Denkanstoß ist gerade nicht verfügbar — bitte gleich noch einmal versuchen.",
+        )
+
+    sub.feedback_requests[question_id] = used + 1
+    await asyncio.to_thread(submission_store.save, sub)
+
+    _log_experiment_event(
+        "formative_feedback_requested",
+        submission_id=sub.submission_id,
+        case_id=sub.case_id,
+        user_id=sub.user_id,
+        participant_id=sub.matrikelnummer,
+        experiment=(
+            sub.experiment.model_dump(mode="json", exclude_none=True)
+            if sub.experiment else None
+        ),
+        question_id=question_id,
+        draft_word_count=len(body.answer_text.split()),
+        request_number=used + 1,
+        feedback=feedback,
+    )
+
+    return {
+        "feedback": feedback,
+        "remaining": MAX_FEEDBACK_PER_QUESTION - (used + 1),
+    }
 
 
 @router.post(
@@ -369,6 +490,8 @@ async def submit_and_evaluate(submission_id: str):
         "submitted_at": sub.submitted_at,
         "evaluated_at": sub.evaluated_at,
         "scores": [s.model_dump() for s in sub.scores],
+        "answer_stats": {qid: stats.model_dump() for qid, stats in sub.answer_stats.items()},
+        "feedback_requests": sub.feedback_requests,
         "experiment": (
             sub.experiment.model_dump(mode="json", exclude_none=True)
             if sub.experiment else None
