@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Nav from '@/components/Nav'
-import { apiFetch } from '@/lib/api'
 import { ArrowLeft } from 'lucide-react'
 
 interface QuestionScore {
@@ -33,16 +32,16 @@ function ScoreBar({ pct }: { pct: number }) {
 
 export default function ResultsPage() {
   const { submissionId } = useParams<{ submissionId: string }>()
-  const [result, setResult] = useState<SubmissionResult | null>(null)
+  // Ergebnis wird von der Case-Seite nach dem Submit in sessionStorage gelegt.
+  const [result] = useState<SubmissionResult | null>(() => {
+    if (typeof window === 'undefined') return null
+    const stored = sessionStorage.getItem(`result_${submissionId}`)
+    return stored ? JSON.parse(stored) : null
+  })
 
   useEffect(() => {
     sessionStorage.setItem('app_mode', 'student')
-    // Results are stored after submit — re-fetch from the backend
-    // For MVP: stored in sessionStorage by the case page
-    const stored = sessionStorage.getItem(`result_${submissionId}`)
-    if (stored) { setResult(JSON.parse(stored)); return }
-    // Fallback: attempt re-evaluation endpoint (future)
-  }, [submissionId])
+  }, [])
 
   if (!result) return (
     <>
