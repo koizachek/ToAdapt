@@ -1,9 +1,21 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
+// Kohorten-Zugangscode (beim Login gespeichert). Das Backend verlangt ihn
+// auf allen Studierenden-Endpunkten, sobald STUDENT_ACCESS_CODE gesetzt ist.
+function studentAccessHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') return {}
+  const code = sessionStorage.getItem('student_access_code')
+  return code ? { 'X-Student-Access-Code': code } : {}
+}
+
 export async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      ...studentAccessHeaders(),
+      ...opts?.headers,
+    },
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))

@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from backend.auth import require_api_key
+from backend.db.dashboard_store import dashboard_store
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(
@@ -18,8 +19,6 @@ router = APIRouter(
     dependencies=[Depends(require_api_key)],
 )
 
-SUBMISSIONS_DIR = Path(__file__).parent.parent / "db" / "submissions"
-SUBMISSIONS_DIR.mkdir(parents=True, exist_ok=True)
 SEED_SUBMISSIONS_PATH = (
     Path(__file__).parent.parent
     / "db"
@@ -78,12 +77,8 @@ class DashboardOverview(BaseModel):
 # ---------------------------------------------------------------------------
 
 def _load_all_results() -> list[dict]:
-    results = []
-    for f in SUBMISSIONS_DIR.glob("*.json"):
-        try:
-            results.append(json.loads(f.read_text()))
-        except Exception:
-            pass
+    # Primär Mongo (überlebt Redeploys), Datei-Fallback für lokale Entwicklung.
+    results = dashboard_store.load_all()
     if results:
         return results
 

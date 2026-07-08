@@ -1,5 +1,6 @@
 """ToAdapt — Transfer-Trainer für BWL A."""
 
+import logging
 from contextlib import asynccontextmanager
 
 import os
@@ -12,7 +13,37 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-from backend.auth import require_api_key
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
+_log_level = getattr(logging, os.environ.get("LOG_LEVEL", "INFO").upper(), logging.INFO)
+
+structlog.configure(
+    processors=[
+        structlog.contextvars.merge_contextvars,
+        structlog.processors.add_log_level,
+        structlog.processors.TimeStamper(fmt="iso", utc=True),
+        (
+            structlog.processors.JSONRenderer()
+            if ENVIRONMENT == "production"
+            else structlog.dev.ConsoleRenderer()
+        ),
+    ],
+    wrapper_class=structlog.make_filtering_bound_logger(_log_level),
+    cache_logger_on_first_use=True,
+)
+
+_sentry_dsn = os.environ.get("SENTRY_DSN", "").strip()
+if _sentry_dsn:
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        environment=ENVIRONMENT,
+        traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0")),
+        # Keine Request-Bodies/PII an Sentry senden.
+        send_default_pii=False,
+    )
+
+from backend.auth import require_api_key, student_access_required
 from backend.api.routes import router as session_router
 from backend.admin.routes import router as admin_router
 from backend.dashboard.routes import router as dashboard_router
@@ -38,7 +69,15 @@ async def lifespan(app: FastAPI):
         openrouter_api_key_configured=bool(key),
         mongo_logging_enabled=mongo["enabled"],
         mongo_connection_mode=mongo["connection_mode"],
+        student_access_code_configured=student_access_required(),
+        sentry_enabled=bool(_sentry_dsn),
+        environment=ENVIRONMENT,
     )
+    if not student_access_required():
+        logger.warning(
+            "student_flow_open",
+            hint="STUDENT_ACCESS_CODE ist nicht gesetzt — Sessions/Chat/Submissions sind öffentlich erreichbar.",
+        )
     yield
     logger.info("toadapt_shutdown")
 

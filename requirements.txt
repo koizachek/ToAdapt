@@ -7,3 +7,4 @@ structlog==24.4.0
 websockets==13.1
 python-dotenv==1.0.1
 openpyxl>=3.1,<4
+sentry-sdk[fastapi]>=2,<3
