@@ -349,8 +349,30 @@ def _guardrail_fallback(agent_type: str, language: str = "de") -> str:
     )
 
 
+def _format_guidance(case_id: str, key_tensions: list, common_mistakes: list) -> str:
+    tensions = "\n".join(f"- {t}" for t in key_tensions)
+    mistakes = "\n".join(f"- {m}" for m in common_mistakes)
+    if case_id.endswith("-en"):
+        return f"\nKEY TENSIONS:\n{tensions}\n\nCOMMON MISTAKES TO AVOID:\n{mistakes}"
+    return f"\nKERN-SPANNUNGSFELDER:\n{tensions}\n\nHÄUFIGE FEHLER VERMEIDEN:\n{mistakes}"
+
+
 def _load_case_guidance(case_id: str) -> str:
-    """Lädt case-spezifisches Agent-Guidance JSON falls vorhanden."""
+    """Lädt case-spezifische Agent-Guidance.
+
+    Vorrang hat das eingebettete Case-Paket (case.agent_guidance — neue,
+    generierte Cases); Fallback ist die historische Pool-Datei
+    {case_id}-agent.json (kuratierter Alpes-Bank-Case).
+    """
+    try:
+        from backend.cases.manager import case_manager
+        case = case_manager.get(case_id)
+        guidance = case.agent_guidance if case else None
+        if guidance and (guidance.key_tensions or guidance.common_mistakes):
+            return _format_guidance(case_id, guidance.key_tensions, guidance.common_mistakes)
+    except Exception:  # pragma: no cover - Store-Fehler → Datei-Fallback
+        pass
+
     import json
     from pathlib import Path
     p = Path(__file__).parent.parent / "cases" / "pool" / f"{case_id}-agent.json"
@@ -359,11 +381,7 @@ def _load_case_guidance(case_id: str) -> str:
     try:
         data = json.loads(p.read_text(encoding="utf-8"))
         g = data.get("agent_guidance", {})
-        tensions = "\n".join(f"- {t}" for t in g.get("key_tensions", []))
-        mistakes  = "\n".join(f"- {m}" for m in g.get("common_mistakes", []))
-        if case_id.endswith("-en"):
-            return f"\nKEY TENSIONS:\n{tensions}\n\nCOMMON MISTAKES TO AVOID:\n{mistakes}"
-        return f"\nKERN-SPANNUNGSFELDER:\n{tensions}\n\nHÄUFIGE FEHLER VERMEIDEN:\n{mistakes}"
+        return _format_guidance(case_id, g.get("key_tensions", []), g.get("common_mistakes", []))
     except Exception:
         return ""
 

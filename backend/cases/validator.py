@@ -123,6 +123,31 @@ def validate_case(case: Case) -> CaseValidationReport:
                         location=f"question:{q.question_id}",
                     ))
 
+    # Warnungen: fehlendes Glossar/Guidance — der Case funktioniert, aber
+    # Studierende verlieren Glossar-Chips bzw. der Chat den Case-Kontext.
+    # (Der kuratierte Alpes-Bank-Case nutzt historische Fallbacks.)
+    if not case.glossary:
+        issues.append(ValidationIssue(
+            level="warning", code="no_glossary",
+            message="Kein Glossar im Case-Paket — Studierende bekommen keine Begriff-Chips im Lesetext.",
+            location="glossary",
+        ))
+    else:
+        all_text = "\n".join(s.content for s in case.sections)
+        for g in case.glossary:
+            if g.term and g.term.lower() not in all_text.lower():
+                issues.append(ValidationIssue(
+                    level="warning", code="glossary_term_not_in_text",
+                    message=f"Glossar-Begriff „{g.term}“ kommt nicht wörtlich im Case-Text vor — Chip kann nicht hervorgehoben werden.",
+                    location="glossary",
+                ))
+    if not (case.agent_guidance and (case.agent_guidance.key_tensions or case.agent_guidance.common_mistakes)):
+        issues.append(ValidationIssue(
+            level="warning", code="no_agent_guidance",
+            message="Keine Agent-Guidance im Case-Paket — der Lernchat kennt Spannungsfelder/typische Fehler dieses Cases nicht.",
+            location="agent_guidance",
+        ))
+
     if tp_cfg:
         expected_blooms = set(tp_cfg["bloom_levels"])
         covered = {q.bloom_level for q in case.questions}

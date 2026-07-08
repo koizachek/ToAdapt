@@ -17,7 +17,14 @@ import { useLanguage } from '@/lib/useLanguage'
 
 interface CaseSection { section_id: string; title: string; content: string }
 interface CaseExhibit { exhibit_id: string; title: string; content: string; exhibit_type: string }
-interface CaseQuestion { question_id: string; phase: number; bloom_level: number; text: string; max_points: number }
+interface CaseCanvasBlockSpec { block: string; label: string; expectation: string }
+interface CaseQuestion {
+  question_id: string; phase: number; bloom_level: number; text: string; max_points: number
+  min_words?: number | null
+  max_words?: number | null
+  required_canvas_blocks?: CaseCanvasBlockSpec[]
+}
+interface CaseGlossaryTerm { term: string; explanation: string; starter_prompt: string }
 interface Case {
   case_id: string
   title: string
@@ -27,6 +34,7 @@ interface Case {
   sections: CaseSection[]
   exhibits: CaseExhibit[]
   questions: CaseQuestion[]
+  glossary?: CaseGlossaryTerm[]
   language?: string
 }
 interface ChatMsg { role: 'user' | 'agent'; content: string; agent_type?: string }
@@ -337,6 +345,15 @@ function buildGlossaryHighlightTargets(
   return targets
 }
 
+// Case-Paket-Wortlimits haben Vorrang; Index-Fallback erhält das
+// Verhalten des Alpes-Bank-Cases (dessen Fragen keine Limits tragen).
+function questionRequirement(question: CaseQuestion, questionIndex: number): AnswerRequirement {
+  if (question.min_words && question.max_words) {
+    return { minWords: question.min_words, maxWords: question.max_words }
+  }
+  return getAnswerRequirement(questionIndex)
+}
+
 function getAnswerRequirement(questionIndex: number): AnswerRequirement {
   if (questionIndex <= 1) return { minWords: 50, maxWords: 200 }
   if (questionIndex <= 3) return { minWords: 100, maxWords: 200 }
@@ -486,7 +503,22 @@ function ExhibitTable({ content }: { content: string }) {
   )
 }
 
-function BusinessModelCanvasGuide({ language }: { language: Locale }) {
+// Baut den Canvas-Guide aus dem Case-Paket (Union der pro Frage geforderten
+// Bausteine, Erwartung als Hinweis). Der kuratierte Alpes-Bank-Case behält
+// seine handgeschriebenen Hinweise (Hardcode-Fallback).
+function deriveCanvasBlocks(caseData: Case | null, id: string, language: Locale): CanvasBlock[] {
+  const fallback = BUSINESS_MODEL_CANVAS_BLOCKS[language]
+  if (!caseData || id.startsWith('alpes-bank-genai-001')) return fallback
+  const seen = new Map<string, CanvasBlock>()
+  caseData.questions.forEach(q => (q.required_canvas_blocks ?? []).forEach(b => {
+    if (b.block && !seen.has(b.block)) {
+      seen.set(b.block, { key: b.block, label: b.label || b.block, hint: b.expectation || '' })
+    }
+  }))
+  return seen.size > 0 ? Array.from(seen.values()) : fallback
+}
+
+function BusinessModelCanvasGuide({ language, blocks }: { language: Locale; blocks: CanvasBlock[] }) {
   const text = CASE_PAGE_TEXT[language]
 
   return (
@@ -517,7 +549,7 @@ function BusinessModelCanvasGuide({ language }: { language: Locale }) {
       </p>
 
       <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {BUSINESS_MODEL_CANVAS_BLOCKS[language].map(block => (
+        {blocks.map(block => (
           <div
             key={block.key}
             className="rounded-2xl px-4 py-4"
@@ -813,7 +845,16 @@ export default function CasePage() {
     node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' })
   }, [chat, sending])
 
-  const glossaryTerms = useMemo(() => isTeacherMode ? [] : CASE_GLOSSARY[id] ?? [], [id, isTeacherMode])
+  // Glossar: kuratierter Frontend-Hardcode (Alpes-Bank) hat Vorrang;
+  // neue Cases bringen ihr Glossar im Case-Paket mit.
+  const glossaryTerms = useMemo(() => {
+    if (isTeacherMode) return []
+    const hardcoded = CASE_GLOSSARY[id]
+    if (hardcoded) return hardcoded
+    return (caseData?.glossary ?? [])
+      .filter(g => g.term)
+      .map(g => ({ term: g.term, explanation: g.explanation, starterPrompt: g.starter_prompt }))
+  }, [id, isTeacherMode, caseData?.glossary])
   const glossaryMap = useMemo(
     () => new Map(glossaryTerms.map(term => [term.term.toLowerCase(), term])),
     [glossaryTerms],
@@ -935,14 +976,14 @@ export default function CasePage() {
   const handleSubmit = async () => {
     if (!submissionId || !caseData || submitting) return
     const invalidQuestion = caseData.questions.find((question, index) => {
-      const requirement = getAnswerRequirement(index)
+      const requirement = questionRequirement(question, index)
       const wordCount = countWords(answers[question.question_id] ?? '')
       return wordCount < requirement.minWords || wordCount > requirement.maxWords
     })
 
     if (invalidQuestion) {
       const questionIndex = caseData.questions.findIndex(q => q.question_id === invalidQuestion.question_id)
-      const requirement = getAnswerRequirement(questionIndex)
+      const requirement = questionRequirement(invalidQuestion, questionIndex)
       setSubmissionError(
         text.invalidQuestion(questionIndex, requirement.minWords, requirement.maxWords),
       )
@@ -1074,7 +1115,7 @@ export default function CasePage() {
 
             {tab === 'questions' && (
               <div className="flex max-w-3xl flex-col gap-8 pr-0 xl:pr-4">
-                <BusinessModelCanvasGuide language={language} />
+                <BusinessModelCanvasGuide language={language} blocks={deriveCanvasBlocks(caseData, id, language)} />
 
                 {!isTeacherMode && (
                   <div
@@ -1088,7 +1129,7 @@ export default function CasePage() {
                 {caseData.questions.map((question, index) => (
                   <div key={question.question_id}>
                     {(() => {
-                      const requirement = getAnswerRequirement(index)
+                      const requirement = questionRequirement(question, index)
                       const answerText = answers[question.question_id] ?? ''
                       const wordCount = countWords(answerText)
                       const isWithinRange = wordCount >= requirement.minWords && wordCount <= requirement.maxWords

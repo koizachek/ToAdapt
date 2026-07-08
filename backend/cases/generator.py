@@ -16,12 +16,14 @@ import structlog
 from backend.config.tp_configs import TP_CONFIGS
 from backend.llm import OpenRouterClient
 from backend.models.case import (
+    AgentGuidance,
     Case,
     CaseDifficulty,
     CaseExhibit,
     CaseQuestion,
     CaseSection,
     CaseStatus,
+    GlossaryTermSpec,
 )
 
 logger = structlog.get_logger(__name__)
@@ -111,9 +113,23 @@ Erstelle einen Case mit diesem exakten JSON-Schema:
           "expectation": "Was die Antwort zu diesem Baustein konkret zeigen muss",
           "weight": 1.0
         }}
-      ]
+      ],
+      "min_words": 50,
+      "max_words": 200
     }}
-  ]
+  ],
+  "glossary": [
+    {{
+      "term": "Begriff, der WÖRTLICH im Case-Text vorkommt",
+      "explanation": "Erklärung in 1–2 Sätzen, case-neutral",
+      "starter_prompt": "Erkläre mir kurz den Begriff \\"...\\" und ordne in einem Satz ein, welche Rolle er in diesem Case spielt."
+    }}
+  ],
+  "agent_guidance": {{
+    "case_summary": "2–3 Sätze Kern des Cases für die Lernbegleiter",
+    "key_tensions": ["4–6 zentrale Spannungsfelder des Cases"],
+    "common_mistakes": ["4–6 typische Denkfehler, vor denen Agenten NICHT direkt warnen, sondern die sie durch Fragen sichtbar machen"]
+  }}
 }}
 
 Anforderungen:
@@ -129,7 +145,11 @@ Anforderungen:
   revenue_streams) mit je 5–8 accepted_keywords, die in einer guten Antwort
   realistisch vorkommen (Synonyme und case-spezifische Begriffe mischen)
 - evaluation_focus beschreibt Prüfkriterien pfadoffen (mehrere vertretbare
-  Antwortwege müssen volle Punkte erreichen können)"""
+  Antwortwege müssen volle Punkte erreichen können)
+- min_words/max_words nach Komplexität: Bloom 2–3 → 50–200, Bloom 4–5 →
+  100–200, Bloom 6 → 150–250
+- 5–7 Glossar-Begriffe; jeder term MUSS wörtlich (exakte Schreibweise) in
+  einer Section vorkommen"""
 
 CASE_GENERATION_PROMPT_EN = """Create a complete mini-case for the transfer trainer.
 
@@ -186,9 +206,23 @@ Create a case with this exact JSON schema:
           "expectation": "What the answer must concretely show for this block",
           "weight": 1.0
         }}
-      ]
+      ],
+      "min_words": 50,
+      "max_words": 200
     }}
-  ]
+  ],
+  "glossary": [
+    {{
+      "term": "term that appears VERBATIM in the case text",
+      "explanation": "1-2 sentence explanation, case-neutral",
+      "starter_prompt": "Briefly explain the term \\"...\\" and state in one sentence what role it plays in this case."
+    }}
+  ],
+  "agent_guidance": {{
+    "case_summary": "2-3 sentences capturing the core of the case for the learning companions",
+    "key_tensions": ["4-6 central tensions of the case"],
+    "common_mistakes": ["4-6 typical thinking errors that agents surface through questions, never by warning directly"]
+  }}
 }}
 
 Requirements:
@@ -205,7 +239,11 @@ Requirements:
   would realistically appear in a good answer (mix synonyms and
   case-specific terms)
 - evaluation_focus states criteria in a path-open way (several defensible
-  answer paths must be able to reach full points)"""
+  answer paths must be able to reach full points)
+- min_words/max_words by complexity: Bloom 2-3 -> 50-200, Bloom 4-5 ->
+  100-200, Bloom 6 -> 150-250
+- 5-7 glossary terms; each term MUST appear verbatim (exact spelling) in
+  one of the sections"""
 
 TP_NAMES_EN = {
     1: "Analysis & stakeholders",
@@ -328,6 +366,11 @@ class CaseGenerator:
             sections=[CaseSection(**s) for s in data["sections"]],
             exhibits=[CaseExhibit(**e) for e in data["exhibits"]],
             questions=[CaseQuestion(**q) for q in data["questions"]],
+            glossary=[GlossaryTermSpec(**g) for g in data.get("glossary", [])],
+            agent_guidance=(
+                AgentGuidance(**data["agent_guidance"])
+                if data.get("agent_guidance") else None
+            ),
             status=CaseStatus.DRAFT,
             generated_by="ai",
             created_at=naive_utcnow(),

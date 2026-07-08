@@ -35,6 +35,21 @@ class CaseSection(BaseModel):
     content: str
 
 
+class GlossaryTermSpec(BaseModel):
+    """Glossar-Begriff des Cases — Begriffe müssen wörtlich im Case-Text
+    vorkommen, damit das Frontend sie hervorheben kann."""
+    term: str
+    explanation: str = ""
+    starter_prompt: str = ""    # startet den Lernchat zu diesem Begriff
+
+
+class AgentGuidance(BaseModel):
+    """Case-spezifischer Kontext für die Scaffolding-Agenten."""
+    case_summary: str = ""
+    key_tensions: list[str] = Field(default_factory=list)
+    common_mistakes: list[str] = Field(default_factory=list)
+
+
 class CanvasBlockSpec(BaseModel):
     """Case-eigene Canvas-Vorgabe pro Frage (Teil des Case-Pakets)."""
     block: str              # z.B. "value_propositions"
@@ -64,6 +79,11 @@ class CaseQuestion(BaseModel):
     exemplar_threshold_pct: float | None = None
     score_floor_pct: float | None = None
 
+    # Wortlimits pro Frage (None → Frontend-Fallback nach Frage-Index,
+    # erhält das Verhalten des Alpes-Bank-Cases).
+    min_words: int | None = None
+    max_words: int | None = None
+
 
 class CaseEditEvent(BaseModel):
     """Ein Eintrag der Bearbeitungs-Historie (Editor-/Regenerier-Aktionen)."""
@@ -87,6 +107,12 @@ class Case(BaseModel):
     sections: list[CaseSection] = Field(default_factory=list)
     exhibits: list[CaseExhibit] = Field(default_factory=list)
     questions: list[CaseQuestion] = Field(default_factory=list)
+
+    # Case-Paket: Glossar (Lernchat-Chips) und Agenten-Kontext. Der Alpes-
+    # Bank-Case nutzt historisch Frontend-Hardcodes bzw. die -agent.json-
+    # Pool-Datei als Fallback — neue Cases bringen beides hier mit.
+    glossary: list[GlossaryTermSpec] = Field(default_factory=list)
+    agent_guidance: AgentGuidance | None = None
 
     status: str = CaseStatus.DRAFT
     generated_by: str = "ai"       # "ai" | "manual"

@@ -22,11 +22,15 @@ interface Question {
   required_canvas_blocks: CanvasBlockSpec[]
   calibration_notes: string[]
 }
+interface GlossaryTerm { term: string; explanation: string; starter_prompt: string }
+interface AgentGuidance { case_summary: string; key_tensions: string[]; common_mistakes: string[] }
 interface Case extends CaseSummary {
   country: string; tagline: string; revision: number; review_notes: string
   sections: Section[]
   exhibits: Exhibit[]
   questions: Question[]
+  glossary: GlossaryTerm[]
+  agent_guidance: AgentGuidance | null
 }
 interface ValidationIssue { level: string; code: string; message: string; location: string }
 interface ValidationReport { ok: boolean; issues: ValidationIssue[] }
@@ -90,6 +94,15 @@ const ADMIN_TEXT = {
     regenerating: 'Regeneriert...',
     unsaved: 'Ungespeicherte Änderungen',
     error: 'Aktion fehlgeschlagen — bitte erneut versuchen.',
+    glossaryTitle: 'Glossar (Begriffe müssen wörtlich im Case-Text vorkommen)',
+    glossaryTerm: 'Begriff',
+    glossaryExplanation: 'Erklärung',
+    glossaryStarter: 'Chat-Starter-Prompt',
+    addTerm: '+ Begriff',
+    guidanceTitle: 'Agent-Guidance (Kontext für den Lernchat)',
+    guidanceSummary: 'Case-Kurzfassung',
+    guidanceTensions: 'Spannungsfelder (eines pro Zeile)',
+    guidanceMistakes: 'Typische Denkfehler (einer pro Zeile)',
     rubricFocus: 'Prüfkriterien (eines pro Zeile)',
     calibrationNotes: 'Bewertungs-Anker für den Judge (einer pro Zeile — leer = generische Bloom-Anker)',
     canvasBlocks: 'Canvas-Bausteine',
@@ -134,6 +147,15 @@ const ADMIN_TEXT = {
     regenerating: 'Regenerating...',
     unsaved: 'Unsaved changes',
     error: 'Action failed — please try again.',
+    glossaryTitle: 'Glossary (terms must appear verbatim in the case text)',
+    glossaryTerm: 'Term',
+    glossaryExplanation: 'Explanation',
+    glossaryStarter: 'Chat starter prompt',
+    addTerm: '+ term',
+    guidanceTitle: 'Agent guidance (context for the learning chat)',
+    guidanceSummary: 'Case summary',
+    guidanceTensions: 'Key tensions (one per line)',
+    guidanceMistakes: 'Common mistakes (one per line)',
     rubricFocus: 'Assessment criteria (one per line)',
     calibrationNotes: 'Judge calibration anchors (one per line — empty = generic Bloom anchors)',
     canvasBlocks: 'Canvas blocks',
@@ -224,6 +246,8 @@ export default function AdminPage() {
           sections: draft.sections,
           exhibits: draft.exhibits,
           questions: draft.questions,
+          glossary: draft.glossary,
+          agent_guidance: draft.agent_guidance,
         }),
       })
       applyServerCase(c)
@@ -575,6 +599,61 @@ export default function AdminPage() {
                           {regenControl('question', q.question_id)}
                         </div>
                       ))}
+                    </div>
+
+                    {/* Glossar */}
+                    <div>
+                      <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>{text.glossaryTitle}</p>
+                      {(draft.glossary ?? []).map((g, gi) => (
+                        <div key={gi} className="mb-3 grid grid-cols-3 gap-2">
+                          {([['term', text.glossaryTerm], ['explanation', text.glossaryExplanation], ['starter_prompt', text.glossaryStarter]] as const).map(([field, label]) => (
+                            <input
+                              key={field}
+                              value={g[field]}
+                              placeholder={label}
+                              onChange={e => updateDraft({ glossary: draft.glossary.map((x, xi) => xi === gi ? { ...x, [field]: e.target.value } : x) })}
+                              className="w-full px-3 py-1.5 text-xs bg-transparent outline-none"
+                              style={INPUT_STYLE}
+                            />
+                          ))}
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => updateDraft({ glossary: [...(draft.glossary ?? []), { term: '', explanation: '', starter_prompt: '' }] })}
+                        className="px-3 py-1.5 text-xs font-medium"
+                        style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
+                      >
+                        {text.addTerm}
+                      </button>
+                    </div>
+
+                    {/* Agent-Guidance */}
+                    <div>
+                      <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>{text.guidanceTitle}</p>
+                      <label className="block text-xs mb-1 font-medium" style={{ color: 'var(--line)' }}>{text.guidanceSummary}</label>
+                      <textarea
+                        value={draft.agent_guidance?.case_summary ?? ''}
+                        onChange={e => updateDraft({ agent_guidance: { key_tensions: [], common_mistakes: [], ...(draft.agent_guidance ?? {}), case_summary: e.target.value } })}
+                        rows={2}
+                        className="w-full px-3 py-2 text-xs leading-5 bg-transparent outline-none resize-y mb-2"
+                        style={INPUT_STYLE}
+                      />
+                      <label className="block text-xs mb-1 font-medium" style={{ color: 'var(--line)' }}>{text.guidanceTensions}</label>
+                      <textarea
+                        value={(draft.agent_guidance?.key_tensions ?? []).join('\n')}
+                        onChange={e => updateDraft({ agent_guidance: { case_summary: '', common_mistakes: [], ...(draft.agent_guidance ?? {}), key_tensions: e.target.value.split('\n').filter(l => l.trim()) } })}
+                        rows={3}
+                        className="w-full px-3 py-2 text-xs leading-5 bg-transparent outline-none resize-y mb-2"
+                        style={INPUT_STYLE}
+                      />
+                      <label className="block text-xs mb-1 font-medium" style={{ color: 'var(--line)' }}>{text.guidanceMistakes}</label>
+                      <textarea
+                        value={(draft.agent_guidance?.common_mistakes ?? []).join('\n')}
+                        onChange={e => updateDraft({ agent_guidance: { case_summary: '', key_tensions: [], ...(draft.agent_guidance ?? {}), common_mistakes: e.target.value.split('\n').filter(l => l.trim()) } })}
+                        rows={3}
+                        className="w-full px-3 py-2 text-xs leading-5 bg-transparent outline-none resize-y"
+                        style={INPUT_STYLE}
+                      />
                     </div>
 
                     {/* Validation report */}

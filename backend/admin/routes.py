@@ -12,6 +12,7 @@ from backend.cases.manager import case_manager
 from backend.cases.validator import CaseValidationReport, validate_case
 from backend.llm import get_openrouter_key
 from backend.models.case import (
+    AgentGuidance,
     Case,
     CaseDifficulty,
     CaseEditEvent,
@@ -20,6 +21,7 @@ from backend.models.case import (
     CaseSection,
     CaseStatus,
     CaseSummary,
+    GlossaryTermSpec,
 )
 
 logger = structlog.get_logger(__name__)
@@ -52,6 +54,8 @@ class UpdateCaseRequest(BaseModel):
     sections: list[CaseSection] | None = None
     exhibits: list[CaseExhibit] | None = None
     questions: list[CaseQuestion] | None = None
+    glossary: list[GlossaryTermSpec] | None = None
+    agent_guidance: AgentGuidance | None = None
 
 
 class RegeneratePartRequest(BaseModel):
@@ -131,7 +135,7 @@ async def update_case(case_id: str, body: UpdateCaseRequest):
     case = _require_case(case_id)
 
     changed: list[str] = []
-    for field in ("title", "tagline", "sections", "exhibits", "questions"):
+    for field in ("title", "tagline", "sections", "exhibits", "questions", "glossary", "agent_guidance"):
         value = getattr(body, field)
         if value is not None:
             setattr(case, field, value)
