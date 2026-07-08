@@ -61,6 +61,14 @@ Phasen 0 und 1 sind für beide Wege identisch und sollten sofort starten.
 
 ## Phase 0 — Sicherheit & Compliance (sofort, vor allem anderen)
 
+> **Status 2026-07-08:** Punkte 1, 2 und 4 erledigt (Repo war bereits privat;
+> History mit `git filter-repo` bereinigt und force-gepusht; lokale Rohdaten nach
+> `~/ToAdapt_sensitive_data/` verschoben, dort auch das Backup-Bundle der alten
+> History; `/chat`-Leak gefixt). **Offen:** Punkt 3 (Secrets-Rotation, nur über die
+> externen Dashboards möglich), DSGVO-/Prolific-Meldepflicht-Klärung, sowie der
+> alte GitHub-PR-Ref `refs/pull/1/head`, der noch auf die unbereinigte History
+> zeigt → GitHub-Support um Löschung bitten oder PR #1 prüfen.
+
 1. **Repo-Sichtbarkeit prüfen und ggf. auf privat stellen**, bis Punkt 2 erledigt ist.
 2. **Git-History bereinigen** (`git filter-repo`) für `data/submission_states.json`,
    `data/experiment_events.json`, `data/prolific_runs/`,
