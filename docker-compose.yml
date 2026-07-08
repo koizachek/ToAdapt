@@ -1,38 +1,24 @@
+# Lokale Entwicklung: API + MongoDB. Postgres/Redis/Chroma aus früheren
+# Planungen sind entfernt — der Code nutzt sie nicht.
 services:
   api:
     build: .
     ports:
       - "8000:8000"
     env_file: .env
+    environment:
+      MONGODB_URI: mongodb://mongo:27017
     depends_on:
-      - db
-      - redis
+      - mongo
     volumes:
       - ./backend:/app/backend
 
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: toadapt
-      POSTGRES_PASSWORD: toadapt
-      POSTGRES_DB: toadapt
+  mongo:
+    image: mongo:7
     ports:
-      - "5432:5432"
+      - "27017:27017"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-  chromadb:
-    image: chromadb/chroma:latest
-    ports:
-      - "8001:8000"
-    volumes:
-      - chromadata:/chroma/chroma
+      - mongodata:/data/db
 
 volumes:
-  pgdata:
-  chromadata:
+  mongodata:

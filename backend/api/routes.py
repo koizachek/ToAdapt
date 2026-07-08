@@ -1,20 +1,22 @@
 """Session- und Submission-Endpunkte."""
 
-import json
+import asyncio
 import uuid
-from datetime import datetime
+
 from backend.timeutils import naive_utcnow
-from pathlib import Path
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from backend.agents.orchestrator import AgentOrchestrator
+from backend.auth import require_student_access, student_access_required
 from backend.cases.manager import case_manager
 from backend.config.tp_configs import current_tp_phase
+from backend.db.dashboard_store import dashboard_store
 from backend.db.experiment_logger import experiment_logger
+from backend.db.session_store import session_store
 from backend.db.submission_store import submission_store
 from backend.evaluator.rubric_evaluator import RubricEvaluator
 from backend.llm import get_openrouter_key
@@ -27,16 +29,27 @@ from backend.models.submission import (
     SubmissionResult,
     SubmissionStatus,
 )
+from backend.ratelimit import rate_limit
 
 logger = structlog.get_logger(__name__)
-router = APIRouter(tags=["sessions"])
 
-SUBMISSIONS_DIR = Path(__file__).parent.parent / "db" / "submissions"
-SUBMISSIONS_DIR.mkdir(parents=True, exist_ok=True)
+# Alle Studierenden-Endpunkte verlangen den Kohorten-Zugangscode, sobald
+# STUDENT_ACCESS_CODE gesetzt ist (sonst offen — Dev-/Experiment-Modus).
+router = APIRouter(tags=["sessions"], dependencies=[Depends(require_student_access)])
 
-# In-memory session store (Phase 2: Redis/PostgreSQL)
+# Prozesslokaler Cache; persistente Quelle ist der jeweilige Store (Mongo).
 _sessions: dict[str, Session] = {}
 _submissions: dict[str, Submission] = {}
+
+
+async def _load_session(session_id: str) -> Session | None:
+    session = _sessions.get(session_id)
+    if session is not None:
+        return session
+    persisted = await asyncio.to_thread(session_store.load, session_id)
+    if persisted is not None:
+        _sessions[session_id] = persisted
+    return persisted
 
 
 def _normalize_experiment(experiment: ExperimentContext | None) -> ExperimentContext | None:
@@ -71,15 +84,22 @@ def _log_experiment_event(event_type: str, **payload: Any) -> None:
     if not experiment:
         event_payload["experiment_context_missing"] = True
 
-    experiment_logger.log_event(event_type, event_payload)
+    # Fire-and-forget: Der blockierende Mongo-Write darf weder den Event-Loop
+    # noch die Antwortzeit belasten; log_event fängt Fehler selbst ab.
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        experiment_logger.log_event(event_type, event_payload)
+        return
+    loop.run_in_executor(None, experiment_logger.log_event, event_type, event_payload)
 
 
-def _get_submission(submission_id: str) -> Submission | None:
+async def _get_submission(submission_id: str) -> Submission | None:
     sub = _submissions.get(submission_id)
     if sub is not None:
         return sub
 
-    persisted = submission_store.load(submission_id)
+    persisted = await asyncio.to_thread(submission_store.load, submission_id)
     if persisted is not None:
         _submissions[submission_id] = persisted
         return persisted
@@ -88,10 +108,26 @@ def _get_submission(submission_id: str) -> Submission | None:
 
 
 # ---------------------------------------------------------------------------
+# Zugangs-Check (Login-Feedback fürs Frontend)
+# ---------------------------------------------------------------------------
+
+@router.post("/auth/student/verify", dependencies=[Depends(rate_limit(10, 60, scope="verify"))])
+async def verify_student_access() -> dict:
+    # require_student_access (Router-Dependency) hat den Code bereits geprüft;
+    # hier landet nur, wer durchgelassen wurde.
+    return {"ok": True, "required": student_access_required()}
+
+
+# ---------------------------------------------------------------------------
 # Sessions
 # ---------------------------------------------------------------------------
 
-@router.post("/sessions", response_model=SessionResponse, status_code=201)
+@router.post(
+    "/sessions",
+    response_model=SessionResponse,
+    status_code=201,
+    dependencies=[Depends(rate_limit(20, 60, scope="create_session"))],
+)
 async def create_session(body: SessionCreate):
     case = case_manager.get(body.case_id)
     if not case:
@@ -109,6 +145,7 @@ async def create_session(body: SessionCreate):
         experiment=experiment,
     )
     _sessions[session_id] = session
+    await asyncio.to_thread(session_store.save, session)
 
     _log_experiment_event(
         "session_created",
@@ -137,9 +174,13 @@ class ChatResponse(BaseModel):
     agent_type: str
     content: str
 
-@router.post("/sessions/{session_id}/chat", response_model=ChatResponse)
+@router.post(
+    "/sessions/{session_id}/chat",
+    response_model=ChatResponse,
+    dependencies=[Depends(rate_limit(15, 60, scope="chat", by_path_param="session_id"))],
+)
 async def chat(session_id: str, body: ChatRequest):
-    session = _sessions.get(session_id)
+    session = await _load_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session nicht gefunden")
 
@@ -168,7 +209,12 @@ async def chat(session_id: str, body: ChatRequest):
         )
     except Exception as e:
         logger.error("chat_error", error=str(e), type=type(e).__name__)
-        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Der Assistent ist gerade nicht erreichbar. Bitte versucht es gleich noch einmal.",
+        )
+
+    await asyncio.to_thread(session_store.save, session)
 
     _log_experiment_event(
         "chat_turn_completed",
@@ -193,7 +239,12 @@ async def chat(session_id: str, body: ChatRequest):
 # Submissions
 # ---------------------------------------------------------------------------
 
-@router.post("/submissions", response_model=dict, status_code=201)
+@router.post(
+    "/submissions",
+    response_model=dict,
+    status_code=201,
+    dependencies=[Depends(rate_limit(20, 60, scope="create_submission"))],
+)
 async def create_submission(body: SubmissionCreate):
     sub_id = str(uuid.uuid4())
     experiment = _normalize_experiment(body.experiment)
@@ -211,7 +262,7 @@ async def create_submission(body: SubmissionCreate):
         experiment=experiment,
     )
     _submissions[sub_id] = submission
-    submission_store.save(submission)
+    await asyncio.to_thread(submission_store.save, submission)
 
     _log_experiment_event(
         "submission_created",
@@ -222,15 +273,18 @@ async def create_submission(body: SubmissionCreate):
     return {"submission_id": sub_id}
 
 
-@router.post("/submissions/{submission_id}/answer")
+@router.post(
+    "/submissions/{submission_id}/answer",
+    dependencies=[Depends(rate_limit(60, 60, scope="answer", by_path_param="submission_id"))],
+)
 async def submit_answer(submission_id: str, body: AnswerSubmit):
-    sub = _get_submission(submission_id)
+    sub = await _get_submission(submission_id)
     if not sub:
         raise HTTPException(status_code=404, detail="Submission nicht gefunden")
     if sub.status == SubmissionStatus.SUBMITTED:
         raise HTTPException(status_code=400, detail="Submission bereits abgeschlossen")
     sub.answers[body.question_id] = body.answer_text
-    submission_store.save(sub)
+    await asyncio.to_thread(submission_store.save, sub)
 
     _log_experiment_event(
         "submission_answer_saved",
@@ -250,9 +304,13 @@ async def submit_answer(submission_id: str, body: AnswerSubmit):
     return {"ok": True}
 
 
-@router.post("/submissions/{submission_id}/submit", response_model=SubmissionResult)
+@router.post(
+    "/submissions/{submission_id}/submit",
+    response_model=SubmissionResult,
+    dependencies=[Depends(rate_limit(5, 60, scope="submit", by_path_param="submission_id"))],
+)
 async def submit_and_evaluate(submission_id: str):
-    sub = _get_submission(submission_id)
+    sub = await _get_submission(submission_id)
     if not sub:
         raise HTTPException(status_code=404, detail="Submission nicht gefunden")
 
@@ -267,7 +325,7 @@ async def submit_and_evaluate(submission_id: str):
 
     sub.status = SubmissionStatus.SUBMITTED
     sub.submitted_at = naive_utcnow()
-    submission_store.save(sub)
+    await asyncio.to_thread(submission_store.save, sub)
 
     _log_experiment_event(
         "submission_submitted",
@@ -278,7 +336,14 @@ async def submit_and_evaluate(submission_id: str):
         ),
     )
 
-    result = await evaluator.evaluate_submission(sub, case)
+    try:
+        result = await evaluator.evaluate_submission(sub, case)
+    except Exception as e:
+        logger.error("evaluation_error", submission_id=submission_id, error=str(e), type=type(e).__name__)
+        raise HTTPException(
+            status_code=503,
+            detail="Die Auswertung ist gerade nicht möglich. Eure Antworten sind gespeichert — bitte versucht es gleich noch einmal.",
+        )
 
     sub.status = SubmissionStatus.EVALUATED
     sub.evaluated_at = naive_utcnow()
@@ -289,7 +354,7 @@ async def submit_and_evaluate(submission_id: str):
     sub.canvas_alignment_pct = result.canvas_alignment_pct
     sub.rubric_fit_pct = result.rubric_fit_pct
     sub.canvas_exemplar_candidate = result.canvas_exemplar_candidate
-    submission_store.save(sub)
+    await asyncio.to_thread(submission_store.save, sub)
 
     # Persistieren für Dashboard
     out = {
@@ -309,9 +374,7 @@ async def submit_and_evaluate(submission_id: str):
             if sub.experiment else None
         ),
     }
-    (SUBMISSIONS_DIR / f"{submission_id}.json").write_text(
-        json.dumps(out, default=str), encoding="utf-8"
-    )
+    await asyncio.to_thread(dashboard_store.save_result, out)
 
     _log_experiment_event(
         "submission_evaluated",

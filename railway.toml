@@ -2,6 +2,12 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "sh -c 'uvicorn backend.main:app --host 0.0.0.0 --port $PORT'"
+# --proxy-headers: Client-IPs aus X-Forwarded-For (nötig fürs Rate-Limiting).
+# WEB_CONCURRENCY > 1 erst setzen, wenn MongoDB in der Umgebung verifiziert
+# läuft — ohne Mongo liegen Sessions nur im Worker-Speicher und ein zweiter
+# Worker würde laufende Chats mit 404 beantworten.
+startCommand = "sh -c 'uvicorn backend.main:app --host 0.0.0.0 --port $PORT --workers ${WEB_CONCURRENCY:-1} --proxy-headers --forwarded-allow-ips=\"*\"'"
+healthcheckPath = "/health"
+healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3

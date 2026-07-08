@@ -1,9 +1,21 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
+// Kohorten-Zugangscode (beim Login gespeichert). Das Backend verlangt ihn
+// auf allen Studierenden-Endpunkten, sobald STUDENT_ACCESS_CODE gesetzt ist.
+function studentAccessHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') return {}
+  const code = sessionStorage.getItem('student_access_code')
+  return code ? { 'X-Student-Access-Code': code } : {}
+}
+
 export async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      ...studentAccessHeaders(),
+      ...opts?.headers,
+    },
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -23,7 +35,14 @@ export async function teacherFetch<T>(path: string, opts?: RequestInit): Promise
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || `API error ${res.status}`)
+    // detail kann ein Objekt sein (z.B. Validierungs-Report bei 422) —
+    // als JSON durchreichen, damit der Aufrufer es parsen kann.
+    const detail = err.detail
+    throw new Error(
+      typeof detail === 'string' ? detail
+      : detail ? JSON.stringify(detail)
+      : `API error ${res.status}`,
+    )
   }
   return res.json()
 }

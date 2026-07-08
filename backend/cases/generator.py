@@ -9,7 +9,6 @@ Workflow:
 
 import json
 import uuid
-from datetime import datetime
 from backend.timeutils import naive_utcnow
 
 import structlog
@@ -176,6 +175,46 @@ TP_NAMES_EN = {
     4: "Integration & overall picture",
 }
 
+REGENERATE_PROMPT = """Du überarbeitest EINEN Teil eines bestehenden Mini-Cases.
+
+Case-Kontext (nur zur Orientierung, NICHT verändern):
+- Titel: {title}
+- Tagline: {tagline}
+- Abschnitte: {section_titles}
+- Branche: {industry}, Ziel-TP: {target_tp}
+
+Zu überarbeitender Teil ({part_kind}):
+{current_json}
+
+Anweisung der Lehrperson:
+{instructions}
+
+Verbotene Framework-Namen (dürfen nicht im Text erscheinen):
+{forbidden_framework_names}
+
+Gib NUR den überarbeiteten Teil als JSON-Objekt mit exakt denselben Feldern
+zurück (IDs unverändert lassen). Kein Text davor oder danach."""
+
+REGENERATE_PROMPT_EN = """You are revising ONE part of an existing mini-case.
+
+Case context (for orientation only, do NOT change it):
+- Title: {title}
+- Tagline: {tagline}
+- Sections: {section_titles}
+- Industry: {industry}, target TP: {target_tp}
+
+Part to revise ({part_kind}):
+{current_json}
+
+Teacher's instruction:
+{instructions}
+
+Forbidden framework names (must not appear in the text):
+{forbidden_framework_names}
+
+Return ONLY the revised part as a JSON object with exactly the same fields
+(keep IDs unchanged). No text before or after it."""
+
 
 # ---------------------------------------------------------------------------
 # TP-spezifische Generierungs-Parameter
@@ -234,7 +273,7 @@ class CaseGenerator:
             messages=[{"role": "user", "content": prompt}],
             max_tokens=4096,
         )
-        data = json.loads(raw)
+        data = json.loads(_strip_json_fences(raw))
 
         case = Case(
             case_id=str(uuid.uuid4()),
@@ -255,3 +294,96 @@ class CaseGenerator:
 
         logger.info("case_generation_complete", case_id=case.case_id, title=case.title, language=language)
         return case
+
+    async def regenerate_part(
+        self,
+        case: Case,
+        *,
+        target: str,           # "section" | "exhibit" | "question" | "tagline"
+        target_id: str | None,
+        instructions: str,
+    ) -> Case:
+        """Regeneriert gezielt einen Teil des Cases nach Anweisung der Lehrperson.
+
+        Gibt den Case mit ersetztem Teil zurück (mutiert die übergebene Instanz).
+        """
+        tp_cfg = TP_CONFIGS.get(case.target_tp, TP_CONFIGS[1])
+        forbidden = ", ".join(tp_cfg["forbidden_framework_names"])
+
+        if target == "tagline":
+            current: dict = {"tagline": case.tagline}
+            part_kind = "Tagline"
+        elif target == "section":
+            match = next((s for s in case.sections if s.section_id == target_id), None)
+            if match is None:
+                raise ValueError(f"Section {target_id} nicht gefunden")
+            current = match.model_dump()
+            part_kind = "Section"
+        elif target == "exhibit":
+            match_e = next((e for e in case.exhibits if e.exhibit_id == target_id), None)
+            if match_e is None:
+                raise ValueError(f"Exhibit {target_id} nicht gefunden")
+            current = match_e.model_dump()
+            part_kind = "Exhibit"
+        elif target == "question":
+            match_q = next((q for q in case.questions if q.question_id == target_id), None)
+            if match_q is None:
+                raise ValueError(f"Frage {target_id} nicht gefunden")
+            current = match_q.model_dump()
+            part_kind = "Frage" if case.language == "de" else "Question"
+        else:
+            raise ValueError(f"Unbekanntes Regenerier-Ziel: {target}")
+
+        template = REGENERATE_PROMPT_EN if case.language == "en" else REGENERATE_PROMPT
+        prompt = template.format(
+            title=case.title,
+            tagline=case.tagline,
+            section_titles=", ".join(s.title for s in case.sections),
+            industry=case.industry,
+            target_tp=case.target_tp,
+            part_kind=part_kind,
+            current_json=json.dumps(current, ensure_ascii=False, indent=2),
+            instructions=instructions.strip() or "Verbessere Klarheit und Qualität.",
+            forbidden_framework_names=forbidden,
+        )
+        system_prompt = SYSTEM_PROMPT_EN if case.language == "en" else SYSTEM_PROMPT
+
+        logger.info("case_regenerate_started", case_id=case.case_id, target=target, target_id=target_id)
+
+        raw = await self.client.complete(
+            system=system_prompt,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=2048,
+        )
+        data = json.loads(_strip_json_fences(raw))
+
+        if target == "tagline":
+            case.tagline = str(data.get("tagline", case.tagline))
+        elif target == "section":
+            data["section_id"] = target_id
+            case.sections = [
+                CaseSection(**data) if s.section_id == target_id else s for s in case.sections
+            ]
+        elif target == "exhibit":
+            data["exhibit_id"] = target_id
+            case.exhibits = [
+                CaseExhibit(**data) if e.exhibit_id == target_id else e for e in case.exhibits
+            ]
+        elif target == "question":
+            data["question_id"] = target_id
+            case.questions = [
+                CaseQuestion(**data) if q.question_id == target_id else q for q in case.questions
+            ]
+
+        logger.info("case_regenerate_complete", case_id=case.case_id, target=target, target_id=target_id)
+        return case
+
+
+def _strip_json_fences(raw: str) -> str:
+    """Entfernt ```json-Fences, falls das Modell welche setzt."""
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else text
+        if text.endswith("```"):
+            text = text[: -3]
+    return text.strip()

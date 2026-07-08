@@ -46,6 +46,14 @@ class CaseQuestion(BaseModel):
     forbidden_framework_names: list[str] = Field(default_factory=list)
 
 
+class CaseEditEvent(BaseModel):
+    """Ein Eintrag der Bearbeitungs-Historie (Editor-/Regenerier-Aktionen)."""
+    at: datetime = Field(default_factory=naive_utcnow)
+    editor: str = ""
+    action: str = ""            # "edited" | "regenerated" | "approved" | ...
+    detail: str = ""
+
+
 class Case(BaseModel):
     case_id: str
     title: str
@@ -66,7 +74,11 @@ class Case(BaseModel):
     reviewed_by: str | None = None
     review_notes: str = ""
 
+    revision: int = 1
+    edit_history: list[CaseEditEvent] = Field(default_factory=list)
+
     created_at: datetime = Field(default_factory=naive_utcnow)
+    updated_at: datetime | None = None
     approved_at: datetime | None = None
 
 

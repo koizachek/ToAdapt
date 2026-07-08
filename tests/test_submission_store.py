@@ -2,7 +2,7 @@ from backend.api import routes
 from backend.models.submission import Submission, SubmissionStatus
 
 
-def test_get_submission_recovers_from_store(monkeypatch):
+async def test_get_submission_recovers_from_store(monkeypatch):
     submission = Submission(
         submission_id="sub-123",
         user_id="user-1",
@@ -15,7 +15,7 @@ def test_get_submission_recovers_from_store(monkeypatch):
     routes._submissions.clear()
     monkeypatch.setattr(routes.submission_store, "load", lambda submission_id: submission if submission_id == "sub-123" else None)
 
-    recovered = routes._get_submission("sub-123")
+    recovered = await routes._get_submission("sub-123")
 
     assert recovered is not None
     assert recovered.submission_id == "sub-123"

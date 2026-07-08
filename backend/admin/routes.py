@@ -1,14 +1,26 @@
 """Admin-Interface — Case-Generierung und Approval-Workflow."""
 
+import asyncio
+
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from backend.auth import require_api_key
 from backend.cases.generator import CaseGenerator
 from backend.cases.manager import case_manager
+from backend.cases.validator import CaseValidationReport, validate_case
 from backend.llm import get_openrouter_key
-from backend.models.case import CaseDifficulty, CaseSummary, Case
+from backend.models.case import (
+    Case,
+    CaseDifficulty,
+    CaseEditEvent,
+    CaseExhibit,
+    CaseQuestion,
+    CaseSection,
+    CaseStatus,
+    CaseSummary,
+)
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -29,6 +41,40 @@ class GenerateCaseRequest(BaseModel):
 class ReviewCaseRequest(BaseModel):
     reviewer: str             # Name oder Kennung des Dozenten
     notes: str = ""
+    force: bool = False       # Freigabe trotz Validierungs-Fehlern erzwingen
+
+
+class UpdateCaseRequest(BaseModel):
+    """Partielle Bearbeitung durch die Lehrperson — nur gesetzte Felder ändern."""
+    editor: str = ""
+    title: str | None = None
+    tagline: str | None = None
+    sections: list[CaseSection] | None = None
+    exhibits: list[CaseExhibit] | None = None
+    questions: list[CaseQuestion] | None = None
+
+
+class RegeneratePartRequest(BaseModel):
+    editor: str = ""
+    target: str               # "section" | "exhibit" | "question" | "tagline"
+    target_id: str | None = None
+    instructions: str = Field(default="", max_length=2000)
+
+
+def _require_case(case_id: str) -> Case:
+    case = case_manager.get(case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="Case nicht gefunden")
+    return case
+
+
+def _bump_revision(case: Case, editor: str, action: str, detail: str) -> None:
+    case.revision += 1
+    case.edit_history.append(CaseEditEvent(editor=editor, action=action, detail=detail))
+    # Inhaltliche Änderungen an einem freigegebenen Case erfordern erneute Freigabe.
+    if case.status == CaseStatus.APPROVED:
+        case.status = CaseStatus.DRAFT
+        case.approved_at = None
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +105,7 @@ async def generate_case(body: GenerateCaseRequest):
         logger.error("case_generation_failed", error=str(e))
         raise HTTPException(status_code=500, detail=f"Generierung fehlgeschlagen: {e}")
 
-    case_manager.save(case)
+    await asyncio.to_thread(case_manager.save, case)
     return case
 
 
@@ -79,20 +125,110 @@ async def get_case(case_id: str):
     return case
 
 
+@router.patch("/cases/{case_id}", response_model=Case, dependencies=[Depends(require_api_key)])
+async def update_case(case_id: str, body: UpdateCaseRequest):
+    """Bearbeitet Felder eines Cases (Editor-Flow der Lehrperson)."""
+    case = _require_case(case_id)
+
+    changed: list[str] = []
+    for field in ("title", "tagline", "sections", "exhibits", "questions"):
+        value = getattr(body, field)
+        if value is not None:
+            setattr(case, field, value)
+            changed.append(field)
+
+    if not changed:
+        return case
+
+    _bump_revision(case, editor=body.editor or "unbekannt", action="edited", detail=", ".join(changed))
+    await asyncio.to_thread(case_manager.save, case)
+    logger.info("case_edited", case_id=case_id, fields=changed, revision=case.revision)
+    return case
+
+
+@router.post("/cases/{case_id}/regenerate", response_model=Case, dependencies=[Depends(require_api_key)])
+async def regenerate_case_part(case_id: str, body: RegeneratePartRequest):
+    """Regeneriert gezielt einen Teil des Cases nach Anweisung der Lehrperson."""
+    case = _require_case(case_id)
+
+    api_key = get_openrouter_key()
+    if not api_key:
+        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
+    generator = CaseGenerator(api_key=api_key)
+
+    try:
+        case = await generator.regenerate_part(
+            case,
+            target=body.target,
+            target_id=body.target_id,
+            instructions=body.instructions,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("case_regenerate_failed", case_id=case_id, error=str(e), type=type(e).__name__)
+        raise HTTPException(
+            status_code=503,
+            detail="Regenerierung gerade nicht möglich — bitte erneut versuchen.",
+        )
+
+    _bump_revision(
+        case,
+        editor=body.editor or "unbekannt",
+        action="regenerated",
+        detail=f"{body.target}:{body.target_id or '-'} — {body.instructions[:200]}",
+    )
+    await asyncio.to_thread(case_manager.save, case)
+    return case
+
+
+@router.get("/cases/{case_id}/validate", response_model=CaseValidationReport, dependencies=[Depends(require_api_key)])
+async def validate_case_endpoint(case_id: str):
+    """Führt die Qualitäts-Checks aus, ohne den Status zu ändern."""
+    return validate_case(_require_case(case_id))
+
+
 @router.post("/cases/{case_id}/approve", response_model=Case, dependencies=[Depends(require_api_key)])
 async def approve_case(case_id: str, body: ReviewCaseRequest):
-    """Gibt einen Case-Draft frei."""
-    case = case_manager.approve(case_id, reviewer=body.reviewer, notes=body.notes)
+    """Gibt einen Case-Draft frei — nur wenn die Qualitäts-Checks bestehen.
+
+    Fehler blockieren die Freigabe (422 mit Report); mit force=True kann die
+    Lehrperson bewusst übersteuern (wird in der Historie vermerkt).
+    """
+    case = _require_case(case_id)
+    report = validate_case(case)
+    if not report.ok and not body.force:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "Validierung fehlgeschlagen — Freigabe blockiert.",
+                "issues": [issue.model_dump() for issue in report.issues],
+            },
+        )
+
+    notes = body.notes
+    if not report.ok and body.force:
+        notes = f"{notes} [Freigabe trotz Validierungsfehlern erzwungen]".strip()
+
+    case = await asyncio.to_thread(case_manager.approve, case_id, reviewer=body.reviewer, notes=notes)
+    logger.info("case_approved", case_id=case_id, reviewer=body.reviewer, forced=not report.ok)
+    return case
+
+
+@router.post("/cases/{case_id}/retire", response_model=Case, dependencies=[Depends(require_api_key)])
+async def retire_case(case_id: str, body: ReviewCaseRequest):
+    """Nimmt einen freigegebenen Case aus dem Studierenden-Pool."""
+    case = await asyncio.to_thread(case_manager.retire, case_id, reviewer=body.reviewer, notes=body.notes)
     if not case:
         raise HTTPException(status_code=404, detail="Case nicht gefunden")
-    logger.info("case_approved", case_id=case_id, reviewer=body.reviewer)
+    logger.info("case_retired", case_id=case_id, reviewer=body.reviewer)
     return case
 
 
 @router.post("/cases/{case_id}/reject", response_model=Case, dependencies=[Depends(require_api_key)])
 async def reject_case(case_id: str, body: ReviewCaseRequest):
     """Lehnt einen Case-Draft ab."""
-    case = case_manager.reject(case_id, reviewer=body.reviewer, notes=body.notes)
+    case = await asyncio.to_thread(case_manager.reject, case_id, reviewer=body.reviewer, notes=body.notes)
     if not case:
         raise HTTPException(status_code=404, detail="Case nicht gefunden")
     logger.info("case_rejected", case_id=case_id, reviewer=body.reviewer)

@@ -28,6 +28,9 @@ const LOGIN_TEXT = {
     studentSection: 'Anmeldung',
     participantLabel: 'Matrikelnummer',
     participantMissing: 'Bitte Prolific-ID eingeben.',
+    studentAccessCode: 'Zugangscode (falls von der Lehrperson ausgegeben)',
+    studentAccessError: 'Zugangscode fehlt oder ist nicht korrekt.',
+    loginUnavailable: 'Anmeldung derzeit nicht möglich — bitte später erneut versuchen.',
     integrityNote: 'Mit dem Absenden bestätigst du, dass deine Antwort eigenständig verfasst ist. Mit ChatGPT oder anderen KI-Tools generierte Antworten werden mit GPTZero überprüft.',
     loading: 'Wird geladen...',
     continue: 'Weiter',
@@ -48,6 +51,9 @@ const LOGIN_TEXT = {
     studentSection: 'Login',
     participantLabel: 'Participant ID',
     participantMissing: 'Please enter your Prolific ID.',
+    studentAccessCode: 'Access code (if provided by your teacher)',
+    studentAccessError: 'Access code is missing or incorrect.',
+    loginUnavailable: 'Login is currently unavailable — please try again later.',
     integrityNote: 'By submitting, you confirm that your answer is your own work. Answers generated with ChatGPT or other AI tools will be checked with GPTZero.',
     loading: 'Loading...',
     continue: 'Continue',
@@ -78,6 +84,10 @@ function LoginPageContent({
     return sessionStorage.getItem('app_mode') === 'teacher' ? 'teacher' : 'student'
   })
   const [participantIdInput, setParticipantIdInput] = useState(prolificPid)
+  const [accessCodeInput, setAccessCodeInput] = useState(() => {
+    if (typeof window === 'undefined') return ''
+    return sessionStorage.getItem('student_access_code') ?? ''
+  })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -132,6 +142,24 @@ function LoginPageContent({
       return
     }
     setLoading(true)
+
+    // Zugangscode speichern und gegen das Backend prüfen (401 = falsch/fehlt;
+    // ist serverseitig kein Code konfiguriert, geht der Check immer durch).
+    const trimmedCode = accessCodeInput.trim()
+    if (trimmedCode) {
+      sessionStorage.setItem('student_access_code', trimmedCode)
+    } else {
+      sessionStorage.removeItem('student_access_code')
+    }
+    try {
+      const { apiFetch } = await import('@/lib/api')
+      await apiFetch('/auth/student/verify', { method: 'POST' })
+    } catch (err) {
+      setLoading(false)
+      const message = err instanceof Error ? err.message : ''
+      setError(/zugangscode|access code/i.test(message) ? text.studentAccessError : text.loginUnavailable)
+      return
+    }
 
     sessionStorage.setItem('experiment_context', JSON.stringify({
       provider: 'prolific',
@@ -246,6 +274,22 @@ function LoginPageContent({
                 <p className="mt-2 text-xs leading-5" style={{ color: '#ad3f2b' }}>
                   {text.integrityNote}
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-xs mb-2 font-medium tracking-wide" style={{ color: 'var(--line)' }}>
+                  {text.studentAccessCode}
+                </label>
+                <input
+                  type="password"
+                  value={accessCodeInput}
+                  onChange={e => { setAccessCodeInput(e.target.value); setError('') }}
+                  placeholder={text.accessPlaceholder}
+                  className="w-full px-4 py-3 text-sm bg-transparent outline-none transition-all"
+                  style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
+                  onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+                  onBlur={e => e.currentTarget.style.borderColor = 'rgba(53,40,30,0.25)'}
+                />
               </div>
 
               <button
