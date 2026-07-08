@@ -168,7 +168,10 @@ async def chat(session_id: str, body: ChatRequest):
         )
     except Exception as e:
         logger.error("chat_error", error=str(e), type=type(e).__name__)
-        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Der Assistent ist gerade nicht erreichbar. Bitte versucht es gleich noch einmal.",
+        )
 
     _log_experiment_event(
         "chat_turn_completed",
