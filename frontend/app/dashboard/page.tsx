@@ -18,6 +18,29 @@ interface Overview {
   by_tp: Record<number, number>; by_bloom: Record<number, number>
   top_objectives: LearningObjectiveScore[]
 }
+interface PenaltyCount { text: string; count: number }
+interface ObjectiveDifficulty { tag: string; avg_pct: number; n: number }
+interface CohortObjective { tag: string; avg_pct: number; students_below: number; students_total: number }
+interface StudentDifficulty {
+  matrikelnummer: string
+  attention_level: 'high' | 'medium' | 'low'
+  attention_reasons: string[]
+  submissions_count: number
+  avg_percentage: number
+  latest_percentage: number | null
+  latest_target_tp: number | null
+  weak_objectives: ObjectiveDifficulty[]
+  weak_blooms: Record<number, number>
+  missing_canvas_blocks: PenaltyCount[]
+  recurring_penalties: PenaltyCount[]
+  needs_human_review_count: number
+}
+interface DifficultyOverview {
+  threshold_pct: number
+  students: StudentDifficulty[]
+  cohort_weak_objectives: CohortObjective[]
+  cohort_common_penalties: PenaltyCount[]
+}
 interface StudentRow {
   matrikelnummer: string; submissions_count: number; avg_percentage: number
   avg_canvas_alignment_pct: number
@@ -65,6 +88,26 @@ const DASHBOARD_TEXT = {
     studentId: 'Matrikelnummer',
     review: 'Review',
     noData: 'Noch keine Daten.',
+    difficulties: 'Fehlerquellen',
+    difficultiesHint: (t: number) => `Wo Studierende Schwierigkeiten haben (Schwelle: unter ${t.toFixed(0)} %). Grundlage: individuelle Vorbereitung im Tool.`,
+    cohortObjectives: 'Lernziele mit den meisten Betroffenen',
+    cohortPenalties: 'Häufigste Schwächen (Kohorte)',
+    below: (b: number, total: number) => `${b} von ${total} unter Schwelle`,
+    attention: { high: 'Hoher Bedarf', medium: 'Beobachten', low: 'Unauffällig' },
+    reasons: {
+      low_avg: 'Ø unter 50 %',
+      low_latest: 'Letzte Abgabe unter 45 %',
+      multiple_weak_objectives: 'Mehrere schwache Lernziele',
+      weak_objective: 'Ein schwaches Lernziel',
+      weak_bloom: 'Schwache Bloom-Stufe(n)',
+      needs_review: 'Evaluator unsicher — Antwort selbst ansehen',
+    } as Record<string, string>,
+    weakObjectives: 'Schwache Lernziele',
+    weakBlooms: 'Schwache Bloom-Stufen',
+    missingBlocks: 'Fehlende Canvas-Blöcke',
+    recurringPenalties: 'Wiederkehrende Schwächen',
+    lastSubmission: 'Letzte Abgabe',
+    noDifficulties: 'Keine auffälligen Schwierigkeiten.',
   },
   en: {
     eyebrow: 'Learning dashboard',
@@ -83,6 +126,26 @@ const DASHBOARD_TEXT = {
     studentId: 'Participant ID',
     review: 'Review',
     noData: 'No data yet.',
+    difficulties: 'Difficulty insights',
+    difficultiesHint: (t: number) => `Where students struggle (threshold: below ${t.toFixed(0)}%). Based on individual preparation in the tool.`,
+    cohortObjectives: 'Objectives with most affected students',
+    cohortPenalties: 'Most common weaknesses (cohort)',
+    below: (b: number, total: number) => `${b} of ${total} below threshold`,
+    attention: { high: 'Needs attention', medium: 'Watch', low: 'On track' },
+    reasons: {
+      low_avg: 'Avg. below 50%',
+      low_latest: 'Latest submission below 45%',
+      multiple_weak_objectives: 'Multiple weak objectives',
+      weak_objective: 'One weak objective',
+      weak_bloom: 'Weak Bloom level(s)',
+      needs_review: 'Evaluator uncertain — review the answer yourself',
+    } as Record<string, string>,
+    weakObjectives: 'Weak objectives',
+    weakBlooms: 'Weak Bloom levels',
+    missingBlocks: 'Missing canvas blocks',
+    recurringPenalties: 'Recurring weaknesses',
+    lastSubmission: 'Latest submission',
+    noDifficulties: 'No notable difficulties.',
   },
 } satisfies Record<Locale, {
   eyebrow: string
@@ -101,6 +164,19 @@ const DASHBOARD_TEXT = {
   studentId: string
   review: string
   noData: string
+  difficulties: string
+  difficultiesHint: (threshold: number) => string
+  cohortObjectives: string
+  cohortPenalties: string
+  below: (below: number, total: number) => string
+  attention: Record<'high' | 'medium' | 'low', string>
+  reasons: Record<string, string>
+  weakObjectives: string
+  weakBlooms: string
+  missingBlocks: string
+  recurringPenalties: string
+  lastSubmission: string
+  noDifficulties: string
 }>
 
 function objectiveLabel(tag: string) {
@@ -127,6 +203,8 @@ export default function DashboardPage() {
   const [language] = useLanguage()
   const [overview, setOverview] = useState<Overview | null>(null)
   const [students, setStudents] = useState<StudentRow[]>([])
+  const [difficulties, setDifficulties] = useState<DifficultyOverview | null>(null)
+  const [expandedStudent, setExpandedStudent] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const text = DASHBOARD_TEXT[language]
 
@@ -134,6 +212,7 @@ export default function DashboardPage() {
     sessionStorage.setItem(APP_MODE_STORAGE_KEY, 'teacher')
     teacherFetch<Overview>('/dashboard/overview').then(setOverview)
     teacherFetch<StudentRow[]>('/dashboard/students').then(setStudents)
+    teacherFetch<DifficultyOverview>('/dashboard/difficulties').then(setDifficulties)
   }, [])
 
   const filtered = students.filter(s => s.matrikelnummer.includes(search))
@@ -221,6 +300,111 @@ export default function DashboardPage() {
               </div>
             )}
           </>
+        )}
+
+        {/* Fehlerquellen / Difficulty insights */}
+        {difficulties && difficulties.students.length > 0 && (
+          <div className="mb-14">
+            <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--muted)' }}>{text.difficulties}</p>
+            <p className="text-xs mb-6" style={{ color: 'var(--muted)' }}>{text.difficultiesHint(difficulties.threshold_pct)}</p>
+
+            {/* Kohorte */}
+            <div className="grid grid-cols-2 gap-6 mb-8">
+              <div className="p-5" style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.12)' }}>
+                <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--muted)' }}>{text.cohortObjectives}</p>
+                {difficulties.cohort_weak_objectives.filter(o => o.students_below > 0).slice(0, 6).map(o => (
+                  <div key={o.tag} className="flex items-center justify-between py-1.5">
+                    <span className="text-sm">{objectiveLabel(o.tag)}</span>
+                    <span className="text-xs" style={{ color: o.students_below / o.students_total > 0.4 ? '#c0392b' : 'var(--muted)' }}>
+                      {text.below(o.students_below, o.students_total)} · Ø {o.avg_pct.toFixed(0)}%
+                    </span>
+                  </div>
+                ))}
+                {difficulties.cohort_weak_objectives.every(o => o.students_below === 0) && (
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>{text.noDifficulties}</p>
+                )}
+              </div>
+              <div className="p-5" style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.12)' }}>
+                <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--muted)' }}>{text.cohortPenalties}</p>
+                {difficulties.cohort_common_penalties.slice(0, 6).map(p => (
+                  <div key={p.text} className="flex items-start justify-between gap-3 py-1.5">
+                    <span className="text-xs leading-5">{p.text}</span>
+                    <span className="text-xs font-medium shrink-0" style={{ color: 'var(--muted)' }}>×{p.count}</span>
+                  </div>
+                ))}
+                {difficulties.cohort_common_penalties.length === 0 && (
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>{text.noDifficulties}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Pro Studierendem */}
+            <div className="divider" />
+            {difficulties.students.map(s => {
+              const attentionColor = s.attention_level === 'high' ? '#c0392b' : s.attention_level === 'medium' ? '#ad3f2b' : 'var(--muted)'
+              const attentionBg = s.attention_level === 'high' ? 'rgba(192,57,43,0.1)' : s.attention_level === 'medium' ? 'rgba(173,63,43,0.08)' : 'rgba(53,40,30,0.06)'
+              const open = expandedStudent === s.matrikelnummer
+              return (
+                <div key={s.matrikelnummer}>
+                  <button
+                    onClick={() => setExpandedStudent(open ? null : s.matrikelnummer)}
+                    className="w-full flex items-center justify-between py-3 px-2 text-left"
+                  >
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <span className="font-mono text-xs">{s.matrikelnummer}</span>
+                      <span className="text-xs px-2 py-0.5" style={{ background: attentionBg, color: attentionColor }}>
+                        {text.attention[s.attention_level]}
+                      </span>
+                      {s.weak_objectives.slice(0, 3).map(o => (
+                        <span key={o.tag} className="text-xs px-2 py-0.5" style={{ background: 'rgba(53,40,30,0.07)', color: 'var(--ink)' }}>
+                          {objectiveLabel(o.tag)} {o.avg_pct.toFixed(0)}%
+                        </span>
+                      ))}
+                    </div>
+                    <span className="text-xs shrink-0" style={{ color: 'var(--muted)' }}>
+                      Ø {s.avg_percentage.toFixed(0)}%{s.latest_percentage != null && ` · ${text.lastSubmission}: ${s.latest_percentage.toFixed(0)}%`}
+                    </span>
+                  </button>
+
+                  {open && (
+                    <div className="px-2 pb-4 flex flex-col gap-3">
+                      <div className="flex flex-wrap gap-2">
+                        {s.attention_reasons.map(r => (
+                          <span key={r} className="text-xs px-2 py-0.5" style={{ background: attentionBg, color: attentionColor }}>
+                            {text.reasons[r] ?? r}
+                          </span>
+                        ))}
+                      </div>
+                      {Object.keys(s.weak_blooms).length > 0 && (
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                          {text.weakBlooms}: {Object.entries(s.weak_blooms).map(([lvl, pct]) => `${BLOOM[language][Number(lvl)] ?? `Bloom ${lvl}`} (${pct.toFixed(0)}%)`).join(', ')}
+                        </p>
+                      )}
+                      {s.missing_canvas_blocks.length > 0 && (
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                          {text.missingBlocks}: {s.missing_canvas_blocks.map(b => `${objectiveLabel(b.text)} (×${b.count})`).join(', ')}
+                        </p>
+                      )}
+                      {s.recurring_penalties.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium mb-1">{text.recurringPenalties}</p>
+                          {s.recurring_penalties.map(p => (
+                            <p key={p.text} className="text-xs leading-5" style={{ color: 'var(--muted)' }}>
+                              – {p.text} {p.count > 1 && <span>×{p.count}</span>}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                      {s.weak_objectives.length === 0 && s.recurring_penalties.length === 0 && Object.keys(s.weak_blooms).length === 0 && (
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>{text.noDifficulties}</p>
+                      )}
+                    </div>
+                  )}
+                  <div className="divider" />
+                </div>
+              )
+            })}
+          </div>
         )}
 
         {/* Student table */}

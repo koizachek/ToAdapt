@@ -39,6 +39,48 @@ class LearningObjectiveScore(BaseModel):
     n: int
 
 
+class PenaltyCount(BaseModel):
+    """Wiederkehrende Schwäche (aus Evaluator-Feedback) mit Häufigkeit."""
+    text: str
+    count: int
+
+
+class ObjectiveDifficulty(BaseModel):
+    tag: str
+    avg_pct: float
+    n: int
+
+
+class CohortObjective(BaseModel):
+    tag: str
+    avg_pct: float
+    students_below: int      # Studierende unter der Schwelle
+    students_total: int      # Studierende mit Daten zu diesem Lernziel
+
+
+class StudentDifficulty(BaseModel):
+    """Fehlerquellen-Profil eines Studierenden für Tutor:innen."""
+    matrikelnummer: str
+    attention_level: str                 # "high" | "medium" | "low"
+    attention_reasons: list[str]         # Codes, Frontend übersetzt
+    submissions_count: int
+    avg_percentage: float
+    latest_percentage: float | None = None
+    latest_target_tp: int | None = None
+    weak_objectives: list[ObjectiveDifficulty]
+    weak_blooms: dict[int, float]
+    missing_canvas_blocks: list[PenaltyCount]
+    recurring_penalties: list[PenaltyCount]
+    needs_human_review_count: int
+
+
+class DifficultyOverview(BaseModel):
+    threshold_pct: float
+    students: list[StudentDifficulty]            # high zuerst
+    cohort_weak_objectives: list[CohortObjective]
+    cohort_common_penalties: list[PenaltyCount]
+
+
 class StudentRow(BaseModel):
     matrikelnummer: str
     submissions_count: int
@@ -137,6 +179,100 @@ def _review_counts(results: list[dict]) -> tuple[int, int]:
     return review_count, fallback_count
 
 
+# Unterhalb dieser Quote gilt ein Lernziel/Bloom-Level als Schwierigkeit.
+WEAK_THRESHOLD_PCT = 60.0
+
+
+def _normalize_phrase(text: str) -> str:
+    return " ".join(text.strip().rstrip(".!").split())
+
+
+def _add_phrase(bucket: dict[str, list], text: str) -> None:
+    """Zählt Phrasen case-insensitiv, behält die erste Schreibweise als Anzeige."""
+    norm = _normalize_phrase(text)
+    if not norm:
+        return
+    key = norm.casefold()
+    if key in bucket:
+        bucket[key][1] += 1
+    else:
+        bucket[key] = [norm, 1]
+
+
+def _top_phrases(bucket: dict[str, list], limit: int = 5) -> list[PenaltyCount]:
+    ranked = sorted(bucket.values(), key=lambda item: -item[1])[:limit]
+    return [PenaltyCount(text=text, count=count) for text, count in ranked]
+
+
+def _student_difficulty(matrikel: str, results: list[dict]) -> StudentDifficulty:
+    all_scores = [s for r in results for s in r.get("scores", [])]
+
+    weak_objectives = [
+        ObjectiveDifficulty(tag=o.tag, avg_pct=o.avg_pct, n=o.n)
+        for o in _aggregate_objectives(all_scores)
+        if o.avg_pct < WEAK_THRESHOLD_PCT
+    ]
+
+    bloom_buckets: dict[int, list[tuple]] = defaultdict(list)
+    for s in all_scores:
+        bloom_buckets[s["bloom_level"]].append((s["awarded_points"], s["max_points"]))
+    weak_blooms = {}
+    for lvl, pairs in bloom_buckets.items():
+        max_sum = sum(p[1] for p in pairs)
+        pct = round(sum(p[0] for p in pairs) / max_sum * 100, 1) if max_sum else 0.0
+        if pct < WEAK_THRESHOLD_PCT:
+            weak_blooms[lvl] = pct
+
+    penalties: dict[str, list] = {}
+    missing_blocks: dict[str, list] = {}
+    for s in all_scores:
+        for p in s.get("main_penalties", []):
+            _add_phrase(penalties, str(p))
+        for b in s.get("missing_canvas_blocks", []):
+            _add_phrase(missing_blocks, str(b))
+
+    avg_pct = round(sum(r["percentage"] for r in results) / len(results), 1)
+    latest = _latest_result(results)
+    latest_pct = latest.get("percentage") if latest else None
+    review_count, _ = _review_counts(results)
+
+    reasons: list[str] = []
+    if avg_pct < 50:
+        reasons.append("low_avg")
+    if latest_pct is not None and latest_pct < 45:
+        reasons.append("low_latest")
+    if len(weak_objectives) >= 2:
+        reasons.append("multiple_weak_objectives")
+    elif len(weak_objectives) == 1:
+        reasons.append("weak_objective")
+    if weak_blooms:
+        reasons.append("weak_bloom")
+    if review_count > 0:
+        reasons.append("needs_review")
+
+    if "low_avg" in reasons or "low_latest" in reasons or "multiple_weak_objectives" in reasons:
+        attention = "high"
+    elif reasons:
+        attention = "medium"
+    else:
+        attention = "low"
+
+    return StudentDifficulty(
+        matrikelnummer=matrikel,
+        attention_level=attention,
+        attention_reasons=reasons,
+        submissions_count=len(results),
+        avg_percentage=avg_pct,
+        latest_percentage=latest_pct,
+        latest_target_tp=latest.get("target_tp") if latest else None,
+        weak_objectives=weak_objectives,
+        weak_blooms=weak_blooms,
+        missing_canvas_blocks=_top_phrases(missing_blocks),
+        recurring_penalties=_top_phrases(penalties),
+        needs_human_review_count=review_count,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -199,6 +335,67 @@ async def get_overview():
         by_tp=by_tp,
         by_bloom=by_bloom,
         top_objectives=_aggregate_objectives(all_scores)[:5],
+    )
+
+
+@router.get("/difficulties", response_model=DifficultyOverview)
+async def get_difficulties():
+    """Fehlerquellen-Sicht für Tutor:innen.
+
+    Zeigt pro Studierendem, wo es hakt (schwache Lernziele/Bloom-Stufen,
+    fehlende Canvas-Blöcke, wiederkehrende Schwächen aus dem Evaluator-
+    Feedback) und priorisiert, wer Aufmerksamkeit braucht. Kohorten-Teil:
+    Welche Lernziele und Schwächen treten am häufigsten auf?
+    """
+    results = _load_all_results()
+    by_student: dict[str, list] = defaultdict(list)
+    for r in results:
+        by_student[r["matrikelnummer"]].append(r)
+
+    students = [
+        _student_difficulty(matrikel, student_results)
+        for matrikel, student_results in by_student.items()
+    ]
+    order = {"high": 0, "medium": 1, "low": 2}
+    students.sort(key=lambda s: (order[s.attention_level], s.avg_percentage))
+
+    # Kohorte: Lernziele — wie viele Studierende liegen jeweils unter der Schwelle?
+    per_student_objectives: dict[str, dict[str, float]] = {}
+    for matrikel, student_results in by_student.items():
+        all_scores = [s for r in student_results for s in r.get("scores", [])]
+        per_student_objectives[matrikel] = {
+            o.tag: o.avg_pct for o in _aggregate_objectives(all_scores)
+        }
+
+    tag_pcts: dict[str, list[float]] = defaultdict(list)
+    for objectives in per_student_objectives.values():
+        for tag, pct in objectives.items():
+            tag_pcts[tag].append(pct)
+
+    cohort_weak_objectives = sorted(
+        (
+            CohortObjective(
+                tag=tag,
+                avg_pct=round(sum(pcts) / len(pcts), 1),
+                students_below=sum(1 for pct in pcts if pct < WEAK_THRESHOLD_PCT),
+                students_total=len(pcts),
+            )
+            for tag, pcts in tag_pcts.items()
+        ),
+        key=lambda o: (-o.students_below, o.avg_pct),
+    )[:8]
+
+    cohort_penalties: dict[str, list] = {}
+    for r in results:
+        for s in r.get("scores", []):
+            for p in s.get("main_penalties", []):
+                _add_phrase(cohort_penalties, str(p))
+
+    return DifficultyOverview(
+        threshold_pct=WEAK_THRESHOLD_PCT,
+        students=students,
+        cohort_weak_objectives=cohort_weak_objectives,
+        cohort_common_penalties=_top_phrases(cohort_penalties, limit=8),
     )
 
 
