@@ -78,11 +78,14 @@ const ADMIN_TEXT = {
     reject: 'Ablehnen',
     retire: 'Aus Pool nehmen',
     archiveTitle: 'Case archivieren',
-    archiveBody: 'Der Case wird aus dem Pool genommen und ist für Studierende nicht mehr sichtbar. Zur Bestätigung dein Passwort eingeben.',
-    archivePassword: 'Dein Passwort',
+    archiveBody: 'Der Case wird aus dem Pool genommen und ist für Studierende nicht mehr sichtbar. Nur der Master-Tutor kann archivieren — bitte den Master-Code eingeben.',
+    archivePassword: 'Master-Code',
     archiveConfirm: 'Archivieren',
     archiveCancel: 'Abbrechen',
-    archiveWrong: 'Falsches Passwort.',
+    archiveWrong: 'Falscher Code — nur der Master-Tutor kann das.',
+    restore: 'Wiederherstellen',
+    restoreTitle: 'Case wiederherstellen',
+    restoreBody: 'Der Case kommt zurück in den Pool und ist für Studierende wieder sichtbar. Nur der Master-Tutor kann das — bitte den Master-Code eingeben.',
     questions: 'Fragen',
     sections: 'Abschnitte',
     exhibits: 'Exhibits',
@@ -144,11 +147,14 @@ const ADMIN_TEXT = {
     reject: 'Reject',
     retire: 'Remove from pool',
     archiveTitle: 'Archive case',
-    archiveBody: 'The case will be removed from the pool and is no longer visible to students. Enter your password to confirm.',
-    archivePassword: 'Your password',
+    archiveBody: 'The case will be removed from the pool and is no longer visible to students. Only the master tutor can archive — enter the master code.',
+    archivePassword: 'Master code',
     archiveConfirm: 'Archive',
     archiveCancel: 'Cancel',
-    archiveWrong: 'Wrong password.',
+    archiveWrong: 'Wrong code — only the master tutor can do this.',
+    restore: 'Restore',
+    restoreTitle: 'Restore case',
+    restoreBody: 'The case returns to the pool and is visible to students again. Only the master tutor can do this — enter the master code.',
     questions: 'Questions',
     sections: 'Sections',
     exhibits: 'Exhibits',
@@ -214,8 +220,8 @@ export default function AdminPage() {
   const [notice, setNotice]     = useState('')
   const [report, setReport]     = useState<ValidationReport | null>(null)
   const [regenInstructions, setRegenInstructions] = useState<Record<string, string>>({})
-  // Passwortgeschütztes Archivieren (Schutz vor versehentlichem Entfernen).
-  const [archiveTarget, setArchiveTarget] = useState<{ id: string; title: string } | null>(null)
+  // Passwortgeschütztes Archivieren/Wiederherstellen (nur Master-Tutor).
+  const [archiveTarget, setArchiveTarget] = useState<{ id: string; title: string; action: 'retire' | 'restore' } | null>(null)
   const [archivePassword, setArchivePassword] = useState('')
   const [archiveError, setArchiveError] = useState('')
   const [archiving, setArchiving] = useState(false)
@@ -323,7 +329,7 @@ export default function AdminPage() {
     } catch { setNotice(text.error) } finally { setBusy(null) }
   }
 
-  const review = async (id: string, action: 'approve' | 'reject' | 'retire', force = false) => {
+  const review = async (id: string, action: 'approve' | 'reject' | 'retire' | 'restore', force = false) => {
     setBusy('approve')
     setNotice('')
     try {
@@ -360,7 +366,7 @@ export default function AdminPage() {
         body: JSON.stringify({ password: archivePassword }),
       })
       if (!res.ok) { setArchiveError(text.archiveWrong); return }
-      await review(archiveTarget.id, 'retire')
+      await review(archiveTarget.id, archiveTarget.action)
       setArchiveTarget(null)
       setArchivePassword('')
     } catch {
@@ -517,11 +523,19 @@ export default function AdminPage() {
                     )}
                     {c.status === 'approved' && (
                       <button
-                        onClick={() => { setArchiveTarget({ id: c.case_id, title: c.title }); setArchivePassword(''); setArchiveError('') }}
+                        onClick={() => { setArchiveTarget({ id: c.case_id, title: c.title, action: 'retire' }); setArchivePassword(''); setArchiveError('') }}
                         className="p-1.5 transition-all"
                         style={{ background: 'rgba(53,40,30,0.08)', color: 'var(--ink)' }}
                         title={text.retire}
                       ><Archive size={13} /></button>
+                    )}
+                    {c.status === 'retired' && (
+                      <button
+                        onClick={() => { setArchiveTarget({ id: c.case_id, title: c.title, action: 'restore' }); setArchivePassword(''); setArchiveError('') }}
+                        className="p-1.5 transition-all"
+                        style={{ background: 'rgba(21,99,61,0.1)', color: 'var(--accent)' }}
+                        title={text.restore}
+                      ><RefreshCw size={13} /></button>
                     )}
                   </div>
                 </div>
@@ -814,11 +828,13 @@ export default function AdminPage() {
               style={{ background: 'var(--surface)', border: '1px solid var(--hairline)' }}
             >
               <div className="mb-2 flex items-center gap-2">
-                <Archive size={16} style={{ color: 'var(--ink)' }} />
-                <h2 className="text-base font-medium">{text.archiveTitle}</h2>
+                {archiveTarget.action === 'restore'
+                  ? <RefreshCw size={16} style={{ color: 'var(--ink)' }} />
+                  : <Archive size={16} style={{ color: 'var(--ink)' }} />}
+                <h2 className="text-base font-medium">{archiveTarget.action === 'restore' ? text.restoreTitle : text.archiveTitle}</h2>
               </div>
               <p className="mb-1 text-sm font-medium">{archiveTarget.title}</p>
-              <p className="mb-4 text-xs leading-6" style={{ color: 'var(--muted)' }}>{text.archiveBody}</p>
+              <p className="mb-4 text-xs leading-6" style={{ color: 'var(--muted)' }}>{archiveTarget.action === 'restore' ? text.restoreBody : text.archiveBody}</p>
               <label className="mb-2 block text-xs font-medium" style={{ color: 'var(--line)' }}>{text.archivePassword}</label>
               <input
                 type="password"
@@ -842,7 +858,7 @@ export default function AdminPage() {
                   disabled={archiving || !archivePassword}
                   className="px-4 py-2 text-xs font-medium transition-all"
                   style={{ background: 'var(--ink)', color: 'var(--white)', opacity: archiving || !archivePassword ? 0.5 : 1 }}
-                >{text.archiveConfirm}</button>
+                >{archiveTarget.action === 'restore' ? text.restore : text.archiveConfirm}</button>
               </div>
             </form>
           </div>

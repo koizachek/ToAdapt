@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyTeacherSession, resolveTutorByCode, TEACHER_COOKIE } from '@/lib/teacherAuth'
+import { verifyTeacherSession, verifyArchiveCode, TEACHER_COOKIE } from '@/lib/teacherAuth'
 
-// Bestätigt das EIGENE Passwort einer eingeloggten Lehrkraft — z.B. als
-// Sicherung vor versehentlichem, unwiderruflichem Archivieren eines Cases.
-// Das Passwort ist der Zugangscode aus dem Login (bei Tutor:innen "000"),
-// serverseitig gegen TEACHER_ACCESS_CODES bzw. TEACHER_ACCESS_CODE geprüft —
-// nie hardcodiert, nie im Browser-Bundle.
+// Bestätigt den Master-Archiv-Code als Sicherung vor versehentlichem,
+// unwiderruflichem Archivieren eines Cases. Nur der Master-Tutor kennt den
+// Code (Env TEACHER_ARCHIVE_CODE, z.B. "000") — reguläre Tutor:innen können
+// damit NICHT archivieren. Der Code wird serverseitig geprüft, nie hardcodiert,
+// nie im Browser-Bundle. Voraussetzung ist zusätzlich eine gültige Session.
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const token = request.cookies.get(TEACHER_COOKIE)?.value
-  const sessionTutor = await verifyTeacherSession(token)
-  if (!sessionTutor) {
+  if (!(await verifyTeacherSession(token))) {
     return NextResponse.json({ ok: false, detail: 'Nicht autorisiert' }, { status: 401 })
   }
 
@@ -21,9 +20,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, detail: 'Ungültige Anfrage' }, { status: 400 })
   }
 
-  // Nur das eigene Passwort zählt: der eingegebene Code muss auf dieselbe
-  // Tutor-Kennung auflösen wie die aktive Session.
-  const resolved = password ? resolveTutorByCode(password) : null
-  const ok = Boolean(resolved && resolved === sessionTutor)
+  const ok = Boolean(password) && verifyArchiveCode(password)
   return NextResponse.json({ ok }, { status: ok ? 200 : 401 })
 }

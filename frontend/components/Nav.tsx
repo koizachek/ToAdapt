@@ -124,7 +124,7 @@ export default function Nav() {
   return (
     <header
       className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between gap-6 px-8 py-5"
-      style={{ borderBottom: '1px solid var(--hairline)', background: 'rgba(223,221,214,0.92)', backdropFilter: 'blur(12px)' }}
+      style={{ borderBottom: '1px solid var(--hairline)', background: 'rgba(228,226,220,0.92)', backdropFilter: 'blur(12px)' }}
     >
       {/* Wordmark */}
       <Link href="/" className="font-display text-xl tracking-tight" style={{ color: 'var(--ink)' }}>

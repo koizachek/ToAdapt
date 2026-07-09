@@ -229,6 +229,16 @@ async def retire_case(case_id: str, body: ReviewCaseRequest):
     return case
 
 
+@router.post("/cases/{case_id}/restore", response_model=Case, dependencies=[Depends(require_api_key)])
+async def restore_case(case_id: str, body: ReviewCaseRequest):
+    """Macht ein Archivieren rückgängig und bringt den Case zurück in den Pool."""
+    case = await asyncio.to_thread(case_manager.restore, case_id, reviewer=body.reviewer, notes=body.notes)
+    if not case:
+        raise HTTPException(status_code=404, detail="Case nicht gefunden")
+    logger.info("case_restored", case_id=case_id, reviewer=body.reviewer)
+    return case
+
+
 @router.post("/cases/{case_id}/reject", response_model=Case, dependencies=[Depends(require_api_key)])
 async def reject_case(case_id: str, body: ReviewCaseRequest):
     """Lehnt einen Case-Draft ab."""

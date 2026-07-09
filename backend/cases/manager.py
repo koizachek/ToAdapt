@@ -158,6 +158,19 @@ class CaseManager:
         self.save(case)
         return case
 
+    def restore(self, case_id: str, reviewer: str, notes: str = "") -> Case | None:
+        """Macht ein Archivieren rückgängig: bringt den Case zurück in den Pool."""
+        case = self.get(case_id)
+        if not case:
+            return None
+        case.status = CaseStatus.APPROVED
+        case.reviewed_by = reviewer
+        case.review_notes = notes
+        case.approved_at = naive_utcnow()
+        self._record(case, editor=reviewer, action="restored", detail=notes)
+        self.save(case)
+        return case
+
     def approved_pool(self, target_tp: int | None = None) -> list[Case]:
         """Gibt alle approvedCases zurück, optional gefiltert nach TP."""
         result = []

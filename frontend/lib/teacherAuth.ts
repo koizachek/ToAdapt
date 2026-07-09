@@ -113,5 +113,19 @@ export function resolveTutorByCode(code: string): string | null {
   return null
 }
 
+/**
+ * Prüft den Master-Archiv-Code gegen die Env `TEACHER_ARCHIVE_CODE`.
+ *
+ * Nur der Master-Tutor kennt diesen Code (z.B. "000") und darf damit Cases
+ * archivieren — reguläre Tutor:innen mit ihren Login-Einzelcodes nicht. Der
+ * Code ist NICHT hardcodiert, sondern liegt allein in der Env-Variable.
+ * Fail-closed: ohne konfigurierten Code ist Archivieren gesperrt.
+ */
+export function verifyArchiveCode(code: string): boolean {
+  const master = process.env.TEACHER_ARCHIVE_CODE
+  if (!master) return false
+  return timingSafeEqual(code, master)
+}
+
 export const TEACHER_COOKIE = COOKIE_NAME
 export const TEACHER_COOKIE_MAX_AGE = MAX_AGE_SECONDS
