@@ -552,7 +552,7 @@ function BusinessModelCanvasGuide({ language, blocks }: { language: Locale; bloc
             {text.canvasEyebrow}
           </p>
           <h2 className="font-display text-2xl leading-tight flex items-center gap-3">
-            <NotionIcon name="canvas" size={30} />
+            <NotionIcon name="canvas" size={33} />
             {text.canvasTitle}
           </h2>
         </div>
@@ -1095,11 +1095,17 @@ export default function CasePage() {
                 {caseData.sections.map((section, sectionIndex) => (
                   <section key={section.section_id}>
                     {sectionIndex === 0 ? (
-                      <h2 className="mb-3 font-display text-2xl leading-tight">{section.title}</h2>
+                      // Case-Einleitung: der Firmennamen-Präfix vor dem Doppelpunkt
+                      // ("Alpes Bank: …") steht bereits im Seiten-Titel (<h1>) → weglassen.
+                      <h2 className="mb-3 font-display text-2xl leading-tight">
+                        {section.title.includes(': ')
+                          ? section.title.slice(section.title.indexOf(': ') + 2)
+                          : section.title}
+                      </h2>
                     ) : (
                       <h2 className="mb-3 flex items-center gap-3 text-base font-medium">
                         {SECTION_ICONS[section.section_id] && (
-                          <NotionIcon name={SECTION_ICONS[section.section_id]} size={30} className="shrink-0" />
+                          <NotionIcon name={SECTION_ICONS[section.section_id]} size={33} className="shrink-0" />
                         )}
                         {section.title}
                       </h2>
@@ -1136,7 +1142,7 @@ export default function CasePage() {
                         >
                           <div className="mb-3 flex items-center gap-2.5">
                             {EXHIBIT_ICONS[exhibitIndex] && (
-                              <NotionIcon name={EXHIBIT_ICONS[exhibitIndex]} size={30} className="shrink-0" />
+                              <NotionIcon name={EXHIBIT_ICONS[exhibitIndex]} size={33} className="shrink-0" />
                             )}
                             <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
                               {exhibit.title}
@@ -1310,7 +1316,7 @@ export default function CasePage() {
                                       opacity: hint.loading ? 0.6 : 1,
                                     }}
                                   >
-                                    <NotionIcon name="idea" size={16} className="mr-1.5" />
+                                    <NotionIcon name="idea" size={18} className="mr-1.5" />
                                     {hint.loading ? text.hintLoading : text.hintButton}
                                   </button>
                                   <span style={{ color: 'var(--muted)' }}>{text.hintRemaining(hint.remaining)}</span>
@@ -1431,7 +1437,7 @@ export default function CasePage() {
                   </div>
                   <div>
                     <p className="flex items-center gap-2 text-sm font-medium">
-                      <NotionIcon name="chat" size={24} />
+                      <NotionIcon name="chat" size={26} />
                       {text.learningChat}
                     </p>
                   </div>
