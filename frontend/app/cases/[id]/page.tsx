@@ -5,6 +5,7 @@ import { useParams, usePathname, useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { BookOpenText, FileText, MessageSquare, Send } from 'lucide-react'
 import Nav from '@/components/Nav'
+import NotionIcon from '@/components/NotionIcon'
 import { apiFetch } from '@/lib/api'
 import {
   APP_MODE_CHANGED_EVENT,
@@ -535,7 +536,10 @@ function BusinessModelCanvasGuide({ language, blocks }: { language: Locale; bloc
           <p className="mb-2 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
             {text.canvasEyebrow}
           </p>
-          <h2 className="font-display text-2xl leading-tight">{text.canvasTitle}</h2>
+          <h2 className="font-display text-2xl leading-tight flex items-center gap-3">
+            <NotionIcon name="canvas" size={30} />
+            {text.canvasTitle}
+          </h2>
         </div>
         <span
           className="shrink-0 rounded-full px-3 py-1 text-xs font-medium tracking-wide"
@@ -1277,6 +1281,7 @@ export default function CasePage() {
                                       opacity: hint.loading ? 0.6 : 1,
                                     }}
                                   >
+                                    <NotionIcon name="idea" size={16} className="mr-1.5" />
                                     {hint.loading ? text.hintLoading : text.hintButton}
                                   </button>
                                   <span style={{ color: 'var(--muted)' }}>{text.hintRemaining(hint.remaining)}</span>
@@ -1396,7 +1401,10 @@ export default function CasePage() {
                     <MessageSquare size={18} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">{text.learningChat}</p>
+                    <p className="flex items-center gap-2 text-sm font-medium">
+                      <NotionIcon name="chat" size={24} />
+                      {text.learningChat}
+                    </p>
                   </div>
                 </div>
 

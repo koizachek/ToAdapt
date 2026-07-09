@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
+import HelpHint from '@/components/HelpHint'
+import NotionIcon from '@/components/NotionIcon'
+import TeacherIntro from '@/components/TeacherIntro'
 import { teacherFetch } from '@/lib/api'
 import { Plus, Check, X, ChevronDown, ChevronUp, RefreshCw, Save, ShieldCheck, Archive } from 'lucide-react'
 import { APP_MODE_STORAGE_KEY } from '@/lib/appMode'
@@ -109,6 +112,23 @@ const ADMIN_TEXT = {
     blockKeywords: 'Signal-Keywords (kommagetrennt)',
     blockExpectation: 'Erwartung an die Antwort',
     noBlocks: 'Keine Canvas-Bausteine — der Judge nutzt den Alpes-Bank-Datei-Fallback!',
+    introTitle: 'Kurzanleitung: Cases erstellen und freigeben',
+    introSteps: [
+      'Generieren: Branche, Land und Ziel-TP wählen — die KI erstellt einen vollständigen Entwurf inkl. Bewertungspaket.',
+      'Kuratieren: Klappe den Case auf. Der wichtigste Review-Gegenstand sind nicht nur die Texte, sondern Prüfkriterien, Signal-Keywords und Bewertungs-Anker — danach bewertet die KI später die Antworten.',
+      'Einzelne Teile kannst du mit einer Anweisung gezielt regenerieren lassen („mehr Zahlen, kürzer").',
+      'Prüfen → Freigeben: Der Check blockiert Regelverstöße (z.B. Modellnamen im Text). Erst nach Freigabe sehen Studierende den Case.',
+      'Änderungen an freigegebenen Cases setzen den Status zurück — erneute Freigabe nötig.',
+    ],
+    introHint: 'Die ?-Symbole erklären jedes Feld — sie bleiben dauerhaft verfügbar.',
+    introDismiss: 'Verstanden',
+    helpGenerator: 'Erstellt per KI einen vollständigen Case-Entwurf: Fallgeschichte, Exhibits, Fragen samt Bewertungskriterien, Glossar und Chat-Kontext. Der Entwurf ist ein Startpunkt — freigegeben wird erst nach deiner Kuratierung.',
+    helpReviewer: 'Wird aus deinem Login vorbelegt und an Freigaben/Änderungen protokolliert — so bleibt nachvollziehbar, wer welchen Case verantwortet.',
+    helpRubric: 'Diese Kriterien und Signal-Keywords steuern die automatische Bewertung: Die Keywords zeigen an, ob Studierende einen Pflicht-Baustein ansprechen; die Erwartung beschreibt, was eine gute Antwort dazu zeigen muss. Formuliere pfadoffen — mehrere gute Antwortwege müssen volle Punkte erreichen können.',
+    helpCalibration: 'Feinjustierung für die KI-Bewertung dieser Frage (z.B. „verlangt zwei klar getrennte Herausforderungen"). Leer lassen ist ok — dann gelten generische Anker je Denk-Niveau. Nach spürbaren Änderungen: Stichprobe von Antworten gegenlesen.',
+    helpGlossary: 'Begriffe werden im Case-Text hervorgehoben und starten per Klick eine Erklärung im Lernchat. Wichtig: Jeder Begriff muss WÖRTLICH im Text vorkommen, sonst kann er nicht hervorgehoben werden (der Prüf-Check warnt).',
+    helpGuidance: 'Kontext für den Lernbegleiter: Spannungsfelder und typische Denkfehler dieses Cases. Der Chat nutzt sie, um bessere Rückfragen zu stellen — er warnt nie direkt, sondern macht Fehler durch Fragen sichtbar.',
+    helpApprove: 'Freigeben macht den Case für Studierende sichtbar. Vorher läuft ein automatischer Check: Regelverstöße (Modellnamen, reservierte Kurs-Cases) blockieren; Warnungen (fehlende Keywords, Glossar-Begriffe nicht im Text) solltest du beheben. Übersteuern ist möglich, wird aber protokolliert.',
   },
   en: {
     eyebrow: 'Teacher interface',
@@ -162,6 +182,23 @@ const ADMIN_TEXT = {
     blockKeywords: 'Signal keywords (comma-separated)',
     blockExpectation: 'Expectation for the answer',
     noBlocks: 'No canvas blocks — the judge falls back to the Alpes-Bank file rubric!',
+    introTitle: 'Quick guide: creating and approving cases',
+    introSteps: [
+      'Generate: pick industry, country, and target TP — the AI creates a complete draft including the assessment package.',
+      'Curate: expand the case. The most important review targets are not just the texts, but the assessment criteria, signal keywords, and calibration anchors — the AI later grades answers based on them.',
+      'You can regenerate individual parts with an instruction ("more numbers, shorter").',
+      'Validate → Approve: the check blocks rule violations (e.g. framework names in the text). Students only see the case after approval.',
+      'Editing an approved case resets its status — it needs re-approval.',
+    ],
+    introHint: 'The ?-icons explain every field — they stay available permanently.',
+    introDismiss: 'Got it',
+    helpGenerator: 'Uses AI to create a complete case draft: story, exhibits, questions with assessment criteria, glossary, and chat context. The draft is a starting point — it only goes live after your curation.',
+    helpReviewer: 'Prefilled from your login and recorded with approvals/edits — so it stays traceable who owns which case.',
+    helpRubric: 'These criteria and signal keywords drive the automatic grading: keywords indicate whether students address a required block; the expectation describes what a good answer must show. Phrase them path-open — several good answer paths must be able to reach full points.',
+    helpCalibration: 'Fine-tuning for the AI grading of this question (e.g. "requires two clearly separated challenges"). Leaving it empty is fine — generic anchors per thinking level apply. After substantial changes: spot-check a sample of graded answers.',
+    helpGlossary: 'Terms are highlighted in the case text and start an explanation in the learning chat when clicked. Important: each term must appear VERBATIM in the text, otherwise it cannot be highlighted (the validation check warns).',
+    helpGuidance: 'Context for the learning companion: tensions and typical thinking errors of this case. The chat uses them to ask better questions — it never warns directly, but surfaces errors through questions.',
+    helpApprove: 'Approving makes the case visible to students. An automatic check runs first: rule violations (framework names, reserved course cases) block; warnings (missing keywords, glossary terms not in text) should be fixed. Overriding is possible but logged.',
   },
 }
 
@@ -342,14 +379,29 @@ export default function AdminPage() {
       <main className="pt-28 pb-20 px-8 max-w-4xl mx-auto">
         <div className="mb-12">
           <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>{text.eyebrow}</p>
-          <h1 className="font-display text-5xl leading-none">{text.title}</h1>
+          <h1 className="font-display text-5xl leading-none flex items-center gap-4">
+            <NotionIcon name="admin" size={44} />
+            {text.title}
+          </h1>
         </div>
+
+        <TeacherIntro
+          storageKey="toadapt_intro_admin_v1"
+          title={text.introTitle}
+          steps={text.introSteps}
+          hint={text.introHint}
+          dismissLabel={text.introDismiss}
+        />
 
         <div className="divider mb-10" />
 
         {/* Generator form */}
         <section className="mb-14">
-          <p className="text-xs tracking-widest uppercase mb-6" style={{ color: 'var(--muted)' }}>{text.generateHeading}</p>
+          <p className="flex items-center gap-2 text-xs tracking-widest uppercase mb-6" style={{ color: 'var(--muted)' }}>
+            <NotionIcon name="generator" size={24} />
+            {text.generateHeading}
+            <HelpHint text={text.helpGenerator} />
+          </p>
           <div className="grid grid-cols-3 gap-4 mb-6">
             {[
               { label: text.industry, key: 'industry' as const, options: INDUSTRIES.map(value => ({ value, label: value })) },
@@ -394,7 +446,7 @@ export default function AdminPage() {
 
         {/* Reviewer name */}
         <div className="mb-8 flex items-center gap-4">
-          <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>{text.reviewer}</p>
+          <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>{text.reviewer}<HelpHint text={text.helpReviewer} /></p>
           <input
             value={reviewer}
             onChange={e => setReviewer(e.target.value)}
@@ -553,7 +605,7 @@ export default function AdminPage() {
 
                           {/* Eingebettetes Bewertungspaket */}
                           <div className="mt-3 flex flex-col gap-2 pl-3" style={{ borderLeft: '2px solid rgba(53,40,30,0.12)' }}>
-                            <label className="text-xs font-medium" style={{ color: 'var(--line)' }}>{text.rubricFocus}</label>
+                            <label className="text-xs font-medium" style={{ color: 'var(--line)' }}>{text.rubricFocus}<HelpHint text={text.helpRubric} /></label>
                             <textarea
                               value={(q.evaluation_focus ?? []).join('\n')}
                               onChange={e => updateDraft({ questions: draft.questions.map((x, i2) => i2 === qi ? { ...x, evaluation_focus: e.target.value.split('\n').filter(l => l.trim()) } : x) })}
@@ -592,7 +644,7 @@ export default function AdminPage() {
                               </div>
                             ))}
 
-                            <label className="text-xs font-medium" style={{ color: 'var(--line)' }}>{text.calibrationNotes}</label>
+                            <label className="text-xs font-medium" style={{ color: 'var(--line)' }}>{text.calibrationNotes}<HelpHint text={text.helpCalibration} /></label>
                             <textarea
                               value={(q.calibration_notes ?? []).join('\n')}
                               onChange={e => updateDraft({ questions: draft.questions.map((x, i2) => i2 === qi ? { ...x, calibration_notes: e.target.value.split('\n').filter(l => l.trim()) } : x) })}
@@ -608,7 +660,7 @@ export default function AdminPage() {
 
                     {/* Glossar */}
                     <div>
-                      <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>{text.glossaryTitle}</p>
+                      <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>{text.glossaryTitle}<HelpHint text={text.helpGlossary} /></p>
                       {(draft.glossary ?? []).map((g, gi) => (
                         <div key={gi} className="mb-3 grid grid-cols-3 gap-2">
                           {([['term', text.glossaryTerm], ['explanation', text.glossaryExplanation], ['starter_prompt', text.glossaryStarter]] as const).map(([field, label]) => (
@@ -634,7 +686,7 @@ export default function AdminPage() {
 
                     {/* Agent-Guidance */}
                     <div>
-                      <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>{text.guidanceTitle}</p>
+                      <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>{text.guidanceTitle}<HelpHint text={text.helpGuidance} /></p>
                       <label className="block text-xs mb-1 font-medium" style={{ color: 'var(--line)' }}>{text.guidanceSummary}</label>
                       <textarea
                         value={draft.agent_guidance?.case_summary ?? ''}
@@ -705,6 +757,7 @@ export default function AdminPage() {
                         <ShieldCheck size={12} />
                         {busy === 'validate' ? text.validating : text.validate}
                       </button>
+                      <HelpHint text={text.helpApprove} />
                       {draft.status === 'draft' && (
                         <button
                           onClick={() => review(draft.case_id, 'approve')}

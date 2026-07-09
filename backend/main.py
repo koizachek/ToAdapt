@@ -1,4 +1,4 @@
-"""ToAdapt — Transfer-Trainer für BWL A."""
+"""ToAdapt — Kompetenzentwicklung mit Business Cases (BWL A)."""
 
 import logging
 from contextlib import asynccontextmanager
@@ -92,7 +92,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="ToAdapt",
-    description="Transfer-Trainer für BWL A",
+    description="Kompetenzentwicklung mit Business Cases (BWL A)",
     version="0.2.0",
     lifespan=lifespan,
 )

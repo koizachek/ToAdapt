@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
+import HelpHint from '@/components/HelpHint'
+import NotionIcon from '@/components/NotionIcon'
+import TeacherIntro from '@/components/TeacherIntro'
 import { teacherFetch } from '@/lib/api'
 import { APP_MODE_STORAGE_KEY } from '@/lib/appMode'
 import { Locale } from '@/lib/i18n'
@@ -87,6 +90,20 @@ const DASHBOARD_TEXT = {
     noData: 'Noch keine Daten.',
     noFindings: 'Keine auffälligen Schwierigkeiten.',
     ungrouped: 'Ohne Gruppenangabe',
+    introTitle: 'Kurzanleitung: Dein Dashboard in 60 Sekunden',
+    introSteps: [
+      'Oben siehst du Kennzahlen über alle Studierenden hinweg — sie geben das Gesamtbild, nicht den Einzelfall.',
+      'Der Kern ist die Gruppen-Liste unten: Klicke eine Gruppe auf, um zu sehen, wo sie hakt — als Vorbereitung auf deine Präsenzphase.',
+      '„Mit Unterstützungsbedarf" heißt: mehrere schwache Lernziele oder sehr niedrige Scores. Sprich Themen an, keine Personen — Einzelprofile siehst du bewusst nicht.',
+      'Der Copy-Paste-Anteil ist ein HINWEIS auf mögliche KI-Nutzung, kein Beweis — bitte nie als Vorwurf verwenden.',
+      'Alle Zahlen stammen aus der individuellen Vorbereitung im Tool, nicht aus der Gruppenabgabe.',
+    ],
+    introHint: 'Die ?-Symbole neben den Abschnitten erklären jede Ansicht — sie bleiben dauerhaft verfügbar.',
+    introDismiss: 'Verstanden',
+    helpKpis: 'Kennzahlen über alle aktiven Studierenden. „Review/Fallback": Antworten, bei denen die automatische Bewertung unsicher war (Review) oder technisch scheiterte (Fallback) — diese Antworten verdienen deinen menschlichen Blick zuerst.',
+    helpBloom: 'Durchschnittliche Leistung nach Denk-Niveau (Bloom-Taxonomie): Verstehen ist einfacher als Analysieren oder Synthese. Niedrige Werte auf hohen Stufen sind normal — auffällig sind Einbrüche auf niedrigen Stufen.',
+    helpObjectives: 'Lernziele, bei denen die Kohorte im Schnitt am schwächsten abschneidet — gute Kandidaten für den Fokus deiner nächsten Präsenzphase.',
+    helpGroups: 'Eine Zeile pro Übungsgruppe (Selbstauskunft der Studierenden beim Login — Tippfehler erscheinen als eigene Gruppe). Aufklappen zeigt schwache Lernziele („x von y Mitgliedern unter 60 %"), häufige Schwächen in Worten und Bloom-Stufen. Einzelpersonen werden aus Datenschutzgründen nie angezeigt.',
   },
   en: {
     eyebrow: 'Tutor dashboard',
@@ -117,6 +134,20 @@ const DASHBOARD_TEXT = {
     noData: 'No data yet.',
     noFindings: 'No notable difficulties.',
     ungrouped: 'No group specified',
+    introTitle: 'Quick guide: your dashboard in 60 seconds',
+    introSteps: [
+      'The numbers at the top aggregate across all students — they give the big picture, not individual cases.',
+      'The core is the group list below: expand a group to see where it struggles — as preparation for your in-person session.',
+      '"Need support" means several weak objectives or very low scores. Address topics, not people — you deliberately never see individual profiles.',
+      'The copy-paste share is an INDICATOR of possible AI use, not proof — never use it as an accusation.',
+      'All numbers come from individual preparation in the tool, not from the group submission.',
+    ],
+    introHint: 'The ?-icons next to each section explain every view — they stay available permanently.',
+    introDismiss: 'Got it',
+    helpKpis: 'Metrics across all active students. "Review/Fallback": answers where automatic scoring was uncertain (review) or failed technically (fallback) — these deserve your human eye first.',
+    helpBloom: 'Average performance by thinking level (Bloom taxonomy): understanding is easier than analysis or synthesis. Low values on high levels are normal — drops on low levels are the anomaly.',
+    helpObjectives: 'Learning objectives where the cohort is weakest on average — good candidates for the focus of your next in-person session.',
+    helpGroups: 'One row per tutorial group (self-reported at login — typos appear as separate groups). Expanding shows weak objectives ("x of y members below 60%"), common weaknesses in words, and Bloom levels. Individuals are never shown for privacy reasons.',
   },
 }
 
@@ -178,14 +209,29 @@ export default function DashboardPage() {
           <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>
             {text.eyebrow}
           </p>
-          <h1 className="font-display text-5xl leading-none">{text.title}</h1>
+          <h1 className="font-display text-5xl leading-none flex items-center gap-4">
+            <NotionIcon name="dashboard" size={44} />
+            {text.title}
+          </h1>
         </div>
+
+        <TeacherIntro
+          storageKey="toadapt_intro_dashboard_v1"
+          title={text.introTitle}
+          steps={text.introSteps}
+          hint={text.introHint}
+          dismissLabel={text.introDismiss}
+        />
 
         <div className="divider mb-10" />
 
         {overview && (
           <>
             {/* KPIs */}
+            <p className="mb-3 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
+              KPIs
+              <HelpHint text={text.helpKpis} />
+            </p>
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6 mb-12">
               {[
                 { label: text.students, value: overview.total_students, icon: <Users size={14} /> },
@@ -216,7 +262,7 @@ export default function DashboardPage() {
             {/* Bloom + TP breakdown */}
             <div className="grid grid-cols-2 gap-10 mb-14">
               <div>
-                <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--muted)' }}>{text.byBloom}</p>
+                <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--muted)' }}>{text.byBloom}<HelpHint text={text.helpBloom} /></p>
                 <div className="flex flex-col gap-3">
                   {Object.entries(overview.by_bloom).map(([lvl, pct]) => (
                     <MiniBar key={lvl} pct={pct} label={BLOOM[language][Number(lvl)] ?? `Bloom ${lvl}`} />
@@ -236,7 +282,7 @@ export default function DashboardPage() {
             {/* Weakest learning objectives (Kohorte) */}
             {overview.top_objectives.length > 0 && (
               <div className="mb-14 p-6" style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.12)' }}>
-                <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--muted)' }}>{text.weakestObjectives}</p>
+                <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--muted)' }}>{text.weakestObjectives}<HelpHint text={text.helpObjectives} /></p>
                 <div className="flex flex-col gap-3">
                   {overview.top_objectives.map(o => (
                     <div key={o.tag} className="flex items-center justify-between">
@@ -258,8 +304,10 @@ export default function DashboardPage() {
         {/* Gruppen */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
+            <p className="flex items-center gap-2 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
+              <NotionIcon name="groups" size={24} />
               {text.groups(filtered.length)}
+              <HelpHint text={text.helpGroups} />
             </p>
             <input
               value={search}

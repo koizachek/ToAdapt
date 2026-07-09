@@ -2,7 +2,8 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowRight, BookOpen, LayoutDashboard, ShieldCheck } from 'lucide-react'
+import { ArrowRight, BookOpen, ChevronDown, ChevronUp, LayoutDashboard, ShieldCheck } from 'lucide-react'
+import NotionIcon from '@/components/NotionIcon'
 import { languageFromSearchParams, Locale } from '@/lib/i18n'
 import { useLanguage } from '@/lib/useLanguage'
 
@@ -21,7 +22,7 @@ type AppMode = 'student' | 'teacher'
 
 const LOGIN_TEXT = {
   de: {
-    taglineStudent: 'Transfer-Learning mit Business Cases',
+    taglineStudent: 'Kompetenzentwicklung mit Business Cases',
     taglineTeacher: 'Lehrkräftebereich',
     modeAria: 'Modus wählen',
     studentMode: 'Studierende',
@@ -45,9 +46,21 @@ const LOGIN_TEXT = {
     openTeacher: 'Lehrkräftebereich öffnen',
     privacyNote: 'Deine Angaben werden pseudonymisiert erfasst. Tutor:innen sehen nur Gruppen-Zusammenfassungen — keine Einzelprofile und keine Chat-Verläufe.',
     languageAria: 'Sprache wählen',
+    aboutToggle: 'Über To:Adapt',
+    aboutClose: 'Einklappen',
+    aboutWhatTitle: 'Was ist To:Adapt?',
+    aboutWhat: 'To:Adapt ist eine Lernumgebung zur Kompetenzentwicklung mit Business Cases. Du bearbeitest realistische Fälle eigenständig — ein KI-Lernbegleiter unterstützt dein Denken mit Rückfragen und Hinweisen, gibt aber bewusst keine Lösungen vor. Deine Abgaben erhalten automatisches, formatives Feedback. Tutor:innen sehen ausschließlich Zusammenfassungen deiner Übungsgruppe, niemals Einzelprofile oder Chat-Verläufe.',
+    aboutHowTitle: 'So funktioniert es',
+    aboutSteps: [
+      'Melde dich mit deiner Teilnehmer-ID und deiner Gruppen-Nr. an (bekommst du von deinem Tutor-Team).',
+      'Lies den Case. Markierte Fachbegriffe kannst du anklicken — sie starten eine Erklärung im Lernchat.',
+      'Denke mit dem Lernbegleiter: Er stellt Fragen und zeigt Denkrichtungen, statt Antworten zu liefern.',
+      'Beantworte die Fragen in ganzen Sätzen. Die Canvas-Anzeige, der Selbst-Check und bis zu zwei Denkanstöße pro Frage helfen dir, Lücken selbst zu finden.',
+      'Gib ab und sieh dir dein Feedback an — es zeigt Stärken und offene Denkschritte, keine Musterlösung.',
+    ],
   },
   en: {
-    taglineStudent: 'Transfer learning with business cases',
+    taglineStudent: 'Competency development with business cases',
     taglineTeacher: 'Teacher area',
     modeAria: 'Choose mode',
     studentMode: 'Students',
@@ -71,8 +84,20 @@ const LOGIN_TEXT = {
     openTeacher: 'Open teacher area',
     privacyNote: 'Your data is stored pseudonymously. Tutors only see group summaries — no individual profiles and no chat logs.',
     languageAria: 'Choose language',
+    aboutToggle: 'About To:Adapt',
+    aboutClose: 'Collapse',
+    aboutWhatTitle: 'What is To:Adapt?',
+    aboutWhat: 'To:Adapt is a learning environment for competency development with business cases. You work through realistic cases on your own — an AI learning companion supports your thinking with questions and hints, but deliberately never gives away solutions. Your submissions receive automatic, formative feedback. Tutors only ever see summaries of your tutorial group, never individual profiles or chat logs.',
+    aboutHowTitle: 'How it works',
+    aboutSteps: [
+      'Log in with your participant ID and your group number (provided by your tutor team).',
+      'Read the case. Highlighted terms are clickable — they start an explanation in the learning chat.',
+      'Think with the learning companion: it asks questions and points out directions instead of delivering answers.',
+      'Answer the questions in complete sentences. The canvas indicator, the self-check, and up to two thinking prompts per question help you find gaps yourself.',
+      'Submit and review your feedback — it shows strengths and open thinking steps, not a model solution.',
+    ],
   },
-} satisfies Record<Locale, Record<string, string>>
+} satisfies Record<Locale, Record<string, string | string[]>>
 
 function LoginPageContent({
   prolificPid = '',
@@ -101,6 +126,7 @@ function LoginPageContent({
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showAbout, setShowAbout] = useState(false)
 
   const resolvedParticipantId = participantIdInput.trim() || prolificPid.trim()
   const text = LOGIN_TEXT[language]
@@ -398,6 +424,54 @@ function LoginPageContent({
           {text.privacyNote}
         </p>
       )}
+
+      {/* About-Section: Was ist To:Adapt + How-to (DE/EN) */}
+      <div className="mt-8 w-full max-w-xl">
+        <button
+          type="button"
+          onClick={() => setShowAbout(v => !v)}
+          aria-expanded={showAbout}
+          className="mx-auto flex items-center gap-2 px-4 py-2 text-xs font-medium tracking-wide transition-colors"
+          style={{ color: 'var(--muted)' }}
+        >
+          <NotionIcon name="compass" size={22} />
+          {showAbout ? text.aboutClose : text.aboutToggle}
+          {showAbout ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </button>
+
+        {showAbout && (
+          <div
+            className="mt-3 flex flex-col gap-6 rounded-2xl p-7"
+            style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.15)' }}
+          >
+            <div>
+              <h2 className="mb-2 flex items-center gap-2.5 text-sm font-medium">
+                <NotionIcon name="idea" size={24} />
+                {text.aboutWhatTitle}
+              </h2>
+              <p className="text-sm leading-6" style={{ color: 'var(--ink)' }}>
+                {text.aboutWhat}
+              </p>
+            </div>
+            <div>
+              <h2 className="mb-3 flex items-center gap-2.5 text-sm font-medium">
+                <NotionIcon name="questions" size={24} />
+                {text.aboutHowTitle}
+              </h2>
+              <ol className="flex flex-col gap-2">
+                {text.aboutSteps.map((step, i) => (
+                  <li key={i} className="flex gap-3 text-sm leading-6">
+                    <span className="shrink-0 font-mono text-xs mt-0.5" style={{ color: 'var(--accent)' }}>
+                      {i + 1}.
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        )}
+      </div>
     </main>
   )
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Nav from '@/components/Nav'
+import NotionIcon from '@/components/NotionIcon'
 import { apiFetch } from '@/lib/api'
 import { ArrowRight, BookOpen } from 'lucide-react'
 import { languageQuery, Locale } from '@/lib/i18n'
@@ -97,7 +98,8 @@ export default function CasesPage() {
             <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>
               {text.pool}
             </p>
-            <h1 className="font-display text-5xl leading-none" style={{ color: 'var(--ink)' }}>
+            <h1 className="font-display text-5xl leading-none flex items-center gap-4" style={{ color: 'var(--ink)' }}>
+              <NotionIcon name="cases" size={44} />
               {text.title}
             </h1>
           </div>
