@@ -77,6 +77,12 @@ const ADMIN_TEXT = {
     approve: 'Freigeben',
     reject: 'Ablehnen',
     retire: 'Aus Pool nehmen',
+    archiveTitle: 'Case archivieren',
+    archiveBody: 'Der Case wird aus dem Pool genommen und ist für Studierende nicht mehr sichtbar. Zur Bestätigung dein Passwort eingeben.',
+    archivePassword: 'Dein Passwort',
+    archiveConfirm: 'Archivieren',
+    archiveCancel: 'Abbrechen',
+    archiveWrong: 'Falsches Passwort.',
     questions: 'Fragen',
     sections: 'Abschnitte',
     exhibits: 'Exhibits',
@@ -137,6 +143,12 @@ const ADMIN_TEXT = {
     approve: 'Approve',
     reject: 'Reject',
     retire: 'Remove from pool',
+    archiveTitle: 'Archive case',
+    archiveBody: 'The case will be removed from the pool and is no longer visible to students. Enter your password to confirm.',
+    archivePassword: 'Your password',
+    archiveConfirm: 'Archive',
+    archiveCancel: 'Cancel',
+    archiveWrong: 'Wrong password.',
     questions: 'Questions',
     sections: 'Sections',
     exhibits: 'Exhibits',
@@ -202,6 +214,11 @@ export default function AdminPage() {
   const [notice, setNotice]     = useState('')
   const [report, setReport]     = useState<ValidationReport | null>(null)
   const [regenInstructions, setRegenInstructions] = useState<Record<string, string>>({})
+  // Passwortgeschütztes Archivieren (Schutz vor versehentlichem Entfernen).
+  const [archiveTarget, setArchiveTarget] = useState<{ id: string; title: string } | null>(null)
+  const [archivePassword, setArchivePassword] = useState('')
+  const [archiveError, setArchiveError] = useState('')
+  const [archiving, setArchiving] = useState(false)
   const [form, setForm]         = useState<AdminForm>({ industry: INDUSTRIES[0], country: COUNTRY_OPTIONS[0].value, target_tp: 1 })
   // Vorbelegt mit der Tutor-Kennung aus dem Login (teacher_name-Cookie, nur UI).
   const [reviewer, setReviewer] = useState(() => {
@@ -326,6 +343,31 @@ export default function AdminPage() {
       } catch { /* kein JSON-Detail */ }
       setNotice(text.error)
     } finally { setBusy(null) }
+  }
+
+  // Archivieren erst nach Bestätigung des eigenen Passworts (serverseitig
+  // gegen die Tutor-Zugangscodes geprüft), damit ein Case nicht versehentlich
+  // unwiderruflich aus dem Pool verschwindet.
+  const confirmArchive = async () => {
+    if (!archiveTarget || archiving) return
+    setArchiving(true)
+    setArchiveError('')
+    try {
+      const res = await fetch('/api/verify-teacher', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ password: archivePassword }),
+      })
+      if (!res.ok) { setArchiveError(text.archiveWrong); return }
+      await review(archiveTarget.id, 'retire')
+      setArchiveTarget(null)
+      setArchivePassword('')
+    } catch {
+      setArchiveError(text.error)
+    } finally {
+      setArchiving(false)
+    }
   }
 
   const regenControl = (target: string, targetId: string | null) => {
@@ -475,7 +517,7 @@ export default function AdminPage() {
                     )}
                     {c.status === 'approved' && (
                       <button
-                        onClick={() => review(c.case_id, 'retire')}
+                        onClick={() => { setArchiveTarget({ id: c.case_id, title: c.title }); setArchivePassword(''); setArchiveError('') }}
                         className="p-1.5 transition-all"
                         style={{ background: 'rgba(53,40,30,0.08)', color: 'var(--ink)' }}
                         title={text.retire}
@@ -758,6 +800,53 @@ export default function AdminPage() {
             </li>
           ))}
         </ul>
+
+        {archiveTarget && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-6"
+            style={{ background: 'rgba(26,26,26,0.4)' }}
+            onClick={() => !archiving && setArchiveTarget(null)}
+          >
+            <form
+              onClick={e => e.stopPropagation()}
+              onSubmit={e => { e.preventDefault(); void confirmArchive() }}
+              className="w-full max-w-sm rounded-2xl p-6"
+              style={{ background: 'var(--surface)', border: '1px solid var(--hairline)' }}
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <Archive size={16} style={{ color: 'var(--ink)' }} />
+                <h2 className="text-base font-medium">{text.archiveTitle}</h2>
+              </div>
+              <p className="mb-1 text-sm font-medium">{archiveTarget.title}</p>
+              <p className="mb-4 text-xs leading-6" style={{ color: 'var(--muted)' }}>{text.archiveBody}</p>
+              <label className="mb-2 block text-xs font-medium" style={{ color: 'var(--line)' }}>{text.archivePassword}</label>
+              <input
+                type="password"
+                autoFocus
+                value={archivePassword}
+                onChange={e => { setArchivePassword(e.target.value); setArchiveError('') }}
+                className="w-full px-3 py-2 text-sm outline-none"
+                style={INPUT_STYLE}
+              />
+              {archiveError && <p className="mt-2 text-xs" style={{ color: '#c0392b' }}>{archiveError}</p>}
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setArchiveTarget(null)}
+                  disabled={archiving}
+                  className="px-4 py-2 text-xs font-medium"
+                  style={{ border: '1px solid var(--hairline)', color: 'var(--ink)' }}
+                >{text.archiveCancel}</button>
+                <button
+                  type="submit"
+                  disabled={archiving || !archivePassword}
+                  className="px-4 py-2 text-xs font-medium transition-all"
+                  style={{ background: 'var(--ink)', color: 'var(--white)', opacity: archiving || !archivePassword ? 0.5 : 1 }}
+                >{text.archiveConfirm}</button>
+              </div>
+            </form>
+          </div>
+        )}
       </main>
     </>
   )
