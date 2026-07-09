@@ -35,6 +35,7 @@ interface Case {
   exhibits: CaseExhibit[]
   questions: CaseQuestion[]
   glossary?: CaseGlossaryTerm[]
+  target_tp?: number
   language?: string
 }
 interface ChatMsg { role: 'user' | 'agent'; content: string; agent_type?: string }
@@ -818,20 +819,33 @@ export default function CasePage() {
       historyRef.current = []
     })
 
-    apiFetch<{ submission_id: string }>('/submissions', {
+    const groupCode = sessionStorage.getItem('group_code') ?? undefined
+    // target_tp: Case-Vorgabe; bei full-Cases (target_tp=0) die aktuelle
+    // Phase aus dem TP_SCHEDULE (Fallback 1, falls Endpoint nicht erreichbar).
+    const resolveTargetTp = async (): Promise<number> =>
+      caseData.target_tp
+      || (await apiFetch<{ current_tp: number }>('/tp').then(r => r.current_tp).catch(() => 1))
+
+    void resolveTargetTp().then(targetTp => apiFetch<{ submission_id: string }>('/submissions', {
       method: 'POST',
       body: JSON.stringify({
         user_id: clientIdentity.userId,
         matrikelnummer: clientIdentity.participantId,
+        group_code: groupCode,
         case_id: id,
-        target_tp: 1,
+        target_tp: targetTp,
         experiment: clientIdentity.experiment,
       }),
-    }).then(r => setSubmissionId(r.submission_id))
+    })).then(r => setSubmissionId(r.submission_id))
 
     apiFetch<{ session_id: string }>('/sessions', {
       method: 'POST',
-      body: JSON.stringify({ user_id: clientIdentity.userId, case_id: id, experiment: clientIdentity.experiment }),
+      body: JSON.stringify({
+        user_id: clientIdentity.userId,
+        group_code: groupCode,
+        case_id: id,
+        experiment: clientIdentity.experiment,
+      }),
     }).then(r => {
       setSessionId(r.session_id)
       historyRef.current = []

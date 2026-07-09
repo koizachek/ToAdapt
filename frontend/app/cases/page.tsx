@@ -42,6 +42,10 @@ const CASES_TEXT = {
     availableMany: 'Cases verfügbar',
     loading: 'Wird geladen...',
     empty: 'Noch keine Cases freigegeben.',
+    emptyForTp: 'Für die aktuelle Phase sind noch keine Cases freigegeben.',
+    currentTp: (tp: number) => `Aktuelle Phase: TP ${tp}`,
+    showAll: 'Alle Phasen anzeigen',
+    showCurrent: 'Nur aktuelle Phase',
   },
   en: {
     pool: 'Case pool',
@@ -50,24 +54,38 @@ const CASES_TEXT = {
     availableMany: 'cases available',
     loading: 'Loading...',
     empty: 'No cases have been released yet.',
+    emptyForTp: 'No cases have been released for the current phase yet.',
+    currentTp: (tp: number) => `Current phase: TP ${tp}`,
+    showAll: 'Show all phases',
+    showCurrent: 'Current phase only',
   },
-} satisfies Record<Locale, Record<string, string>>
+}
 
 export default function CasesPage() {
   const [language] = useLanguage()
   const [cases, setCases] = useState<CaseSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentTp, setCurrentTp] = useState(1)
+  const [showAll, setShowAll] = useState(false)
   const text = CASES_TEXT[language]
 
   useEffect(() => {
     if (!sessionStorage.getItem('app_mode')) {
       sessionStorage.setItem('app_mode', 'student')
     }
+    apiFetch<{ current_tp: number }>('/tp')
+      .then(r => setCurrentTp(r.current_tp))
+      .catch(() => { /* Fallback TP 1 */ })
     apiFetch<CaseSummary[]>(`/admin/cases?status=approved&${languageQuery(language)}`)
       .then(setCases)
       .catch(() => setCases([]))
       .finally(() => setLoading(false))
   }, [language])
+
+  // Standard: nur Cases der aktuellen Phase (+ full-Cases); umschaltbar.
+  const visibleCases = showAll
+    ? cases
+    : cases.filter(c => c.difficulty === `tp${currentTp}` || c.difficulty === 'full')
 
   return (
     <>
@@ -83,9 +101,22 @@ export default function CasesPage() {
               {text.title}
             </h1>
           </div>
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>
-            {cases.length} {cases.length === 1 ? text.availableOne : text.availableMany}
-          </p>
+          <div className="text-right">
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+              {visibleCases.length} {visibleCases.length === 1 ? text.availableOne : text.availableMany}
+            </p>
+            <p className="text-xs mt-1" style={{ color: 'var(--accent)' }}>
+              {text.currentTp(currentTp)}
+              <button
+                type="button"
+                onClick={() => setShowAll(v => !v)}
+                className="ml-3 underline"
+                style={{ color: 'var(--muted)' }}
+              >
+                {showAll ? text.showCurrent : text.showAll}
+              </button>
+            </p>
+          </div>
         </div>
 
         <div className="divider mb-10" />
@@ -95,16 +126,16 @@ export default function CasesPage() {
           <div className="flex items-center gap-3 py-20" style={{ color: 'var(--muted)' }}>
             <span className="text-sm">{text.loading}</span>
           </div>
-        ) : cases.length === 0 ? (
+        ) : visibleCases.length === 0 ? (
           <div className="py-20 text-center">
             <BookOpen size={32} style={{ color: 'var(--muted)' }} className="mx-auto mb-4" />
             <p className="text-sm" style={{ color: 'var(--muted)' }}>
-              {text.empty}
+              {cases.length === 0 ? text.empty : text.emptyForTp}
             </p>
           </div>
         ) : (
           <ul className="flex flex-col">
-            {cases.map((c, i) => (
+            {visibleCases.map((c, i) => (
               <li key={c.case_id}>
                 {i > 0 && <div className="divider" />}
                 <Link

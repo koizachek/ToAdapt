@@ -11,9 +11,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from backend.agents.orchestrator import AgentOrchestrator
+from backend.anonymize import normalize_group_code, pseudonymize
 from backend.auth import require_student_access, student_access_required
 from backend.cases.manager import case_manager
-from backend.config.tp_configs import current_tp_phase
+from backend.config.tp_configs import TP_SCHEDULE, current_tp_phase
 from backend.db.dashboard_store import dashboard_store
 from backend.db.experiment_logger import experiment_logger
 from backend.db.session_store import session_store
@@ -123,6 +124,18 @@ async def verify_student_access() -> dict:
     return {"ok": True, "required": student_access_required()}
 
 
+@router.get("/tp")
+async def tp_schedule() -> dict:
+    """Aktuelle Touchpoint-Phase + Zeitfenster (für Case-Filter im Frontend)."""
+    return {
+        "current_tp": current_tp_phase(),
+        "schedule": {
+            tp: {"start": window["start"].isoformat(), "deadline": window["deadline"].isoformat()}
+            for tp, window in TP_SCHEDULE.items()
+        },
+    }
+
+
 # ---------------------------------------------------------------------------
 # Sessions
 # ---------------------------------------------------------------------------
@@ -144,7 +157,8 @@ async def create_session(body: SessionCreate):
 
     session = Session(
         session_id=session_id,
-        user_id=body.user_id,
+        user_id=pseudonymize(body.user_id),
+        group_code=normalize_group_code(body.group_code),
         case_id=body.case_id,
         tp_phase=tp,
         experiment=experiment,
@@ -160,7 +174,7 @@ async def create_session(body: SessionCreate):
 
     return SessionResponse(
         session_id=session_id,
-        user_id=body.user_id,
+        user_id=session.user_id,
         case_id=body.case_id,
         tp_phase=tp,
         websocket_url=f"/ws/{session_id}",
@@ -260,8 +274,9 @@ async def create_submission(body: SubmissionCreate):
     )
     submission = Submission(
         submission_id=sub_id,
-        user_id=body.user_id,
-        matrikelnummer=participant_id,
+        user_id=pseudonymize(body.user_id),
+        matrikelnummer=pseudonymize(participant_id),
+        group_code=normalize_group_code(body.group_code),
         case_id=body.case_id,
         target_tp=body.target_tp,
         experiment=experiment,
@@ -482,6 +497,7 @@ async def submit_and_evaluate(submission_id: str):
     out = {
         "submission_id": sub.submission_id,
         "matrikelnummer": sub.matrikelnummer,
+        "group_code": sub.group_code,
         "case_id": sub.case_id,
         "target_tp": sub.target_tp,
         "percentage": sub.percentage,

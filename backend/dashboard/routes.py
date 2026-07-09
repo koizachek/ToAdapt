@@ -9,7 +9,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from backend.auth import require_api_key
+from backend.auth import require_api_key, require_research_key
 from backend.db.dashboard_store import dashboard_store
 
 logger = structlog.get_logger(__name__)
@@ -81,6 +81,34 @@ class DifficultyOverview(BaseModel):
     students: list[StudentDifficulty]            # high zuerst
     cohort_weak_objectives: list[CohortObjective]
     cohort_common_penalties: list[PenaltyCount]
+
+
+class GroupSummary(BaseModel):
+    """Gruppen-Aggregat für Tutor:innen — enthält KEINE Einzelkennungen."""
+    group_code: str
+    members_active: int
+    submissions_count: int
+    avg_percentage: float
+    needs_human_review_count: int
+    technical_fallback_count: int
+    paste_heavy_answers: int
+    attention_high: int
+    attention_medium: int
+    attention_low: int
+
+
+class GroupObjective(BaseModel):
+    tag: str
+    avg_pct: float
+    members_below: int
+    members_total: int
+
+
+class GroupDetail(GroupSummary):
+    weak_objectives: list[GroupObjective]
+    weak_blooms: dict[int, int]              # Bloom-Stufe → Mitglieder unter Schwelle
+    common_penalties: list[PenaltyCount]
+    missing_canvas_blocks: list[PenaltyCount]
 
 
 class StudentRow(BaseModel):
@@ -361,7 +389,111 @@ async def get_overview():
     )
 
 
-@router.get("/difficulties", response_model=DifficultyOverview)
+UNGROUPED = "OHNE-GRUPPE"
+
+
+def _results_by_group(results: list[dict]) -> dict[str, list[dict]]:
+    grouped: dict[str, list[dict]] = defaultdict(list)
+    for r in results:
+        grouped[str(r.get("group_code") or "").strip() or UNGROUPED].append(r)
+    return grouped
+
+
+def _group_detail(group_code: str, results: list[dict]) -> GroupDetail:
+    """Aggregiert eine Gruppe über ihre (pseudonymen) Mitglieder — Einzel-
+    kennungen verlassen diese Funktion nicht."""
+    by_member: dict[str, list[dict]] = defaultdict(list)
+    for r in results:
+        by_member[r["matrikelnummer"]].append(r)
+
+    member_difficulties = [
+        _student_difficulty(matrikel, member_results)
+        for matrikel, member_results in by_member.items()
+    ]
+
+    attention = {"high": 0, "medium": 0, "low": 0}
+    for d in member_difficulties:
+        attention[d.attention_level] += 1
+
+    review_count, fallback_count = _review_counts(results)
+
+    # Lernziele: pro Mitglied bewerten, dann zählen wie viele unter Schwelle
+    tag_pcts: dict[str, list[float]] = defaultdict(list)
+    for matrikel, member_results in by_member.items():
+        all_scores = [s for r in member_results for s in r.get("scores", [])]
+        for o in _aggregate_objectives(all_scores):
+            tag_pcts[o.tag].append(o.avg_pct)
+    weak_objectives = sorted(
+        (
+            GroupObjective(
+                tag=tag,
+                avg_pct=round(sum(pcts) / len(pcts), 1),
+                members_below=sum(1 for pct in pcts if pct < WEAK_THRESHOLD_PCT),
+                members_total=len(pcts),
+            )
+            for tag, pcts in tag_pcts.items()
+        ),
+        key=lambda o: (-o.members_below, o.avg_pct),
+    )[:8]
+
+    bloom_below: dict[int, int] = defaultdict(int)
+    for d in member_difficulties:
+        for level in d.weak_blooms:
+            bloom_below[int(level)] += 1
+
+    penalties: dict[str, list] = {}
+    missing_blocks: dict[str, list] = {}
+    for r in results:
+        for s in r.get("scores", []):
+            for p in s.get("main_penalties", []):
+                _add_phrase(penalties, str(p))
+            for b in s.get("missing_canvas_blocks", []):
+                _add_phrase(missing_blocks, str(b))
+
+    return GroupDetail(
+        group_code=group_code,
+        members_active=len(by_member),
+        submissions_count=len(results),
+        avg_percentage=round(sum(r["percentage"] for r in results) / len(results), 1),
+        needs_human_review_count=review_count,
+        technical_fallback_count=fallback_count,
+        paste_heavy_answers=_count_paste_heavy(results),
+        attention_high=attention["high"],
+        attention_medium=attention["medium"],
+        attention_low=attention["low"],
+        weak_objectives=weak_objectives,
+        weak_blooms=dict(bloom_below),
+        common_penalties=_top_phrases(penalties, limit=6),
+        missing_canvas_blocks=_top_phrases(missing_blocks, limit=6),
+    )
+
+
+@router.get("/groups", response_model=list[GroupSummary])
+async def list_groups():
+    """Gruppen-Übersicht für Tutor:innen (nur Aggregate, keine Personen)."""
+    grouped = _results_by_group(_load_all_results())
+    details = [_group_detail(code, results) for code, results in grouped.items()]
+    order = {code: i for i, code in enumerate(sorted(grouped))}
+    details.sort(key=lambda d: (d.group_code == UNGROUPED, order.get(d.group_code, 0)))
+    return [GroupSummary(**d.model_dump(include=set(GroupSummary.model_fields))) for d in details]
+
+
+@router.get("/groups/{group_code}", response_model=GroupDetail)
+async def group_detail(group_code: str):
+    """Fehlerquellen-Zusammenfassung EINER Gruppe (keine Einzelprofile)."""
+    grouped = _results_by_group(_load_all_results())
+    normalized = group_code.strip().upper()
+    results = grouped.get(normalized) or grouped.get(group_code)
+    if not results:
+        raise HTTPException(status_code=404, detail="Gruppe nicht gefunden")
+    return _group_detail(normalized if normalized in grouped else group_code, results)
+
+
+@router.get(
+    "/difficulties",
+    response_model=DifficultyOverview,
+    dependencies=[Depends(require_research_key)],
+)
 async def get_difficulties():
     """Fehlerquellen-Sicht für Tutor:innen.
 
@@ -422,7 +554,11 @@ async def get_difficulties():
     )
 
 
-@router.get("/student/{matrikelnummer}", response_model=StudentRow)
+@router.get(
+    "/student/{matrikelnummer}",
+    response_model=StudentRow,
+    dependencies=[Depends(require_research_key)],
+)
 async def get_student(matrikelnummer: str):
     results = [r for r in _load_all_results() if r["matrikelnummer"] == matrikelnummer]
     if not results:
@@ -475,7 +611,11 @@ async def get_student(matrikelnummer: str):
     )
 
 
-@router.get("/students", response_model=list[StudentRow])
+@router.get(
+    "/students",
+    response_model=list[StudentRow],
+    dependencies=[Depends(require_research_key)],
+)
 async def list_students():
     results = _load_all_results()
     by_student: dict[str, list] = defaultdict(list)

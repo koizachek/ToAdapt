@@ -43,6 +43,7 @@ if _sentry_dsn:
         send_default_pii=False,
     )
 
+from backend.anonymize import pseudonymization_enabled
 from backend.auth import require_api_key, student_access_required
 from backend.api.routes import router as session_router
 from backend.admin.routes import router as admin_router
@@ -70,6 +71,8 @@ async def lifespan(app: FastAPI):
         mongo_logging_enabled=mongo["enabled"],
         mongo_connection_mode=mongo["connection_mode"],
         student_access_code_configured=student_access_required(),
+        pseudonymization_enabled=pseudonymization_enabled(),
+        research_key_configured=bool(os.environ.get("RESEARCH_API_KEY", "").strip()),
         sentry_enabled=bool(_sentry_dsn),
         environment=ENVIRONMENT,
     )
@@ -77,6 +80,11 @@ async def lifespan(app: FastAPI):
         logger.warning(
             "student_flow_open",
             hint="STUDENT_ACCESS_CODE ist nicht gesetzt — Sessions/Chat/Submissions sind öffentlich erreichbar.",
+        )
+    if ENVIRONMENT == "production" and not pseudonymization_enabled():
+        logger.warning(
+            "pseudonymization_disabled",
+            hint="PSEUDONYM_SECRET ist nicht gesetzt — Teilnehmer-Kennungen werden ROH gespeichert.",
         )
     yield
     logger.info("toadapt_shutdown")

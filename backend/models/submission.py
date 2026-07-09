@@ -59,7 +59,8 @@ class SubmissionStatus(str):
 class Submission(BaseModel):
     submission_id: str
     user_id: str
-    matrikelnummer: str                  # Denormalisiert für Dashboard-Queries
+    matrikelnummer: str                  # PSEUDONYM (serverseitig via backend/anonymize.py)
+    group_code: str = ""                 # Übungsgruppe (Selbstauskunft beim Login)
     case_id: str
     target_tp: int
     experiment: ExperimentContext | None = None
@@ -86,6 +87,7 @@ class Submission(BaseModel):
 class SubmissionCreate(BaseModel):
     user_id: str
     matrikelnummer: str | None = None
+    group_code: str | None = None
     case_id: str
     target_tp: int
     experiment: ExperimentContext | None = None

@@ -15,7 +15,8 @@ interface LoginPageContentProps {
   initialLanguage?: Locale | null
 }
 
-const EXPERIMENT_NAME = 'prolific_experimental_run'
+const EXPERIMENT_NAME = 'prolific_experimental_run'   // nur bei Prolific-URL-Ankunft
+const COURSE_CONTEXT_NAME = 'toadapt_course'          // regulärer Kursbetrieb
 type AppMode = 'student' | 'teacher'
 
 const LOGIN_TEXT = {
@@ -26,12 +27,15 @@ const LOGIN_TEXT = {
     studentMode: 'Studierende',
     teacherMode: 'Lehrkräfte',
     studentSection: 'Anmeldung',
-    participantLabel: 'Matrikelnummer',
-    participantMissing: 'Bitte Prolific-ID eingeben.',
+    participantLabel: 'Teilnehmer-ID',
+    participantMissing: 'Bitte Teilnehmer-ID eingeben.',
+    groupLabel: 'Gruppen-Nr. oder Gruppencode',
+    groupPlaceholder: 'z.B. 12 oder G12',
+    groupMissing: 'Bitte Gruppen-Nr. eingeben — dein Tutor-Team hat sie euch mitgeteilt.',
     studentAccessCode: 'Zugangscode (falls von der Lehrperson ausgegeben)',
     studentAccessError: 'Zugangscode fehlt oder ist nicht korrekt.',
     loginUnavailable: 'Anmeldung derzeit nicht möglich — bitte später erneut versuchen.',
-    integrityNote: 'Mit dem Absenden bestätigst du, dass deine Antwort eigenständig verfasst ist. Mit ChatGPT oder anderen KI-Tools generierte Antworten werden mit GPTZero überprüft.',
+    integrityNote: 'Mit dem Absenden bestätigst du, dass deine Antworten eigenständig verfasst sind. To:Adapt unterstützt dein Denken — es ersetzt es nicht.',
     loading: 'Wird geladen...',
     continue: 'Weiter',
     teacherSection: 'Lehrkräfte',
@@ -39,7 +43,7 @@ const LOGIN_TEXT = {
     accessPlaceholder: 'Code eingeben',
     accessError: 'Code nicht korrekt.',
     openTeacher: 'Lehrkräftebereich öffnen',
-    privacyNote: 'Deine Matrikelnummer wird für die Studienzuordnung erfasst. Chat-Logs bleiben aus dem Dozierenden-Dashboard ausgeschlossen.',
+    privacyNote: 'Deine Angaben werden pseudonymisiert erfasst. Tutor:innen sehen nur Gruppen-Zusammenfassungen — keine Einzelprofile und keine Chat-Verläufe.',
     languageAria: 'Sprache wählen',
   },
   en: {
@@ -50,11 +54,14 @@ const LOGIN_TEXT = {
     teacherMode: 'Teachers',
     studentSection: 'Login',
     participantLabel: 'Participant ID',
-    participantMissing: 'Please enter your Prolific ID.',
+    participantMissing: 'Please enter your participant ID.',
+    groupLabel: 'Group number or group code',
+    groupPlaceholder: 'e.g. 12 or G12',
+    groupMissing: 'Please enter your group number — your tutor team shared it with you.',
     studentAccessCode: 'Access code (if provided by your teacher)',
     studentAccessError: 'Access code is missing or incorrect.',
     loginUnavailable: 'Login is currently unavailable — please try again later.',
-    integrityNote: 'By submitting, you confirm that your answer is your own work. Answers generated with ChatGPT or other AI tools will be checked with GPTZero.',
+    integrityNote: 'By submitting, you confirm that your answers are your own work. To:Adapt supports your thinking — it does not replace it.',
     loading: 'Loading...',
     continue: 'Continue',
     teacherSection: 'Teachers',
@@ -62,7 +69,7 @@ const LOGIN_TEXT = {
     accessPlaceholder: 'Enter code',
     accessError: 'Incorrect code.',
     openTeacher: 'Open teacher area',
-    privacyNote: 'Your participant ID is stored for study assignment. Chat logs remain excluded from the teacher dashboard.',
+    privacyNote: 'Your data is stored pseudonymously. Tutors only see group summaries — no individual profiles and no chat logs.',
     languageAria: 'Choose language',
   },
 } satisfies Record<Locale, Record<string, string>>
@@ -84,6 +91,10 @@ function LoginPageContent({
     return sessionStorage.getItem('app_mode') === 'teacher' ? 'teacher' : 'student'
   })
   const [participantIdInput, setParticipantIdInput] = useState(prolificPid)
+  const [groupCodeInput, setGroupCodeInput] = useState(() => {
+    if (typeof window === 'undefined') return ''
+    return sessionStorage.getItem('group_code') ?? ''
+  })
   const [accessCodeInput, setAccessCodeInput] = useState(() => {
     if (typeof window === 'undefined') return ''
     return sessionStorage.getItem('student_access_code') ?? ''
@@ -112,11 +123,14 @@ function LoginPageContent({
     }
 
     sessionStorage.setItem('app_mode', 'student')
+    // Prolific-Kontext nur bei echter Prolific-Ankunft (URL-Parameter) —
+    // regulärer Kursbetrieb läuft neutral als To:Adapt.
+    const isProlificArrival = Boolean(prolificPid || studyId || prolificSessionId)
     sessionStorage.setItem('experiment_context', JSON.stringify({
-      provider: 'prolific',
-      experiment_name: EXPERIMENT_NAME,
-      run_id: prolificSessionId || resolvedParticipantId || undefined,
-      prolific_pid: resolvedParticipantId || undefined,
+      provider: isProlificArrival ? 'prolific' : undefined,
+      experiment_name: isProlificArrival ? EXPERIMENT_NAME : COURSE_CONTEXT_NAME,
+      run_id: prolificSessionId || undefined,
+      prolific_pid: isProlificArrival ? (resolvedParticipantId || undefined) : undefined,
       prolific_study_id: studyId || undefined,
       prolific_session_id: prolificSessionId || undefined,
       metadata: { language },
@@ -141,7 +155,19 @@ function LoginPageContent({
       setError(text.participantMissing)
       return
     }
+    // Gruppen-Selbstauskunft: Pflicht im Kursbetrieb; Prolific-Läufe
+    // (PROLIFIC_PID in der URL) kennen keine Gruppen.
+    const groupCode = groupCodeInput.trim()
+    if (!prolificPid && !groupCode) {
+      setError(text.groupMissing)
+      return
+    }
     setLoading(true)
+    if (groupCode) {
+      sessionStorage.setItem('group_code', groupCode)
+    } else {
+      sessionStorage.removeItem('group_code')
+    }
 
     // Zugangscode speichern und gegen das Backend prüfen (401 = falsch/fehlt;
     // ist serverseitig kein Code konfiguriert, geht der Check immer durch).
@@ -161,18 +187,19 @@ function LoginPageContent({
       return
     }
 
+    const isProlificArrival = Boolean(prolificPid || studyId || prolificSessionId)
     sessionStorage.setItem('experiment_context', JSON.stringify({
-      provider: 'prolific',
-      experiment_name: EXPERIMENT_NAME,
-      run_id: prolificSessionId || participantId,
-      prolific_pid: participantId,
+      provider: isProlificArrival ? 'prolific' : undefined,
+      experiment_name: isProlificArrival ? EXPERIMENT_NAME : COURSE_CONTEXT_NAME,
+      run_id: prolificSessionId || undefined,
+      prolific_pid: isProlificArrival ? participantId : undefined,
       prolific_study_id: studyId || undefined,
       prolific_session_id: prolificSessionId || undefined,
-      metadata: { language },
+      metadata: { language, ...(groupCode ? { group_code: groupCode } : {}) },
     }))
 
     sessionStorage.setItem('matrikelnummer', participantId)
-    sessionStorage.setItem('user_id', `prolific_${participantId}`)
+    sessionStorage.setItem('user_id', isProlificArrival ? `prolific_${participantId}` : `p_${participantId}`)
     router.push('/cases')
   }
 
@@ -263,7 +290,7 @@ function LoginPageContent({
                   type="text"
                   value={participantIdInput}
                   onChange={e => { setParticipantIdInput(e.target.value); setError('') }}
-                  placeholder="5f7c2e4a9b1c..."
+                  placeholder="deine-id"
                   autoFocus
                   className="w-full px-4 py-3 text-sm bg-transparent outline-none transition-all"
                   style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
@@ -275,6 +302,24 @@ function LoginPageContent({
                   {text.integrityNote}
                 </p>
               </div>
+
+              {!prolificPid && (
+                <div>
+                  <label className="block text-xs mb-2 font-medium tracking-wide" style={{ color: 'var(--line)' }}>
+                    {text.groupLabel}
+                  </label>
+                  <input
+                    type="text"
+                    value={groupCodeInput}
+                    onChange={e => { setGroupCodeInput(e.target.value); setError('') }}
+                    placeholder={text.groupPlaceholder}
+                    className="w-full px-4 py-3 text-sm bg-transparent outline-none transition-all"
+                    style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
+                    onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+                    onBlur={e => e.currentTarget.style.borderColor = 'rgba(53,40,30,0.25)'}
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs mb-2 font-medium tracking-wide" style={{ color: 'var(--line)' }}>

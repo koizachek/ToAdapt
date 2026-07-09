@@ -46,38 +46,71 @@ function getSecret(): string {
   return secret
 }
 
-/** Erzeugt einen signierten Session-Token mit Ablaufzeitstempel. */
-export async function signTeacherSession(): Promise<string> {
-  const payload = JSON.stringify({ iat: Date.now() })
+/** Erzeugt einen signierten Session-Token mit Tutor-Kennung + Ablaufzeitstempel. */
+export async function signTeacherSession(tutorId: string): Promise<string> {
+  const payload = JSON.stringify({ iat: Date.now(), tutor: tutorId })
   const payloadB64 = toBase64Url(new TextEncoder().encode(payload))
   const sig = await hmac(payloadB64, getSecret())
   return `${payloadB64}.${sig}`
 }
 
-/** Prüft Signatur und Ablauf eines Session-Tokens. */
-export async function verifyTeacherSession(token: string | undefined): Promise<boolean> {
-  if (!token) return false
+/**
+ * Prüft Signatur und Ablauf; gibt bei Erfolg die Tutor-Kennung zurück,
+ * sonst null (truthiness-kompatibel zum früheren boolean).
+ */
+export async function verifyTeacherSession(token: string | undefined): Promise<string | null> {
+  if (!token) return null
   const parts = token.split('.')
-  if (parts.length !== 2) return false
+  if (parts.length !== 2) return null
   const [payloadB64, sig] = parts
 
   let expected: string
   try {
     expected = await hmac(payloadB64, getSecret())
   } catch {
-    return false
+    return null
   }
-  if (!timingSafeEqual(sig, expected)) return false
+  if (!timingSafeEqual(sig, expected)) return null
 
   try {
     const payload = JSON.parse(new TextDecoder().decode(fromBase64Url(payloadB64)))
     const iat = Number(payload?.iat)
-    if (!Number.isFinite(iat)) return false
-    if (Date.now() - iat > MAX_AGE_SECONDS * 1000) return false
-    return true
+    if (!Number.isFinite(iat)) return null
+    if (Date.now() - iat > MAX_AGE_SECONDS * 1000) return null
+    const tutor = typeof payload?.tutor === 'string' && payload.tutor ? payload.tutor : 'teacher'
+    return tutor
   } catch {
-    return false
+    return null
   }
+}
+
+/**
+ * Löst einen eingegebenen Zugangscode zur Tutor-Kennung auf.
+ *
+ * TEACHER_ACCESS_CODES: JSON-Objekt {"kennung": "code", ...} — Einzelcodes
+ * für alle Tutor:innen (Generator: scripts/generate_tutor_codes.py).
+ * Fallback: TEACHER_ACCESS_CODE (Alt-Setup, Kennung "teacher").
+ */
+export function resolveTutorByCode(code: string): string | null {
+  const raw = process.env.TEACHER_ACCESS_CODES
+  if (raw) {
+    let mapping: Record<string, string>
+    try {
+      mapping = JSON.parse(raw)
+    } catch {
+      return null
+    }
+    for (const [tutorId, tutorCode] of Object.entries(mapping)) {
+      if (typeof tutorCode === 'string' && tutorCode.length > 0 && timingSafeEqual(code, tutorCode)) {
+        return tutorId
+      }
+    }
+    return null
+  }
+
+  const legacy = process.env.TEACHER_ACCESS_CODE
+  if (legacy && timingSafeEqual(code, legacy)) return 'teacher'
+  return null
 }
 
 export const TEACHER_COOKIE = COOKIE_NAME

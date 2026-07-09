@@ -10,7 +10,8 @@ from backend.models.experiment import ExperimentContext
 
 class Session(BaseModel):
     session_id: str
-    user_id: str
+    user_id: str                        # Pseudonym (backend/anonymize.py)
+    group_code: str = ""
     case_id: str
     tp_phase: int
     experiment: ExperimentContext | None = None
@@ -25,6 +26,7 @@ class Session(BaseModel):
 
 class SessionCreate(BaseModel):
     user_id: str
+    group_code: str | None = None
     case_id: str
     experiment: ExperimentContext | None = None
 

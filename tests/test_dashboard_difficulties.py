@@ -45,6 +45,7 @@ def client(monkeypatch, tmp_path):
     for var in ("MONGODB_URI", "MONGODB_MAS_NAME", "MONGODB_MAS_KEY", "MONGODB_HOST"):
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setenv("TOADAPT_API_KEY", API_KEY)
+    monkeypatch.setenv("RESEARCH_API_KEY", "research-key")
     monkeypatch.setattr(dashboard_store_module, "RESULTS_DIR", tmp_path)
 
     results = [
@@ -78,7 +79,7 @@ def test_difficulties_requires_api_key(client):
 
 
 def test_difficulties_prioritizes_struggling_student(client):
-    res = client.get("/dashboard/difficulties", headers={"X-API-Key": API_KEY})
+    res = client.get("/dashboard/difficulties", headers={"X-API-Key": API_KEY, "X-Research-Key": "research-key"})
     assert res.status_code == 200
     data = res.json()
 
@@ -108,7 +109,7 @@ def test_difficulties_prioritizes_struggling_student(client):
 
 
 def test_difficulties_cohort_aggregation(client):
-    data = client.get("/dashboard/difficulties", headers={"X-API-Key": API_KEY}).json()
+    data = client.get("/dashboard/difficulties", headers={"X-API-Key": API_KEY, "X-Research-Key": "research-key"}).json()
 
     by_tag = {o["tag"]: o for o in data["cohort_weak_objectives"]}
     assert by_tag["wirkungskette"]["students_total"] == 2

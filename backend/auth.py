@@ -23,6 +23,32 @@ API_KEY_HEADER = "X-API-Key"
 STUDENT_CODE_ENV = "STUDENT_ACCESS_CODE"
 STUDENT_CODE_HEADER = "X-Student-Access-Code"
 
+RESEARCH_KEY_ENV = "RESEARCH_API_KEY"
+
+
+async def require_research_key(
+    x_research_key: str | None = Header(default=None, alias="X-Research-Key"),
+) -> None:
+    """Forschungs-Endpunkte mit Einzelpersonen-Daten (pseudonymisiert).
+
+    BEWUSST ein anderer Key als TOADAPT_API_KEY: Der Teacher-Proxy des
+    Frontends kennt nur TOADAPT_API_KEY — Tutor:innen erreichen Einzel-
+    profile damit auch technisch nicht (sie sehen nur Gruppen-Aggregate).
+    Fail-closed wie require_api_key.
+    """
+    configured = os.environ.get(RESEARCH_KEY_ENV, "").strip()
+    if not configured:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Forschungs-Zugang nicht konfiguriert",
+        )
+    provided = (x_research_key or "").strip()
+    if not provided or not hmac.compare_digest(provided, configured):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Ungültiger oder fehlender Forschungs-Key",
+        )
+
 
 def _configured_student_code() -> str:
     return os.environ.get(STUDENT_CODE_ENV, "").strip()

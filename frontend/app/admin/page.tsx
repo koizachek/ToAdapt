@@ -185,7 +185,12 @@ export default function AdminPage() {
   const [report, setReport]     = useState<ValidationReport | null>(null)
   const [regenInstructions, setRegenInstructions] = useState<Record<string, string>>({})
   const [form, setForm]         = useState<AdminForm>({ industry: INDUSTRIES[0], country: COUNTRY_OPTIONS[0].value, target_tp: 1 })
-  const [reviewer, setReviewer] = useState('')
+  // Vorbelegt mit der Tutor-Kennung aus dem Login (teacher_name-Cookie, nur UI).
+  const [reviewer, setReviewer] = useState(() => {
+    if (typeof document === 'undefined') return ''
+    const match = document.cookie.match(/(?:^|; )teacher_name=([^;]*)/)
+    return match ? decodeURIComponent(match[1]) : ''
+  })
   const text = ADMIN_TEXT[language]
 
   const load = useCallback(
