@@ -9,6 +9,7 @@ CLAUDE.md
 dev-docs/frontend/.next
 frontend/node_modules
 frontend/tsconfig.tsbuildinfo
+images/
 
 # Laufzeit- und Forschungsdaten mit personenbezogenen Inhalten (Prolific-IDs,
 # Freitextantworten) — dürfen NICHT ins Repo.
