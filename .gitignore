@@ -22,3 +22,6 @@ data/prolific_runs/**
 !data/prolific_runs/
 !data/prolific_runs/README.md
 SECURITY.md
+# Interne Betriebsdokumente (Rollout-Status, keine Secrets — bleiben lokal)
+ROLLOUT_CHECKLIST.md
+ROLLOUT_PLAN.md
