@@ -27,6 +27,21 @@ export function readTeacherMode() {
   return hasCookie('teacher_mode', 'true')
 }
 
+export function readStudentIdentity(): boolean {
+  // Eine Studierenden-Identität gilt als etabliert, sobald der Login (oder die
+  // Prolific-Ankunft) eine Kennung hinterlegt hat. Für Lehrkräfte wird keines
+  // dieser Felder gesetzt.
+  if (typeof window === 'undefined') return false
+
+  try {
+    return Boolean(
+      sessionStorage.getItem('matrikelnummer') || sessionStorage.getItem('user_id')
+    )
+  } catch {
+    return false
+  }
+}
+
 export function readStoredAppMode(): AppMode {
   if (typeof window === 'undefined') return 'student'
   if (readTeacherMode()) return 'teacher'

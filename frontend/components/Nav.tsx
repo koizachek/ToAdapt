@@ -8,6 +8,7 @@ import { GraduationCap, UserRoundCog } from 'lucide-react'
 import {
   AppMode,
   readStoredAppMode,
+  readStudentIdentity,
   readTeacherMode,
   writeAppMode,
 } from '@/lib/appMode'
@@ -70,8 +71,15 @@ export default function Nav() {
     if (typeof window === 'undefined') return false
     return readTeacherMode()
   })
+  const [hasStudentIdentity] = useState(() => readStudentIdentity())
   const text = NAV_TEXT[language]
   const mode = hasTeacherAccess ? 'teacher' : isExperimentalRun ? 'student' : modeFromPath(path) ?? selectedMode
+
+  // Sobald man in einer Rolle eingeloggt ist (Studierenden-Identität oder
+  // Lehrkraft-Cookie), darf der Modus nicht mehr per Klick umgeschaltet werden —
+  // sonst setzt ein versehentlicher Klick den ganzen Zustand zurück. Ein
+  // bewusster Rollenwechsel bleibt über das ToAdapt-Wortmark → Startseite möglich.
+  const roleLocked = hasTeacherAccess || hasStudentIdentity || isExperimentalRun
 
   const visibleLinks = !hasTeacherAccess && (isExperimentalRun || mode === 'student')
     ? studentLinks
@@ -125,7 +133,7 @@ export default function Nav() {
 
       {/* Nav links */}
       <nav className="flex items-center gap-8">
-        {!isExperimentalRun && (
+        {!roleLocked && (
           <div
             className="flex items-center gap-1 p-1"
             style={{ border: '1px solid rgba(53,40,30,0.16)', background: 'rgba(250,250,248,0.45)' }}
