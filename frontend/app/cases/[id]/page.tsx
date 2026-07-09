@@ -1062,11 +1062,11 @@ export default function CasePage() {
       <Nav />
       <main className="mx-auto max-w-[1400px] px-6 pb-12 pt-24 lg:px-8">
         <div className="py-6">
-          <p className="mb-1 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
+          <p className="mb-1 text-sm tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
             {isTeacherMode ? text.teacherPreview : `${caseData.industry} · ${caseData.country}`}
           </p>
-          <h1 className="font-display text-3xl leading-tight">{caseData.title}</h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>{caseData.tagline}</p>
+          <h1 className="font-display text-4xl leading-tight">{caseData.title}</h1>
+          <p className="mt-1 text-base" style={{ color: 'var(--muted)' }}>{caseData.tagline}</p>
         </div>
 
         <div className="divider" />
@@ -1078,7 +1078,7 @@ export default function CasePage() {
               type="button"
               onClick={() => setTab(t.key)}
               className={clsx(
-                'flex items-center gap-2 border-b-2 -mb-px px-5 py-3 text-xs font-medium tracking-wide transition-all',
+                'flex items-center gap-2 border-b-2 -mb-px px-5 py-3 text-sm font-medium tracking-wide transition-all',
                 tab === t.key ? 'border-[var(--accent)]' : 'border-transparent',
               )}
               style={{ color: tab === t.key ? 'var(--accent)' : 'var(--muted)' }}
@@ -1093,24 +1093,25 @@ export default function CasePage() {
             {tab === 'case' && (
               <div className="flex flex-col gap-10 pr-0 xl:pr-4">
                 {caseData.sections.map((section, sectionIndex) => (
-                  <section key={section.section_id}>
+                  // Lesbare Zeilenlänge (~12–16 Wörter/Zeile) durch begrenzte Textspalte.
+                  <section key={section.section_id} className="max-w-[46rem]">
                     {sectionIndex === 0 ? (
                       // Case-Einleitung: der Firmennamen-Präfix vor dem Doppelpunkt
                       // ("Alpes Bank: …") steht bereits im Seiten-Titel (<h1>) → weglassen.
-                      <h2 className="mb-3 font-display text-2xl leading-tight">
+                      <h2 className="mb-3 font-display text-3xl leading-tight">
                         {section.title.includes(': ')
                           ? section.title.slice(section.title.indexOf(': ') + 2)
                           : section.title}
                       </h2>
                     ) : (
-                      <h2 className="mb-3 flex items-center gap-3 text-base font-medium">
+                      <h2 className="mb-3 flex items-center gap-3 text-lg font-medium">
                         {SECTION_ICONS[section.section_id] && (
                           <NotionIcon name={SECTION_ICONS[section.section_id]} size={33} className="shrink-0" />
                         )}
                         {section.title}
                       </h2>
                     )}
-                    <div className="flex flex-col gap-5 text-sm leading-8">
+                    <div className="flex flex-col gap-5 text-base leading-8">
                       {splitParagraphs(section.content).map((paragraph, index) => (
                         <div key={`${section.section_id}-${index}`}>
                           <RichText

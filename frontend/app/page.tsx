@@ -273,7 +273,7 @@ function LoginPageContent({
       <div className="mb-20 text-center select-none">
         <h1
           className="font-display leading-none tracking-tight"
-          style={{ fontSize: 'clamp(4rem, 14vw, 11rem)', color: 'var(--ink)' }}
+          style={{ fontSize: 'clamp(3.2rem, 13vw, 10.2rem)', color: 'var(--ink)' }}
         >
           ToAdapt
         </h1>
