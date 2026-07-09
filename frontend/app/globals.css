@@ -7,8 +7,12 @@
     --line:     #35281E;
     --accent:   #15633D;
     --white:    #FAFAF8;
-    --muted:    #9a9690;
+    --muted:    #74716C;
     --surface:  #F0EEE8;
+    /* Solide Linienfarbe für dünne Trenner/Rahmen: die früher als hellbeige
+       gerenderte Linie (rgb 203,199,192), 25% dunkler und deckend — gleiche
+       1px-Stärke, nur dunkler, auf Weiß wie auf Beige gut sichtbar. */
+    --hairline: #989590;
   }
 
   * { box-sizing: border-box; }
@@ -38,8 +42,7 @@
   /* Hairline divider */
   .divider {
     height: 1px;
-    background-color: var(--line);
-    opacity: 0.2;
+    background-color: var(--hairline);
   }
 
   /* Subtle grain texture overlay */

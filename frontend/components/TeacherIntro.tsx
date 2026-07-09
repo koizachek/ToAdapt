@@ -30,7 +30,7 @@ export default function TeacherIntro({
   return (
     <section
       className="mb-10 rounded-2xl p-6"
-      style={{ background: 'rgba(21,99,61,0.06)', border: '1px solid rgba(53,40,30,0.14)' }}
+      style={{ background: 'rgba(21,99,61,0.06)', border: '1px solid var(--hairline)' }}
     >
       <div className="mb-3 flex items-start justify-between gap-4">
         <p className="flex items-center gap-2.5 text-sm font-medium">

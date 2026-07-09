@@ -229,7 +229,7 @@ export default function DashboardPage() {
                 <div
                   key={k.label}
                   className="h-32 p-6 flex flex-col justify-between"
-                  style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.12)' }}
+                  style={{ background: 'var(--surface)', border: '1px solid var(--hairline)' }}
                 >
                   <div className="min-h-9 flex items-start gap-2" style={{ color: 'var(--muted)' }}>
                     {k.icon}
@@ -262,7 +262,7 @@ export default function DashboardPage() {
 
             {/* Weakest learning objectives (Kohorte) */}
             {overview.top_objectives.length > 0 && (
-              <div className="mb-14 p-6" style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.12)' }}>
+              <div className="mb-14 p-6" style={{ background: 'var(--surface)', border: '1px solid var(--hairline)' }}>
                 <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--muted)' }}>{text.weakestObjectives}<HelpHint text={text.helpObjectives} /></p>
                 <div className="flex flex-col gap-3">
                   {overview.top_objectives.map(o => (
@@ -295,7 +295,7 @@ export default function DashboardPage() {
               onChange={e => setSearch(e.target.value)}
               placeholder={text.searchPlaceholder}
               className="px-3 py-1.5 text-sm bg-transparent outline-none"
-              style={{ border: '1px solid rgba(53,40,30,0.2)', color: 'var(--ink)', width: '220px' }}
+              style={{ border: '1px solid var(--hairline)', color: 'var(--ink)', width: '220px' }}
             />
           </div>
           <p className="text-xs mb-6" style={{ color: 'var(--muted)' }}>{text.groupHint}</p>

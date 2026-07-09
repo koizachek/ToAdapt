@@ -585,7 +585,7 @@ export default function AdminPage() {
                           </div>
 
                           {/* Eingebettetes Bewertungspaket */}
-                          <div className="mt-3 flex flex-col gap-2 pl-3" style={{ borderLeft: '2px solid rgba(53,40,30,0.12)' }}>
+                          <div className="mt-3 flex flex-col gap-2 pl-3" style={{ borderLeft: '2px solid var(--hairline)' }}>
                             <label className="text-xs font-medium" style={{ color: 'var(--line)' }}>{text.rubricFocus}<HelpHint text={text.helpRubric} /></label>
                             <textarea
                               value={(q.evaluation_focus ?? []).join('\n')}
@@ -696,7 +696,7 @@ export default function AdminPage() {
 
                     {/* Validation report */}
                     {report && (
-                      <div className="p-4" style={{ background: report.ok ? 'rgba(21,99,61,0.07)' : 'rgba(192,57,43,0.06)', border: '1px solid rgba(53,40,30,0.15)' }}>
+                      <div className="p-4" style={{ background: report.ok ? 'rgba(21,99,61,0.07)' : 'rgba(192,57,43,0.06)', border: '1px solid var(--hairline)' }}>
                         <p className="text-xs font-medium mb-2">
                           {report.ok ? text.validationOk : text.validationBlocked}
                         </p>

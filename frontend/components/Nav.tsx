@@ -124,7 +124,7 @@ export default function Nav() {
   return (
     <header
       className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between gap-6 px-8 py-5"
-      style={{ borderBottom: '1px solid rgba(53,40,30,0.12)', background: 'rgba(223,221,214,0.92)', backdropFilter: 'blur(12px)' }}
+      style={{ borderBottom: '1px solid var(--hairline)', background: 'rgba(223,221,214,0.92)', backdropFilter: 'blur(12px)' }}
     >
       {/* Wordmark */}
       <Link href="/" className="font-display text-xl tracking-tight" style={{ color: 'var(--ink)' }}>
@@ -136,7 +136,7 @@ export default function Nav() {
         {!roleLocked && (
           <div
             className="flex items-center gap-1 p-1"
-            style={{ border: '1px solid rgba(53,40,30,0.16)', background: 'rgba(250,250,248,0.45)' }}
+            style={{ border: '1px solid var(--hairline)', background: 'rgba(250,250,248,0.45)' }}
             aria-label={text.modeAria}
           >
             {[
@@ -182,7 +182,7 @@ export default function Nav() {
 
         <div
           className="flex items-center gap-1 p-1"
-          style={{ border: '1px solid rgba(53,40,30,0.16)', background: 'rgba(250,250,248,0.45)' }}
+          style={{ border: '1px solid var(--hairline)', background: 'rgba(250,250,248,0.45)' }}
           aria-label={text.languageAria}
         >
           {(['de', 'en'] as Locale[]).map(option => {

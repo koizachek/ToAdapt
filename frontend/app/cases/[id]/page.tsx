@@ -463,7 +463,7 @@ function ExhibitTable({ content }: { content: string }) {
                   key={`${header}-${index}`}
                   className="border-b px-4 py-3 text-left text-xs font-semibold tracking-[0.08em] uppercase"
                   style={{
-                    borderColor: 'rgba(53,40,30,0.12)',
+                    borderColor: 'var(--hairline)',
                     color: 'var(--muted)',
                     whiteSpace: index === 0 ? 'normal' : 'nowrap',
                   }}
@@ -481,7 +481,7 @@ function ExhibitTable({ content }: { content: string }) {
                     key={`cell-${rowIndex}-${cellIndex}`}
                     className="border-b px-4 py-3 align-top text-sm"
                     style={{
-                      borderColor: 'rgba(53,40,30,0.08)',
+                      borderColor: 'var(--hairline)',
                       color: 'var(--ink)',
                       fontWeight: cellIndex === 0 ? 500 : 400,
                       whiteSpace: cellIndex === 0 ? 'normal' : 'nowrap',
@@ -528,7 +528,7 @@ function BusinessModelCanvasGuide({ language, blocks }: { language: Locale; bloc
       className="rounded-[28px] border p-6"
       style={{
         background: 'linear-gradient(135deg, rgba(21,99,61,0.09), rgba(184,134,11,0.08))',
-        borderColor: 'rgba(53,40,30,0.14)',
+        borderColor: 'var(--hairline)',
       }}
     >
       <div className="mb-5 flex items-start justify-between gap-4">
@@ -558,7 +558,7 @@ function BusinessModelCanvasGuide({ language, blocks }: { language: Locale; bloc
           <div
             key={block.key}
             className="rounded-2xl px-4 py-4"
-            style={{ background: 'rgba(250,250,248,0.72)', border: '1px solid rgba(53,40,30,0.1)' }}
+            style={{ background: 'rgba(250,250,248,0.72)', border: '1px solid var(--hairline)' }}
           >
             <p className="mb-2 text-xs font-semibold tracking-[0.08em] uppercase" style={{ color: 'var(--accent)' }}>
               {block.label}
@@ -663,7 +663,7 @@ function GlossaryChip({
         )}
         style={{
           background: 'var(--white)',
-          borderColor: 'rgba(53,40,30,0.12)',
+          borderColor: 'var(--hairline)',
           color: 'var(--ink)',
         }}
         role="tooltip"
@@ -1056,7 +1056,7 @@ export default function CasePage() {
 
         <div className="divider" />
 
-        <div className="flex gap-0 border-b" style={{ borderColor: 'rgba(53,40,30,0.12)' }}>
+        <div className="flex gap-0 border-b" style={{ borderColor: 'var(--hairline)' }}>
           {tabs.map(t => (
             <button
               key={t.key}
@@ -1108,7 +1108,7 @@ export default function CasePage() {
                         <div
                           key={exhibit.exhibit_id}
                           className="rounded-2xl p-5"
-                          style={{ border: '1px solid rgba(53,40,30,0.15)', background: 'rgba(250,250,248,0.45)' }}
+                          style={{ border: '1px solid var(--hairline)', background: 'rgba(250,250,248,0.45)' }}
                         >
                           <p className="mb-3 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
                             {exhibit.title}
@@ -1173,7 +1173,7 @@ export default function CasePage() {
                     {isTeacherMode ? (
                       <div
                         className="ml-8 rounded-2xl px-4 py-3 text-xs leading-6"
-                        style={{ border: '1px solid rgba(53,40,30,0.14)', color: 'var(--muted)' }}
+                        style={{ border: '1px solid var(--hairline)', color: 'var(--muted)' }}
                       >
                         {text.teacherAnswerRequirement(requirement.minWords, requirement.maxWords)}
                       </div>
@@ -1197,14 +1197,14 @@ export default function CasePage() {
                           placeholder={text.answerPlaceholder(requirement.minWords, requirement.maxWords)}
                           className="ml-8 w-full resize-none rounded-2xl bg-transparent px-4 py-3 text-sm outline-none transition-all"
                           style={{
-                            border: `1px solid ${answerText.trim().length > 0 && !isWithinRange ? 'rgba(173,63,43,0.45)' : 'rgba(53,40,30,0.2)'}`,
+                            border: `1px solid ${answerText.trim().length > 0 && !isWithinRange ? 'rgba(173,63,43,0.45)' : 'var(--hairline)'}`,
                             color: 'var(--ink)',
                           }}
                           onFocus={event => { event.currentTarget.style.borderColor = 'var(--accent)' }}
                           onBlurCapture={event => {
                             event.currentTarget.style.borderColor = answerText.trim().length > 0 && !isWithinRange
                               ? 'rgba(173,63,43,0.45)'
-                              : 'rgba(53,40,30,0.2)'
+                              : 'var(--hairline)'
                           }}
                         />
                         <div className="ml-8 mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
@@ -1345,7 +1345,7 @@ export default function CasePage() {
             {isTeacherMode ? (
               <div
                 className="rounded-[28px] border p-6"
-                style={{ background: 'rgba(250,250,248,0.7)', borderColor: 'rgba(53,40,30,0.12)' }}
+                style={{ background: 'rgba(250,250,248,0.7)', borderColor: 'var(--hairline)' }}
               >
                 <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--muted)' }}>
                   {text.preview}
@@ -1388,11 +1388,11 @@ export default function CasePage() {
               className="overflow-hidden rounded-[28px] border"
               style={{
                 background: 'rgba(250,250,248,0.7)',
-                borderColor: 'rgba(53,40,30,0.12)',
+                borderColor: 'var(--hairline)',
                 backdropFilter: 'blur(10px)',
               }}
             >
-              <div className="border-b px-5 py-4" style={{ borderColor: 'rgba(53,40,30,0.12)' }}>
+              <div className="border-b px-5 py-4" style={{ borderColor: 'var(--hairline)' }}>
                 <div className="flex items-center gap-3">
                   <div
                     className="flex h-10 w-10 items-center justify-center rounded-full"
@@ -1438,7 +1438,7 @@ export default function CasePage() {
                           className="max-w-[18rem] rounded-2xl px-4 py-3 text-sm leading-6"
                           style={message.role === 'user'
                             ? { background: 'var(--ink)', color: 'var(--white)' }
-                            : { background: 'var(--surface)', color: 'var(--ink)', border: '1px solid rgba(53,40,30,0.12)' }}
+                            : { background: 'var(--surface)', color: 'var(--ink)', border: '1px solid var(--hairline)' }}
                         >
                           {message.content}
                         </div>
@@ -1454,8 +1454,8 @@ export default function CasePage() {
                   </div>
                 </div>
 
-                <div className="border-t px-4 py-4" style={{ borderColor: 'rgba(53,40,30,0.12)' }}>
-                  <div className="flex items-stretch overflow-hidden rounded-full" style={{ border: '1px solid rgba(53,40,30,0.2)' }}>
+                <div className="border-t px-4 py-4" style={{ borderColor: 'var(--hairline)' }}>
+                  <div className="flex items-stretch overflow-hidden rounded-full" style={{ border: '1px solid var(--hairline)' }}>
                     <input
                       value={chatInput}
                       onChange={event => setChatInput(event.target.value)}

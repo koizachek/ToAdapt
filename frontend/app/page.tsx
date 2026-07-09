@@ -247,7 +247,7 @@ function LoginPageContent({
     <main className="min-h-screen flex flex-col items-center justify-center px-6">
       <div
         className="fixed right-6 top-6 flex items-center gap-1 p-1"
-        style={{ border: '1px solid rgba(53,40,30,0.16)', background: 'rgba(250,250,248,0.45)' }}
+        style={{ border: '1px solid var(--hairline)', background: 'rgba(250,250,248,0.45)' }}
         aria-label={text.languageAria}
       >
         {(['de', 'en'] as Locale[]).map(option => {
@@ -295,7 +295,7 @@ function LoginPageContent({
       {!prolificPid && (
         <div
           className="mb-8 flex w-full max-w-sm items-center gap-1 p-1"
-          style={{ border: '1px solid rgba(53,40,30,0.16)', background: 'rgba(250,250,248,0.45)' }}
+          style={{ border: '1px solid var(--hairline)', background: 'rgba(250,250,248,0.45)' }}
           aria-label={text.modeAria}
         >
           {[
@@ -324,7 +324,7 @@ function LoginPageContent({
 
       <div
         className="w-full max-w-sm p-8"
-        style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.15)' }}
+        style={{ background: 'var(--surface)', border: '1px solid var(--hairline)' }}
       >
         {mode === 'student' ? (
           <>
@@ -471,7 +471,7 @@ function LoginPageContent({
         >
           <div
             className="flex max-h-[85vh] w-full max-w-xl flex-col gap-6 overflow-y-auto rounded-2xl p-8 shadow-lg"
-            style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.2)' }}
+            style={{ background: 'var(--surface)', border: '1px solid var(--hairline)' }}
             onClick={event => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">

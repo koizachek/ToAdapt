@@ -49,7 +49,7 @@ export default function GuidePage() {
             <section
               key={href}
               className="rounded-2xl p-7"
-              style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.14)' }}
+              style={{ background: 'var(--surface)', border: '1px solid var(--hairline)' }}
             >
               <Link
                 href={href}

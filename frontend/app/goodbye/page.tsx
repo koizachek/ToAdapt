@@ -41,7 +41,7 @@ export default function GoodbyePage() {
           className="rounded-[32px] border px-8 py-10"
           style={{
             background: 'linear-gradient(135deg, rgba(21,99,61,0.1), rgba(250,250,248,0.96))',
-            borderColor: 'rgba(53,40,30,0.14)',
+            borderColor: 'var(--hairline)',
           }}
         >
           <p className="mb-3 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
@@ -56,7 +56,7 @@ export default function GoodbyePage() {
 
           <div
             className="mt-8 rounded-2xl px-5 py-5"
-            style={{ background: 'rgba(53,40,30,0.06)', border: '1px solid rgba(53,40,30,0.1)' }}
+            style={{ background: 'rgba(53,40,30,0.06)', border: '1px solid var(--hairline)' }}
           >
             <p className="mb-2 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
               {text.codeLabel}

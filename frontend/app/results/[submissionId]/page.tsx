@@ -81,7 +81,7 @@ export default function ResultsPage() {
         <div className="divider mb-10" />
 
         {/* Overall feedback */}
-        <div className="mb-12 p-5" style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.12)' }}>
+        <div className="mb-12 p-5" style={{ background: 'var(--surface)', border: '1px solid var(--hairline)' }}>
           <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>Gesamteinschätzung</p>
           <p className="text-sm leading-7">{result.overall_feedback}</p>
         </div>
@@ -110,7 +110,7 @@ export default function ResultsPage() {
               </p>
               <div className="flex flex-wrap gap-2 mt-2">
                 {s.learning_objective_tags.map(tag => (
-                  <span key={tag} className="text-xs px-2 py-0.5" style={{ border: '1px solid rgba(53,40,30,0.15)', color: 'var(--muted)' }}>
+                  <span key={tag} className="text-xs px-2 py-0.5" style={{ border: '1px solid var(--hairline)', color: 'var(--muted)' }}>
                     {tag}
                   </span>
                 ))}
