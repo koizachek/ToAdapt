@@ -1,11 +1,11 @@
 ---
 name: toadapt-judge-alignment-campaign
-description: Executable Kampagne für das härteste lebende Problem in ToAdapt — der LLM-Judge unterbewertet q4 (Bloom 6, Integration/Reflexion, 30 Punkte) systematisch (q4-MAE ~4.97, 16/16 Fälle unterbewertet, Stand Studie 2026-05-31). Lade diese Skill, wenn du (a) die Judge-Teacher-Alignment-Metriken reproduzieren, verbessern oder erneut messen willst, (b) an backend/evaluator/rubric_evaluator.py (EVALUATE_PROMPT, EVALUATOR_SYSTEM, Kalibrierungsanker), backend/config/rubrics/tp4_rubric.json oder OPENROUTER_MODEL wegen Bewertungsqualität arbeitest, (c) Symptome wie "Judge ist strenger als die Lehrkraft", "q4-Scores zu niedrig", "Pearson/MAE/RMSE nachrechnen", "Blind-Review auswerten" oder "neue Kalibrierungsrunde" hast, oder (d) scripts/export_review_workbooks.py bzw. scripts/compare_teacher_rubric_scores.py bedienen willst. Keywords: LLM-as-Judge, Alignment, Kalibrierung, teacher_awarded_points, review_item_id, q4, Bloom 6, MAE, Pearson, Blind-Review, Rescore.
+description: Executable Kampagne für das härteste lebende Problem in ToAdapt — der LLM-Judge unterbewertet q4 (Bloom 6, Integration/Reflexion, 30 Punkte) systematisch (q4-MAE ~4.97, 16/16 Fälle unterbewertet, Stand Studie 2026-05-31). Lade diese Skill, wenn du (a) die Judge-Teacher-Alignment-Metriken reproduzieren, verbessern oder erneut messen willst, (b) an backend/evaluator/rubric_evaluator.py (EVALUATE_PROMPT, EVALUATOR_SYSTEM, BLOOM_CALIBRATION_ANCHORS), an den calibration_notes / der eingebetteten Rubric in backend/cases/pool/*.json (Case-Editor), an backend/config/rubrics/tp4_rubric.json (Datei-Fallback) oder OPENROUTER_MODEL wegen Bewertungsqualität arbeitest, (c) Symptome wie "Judge ist strenger als die Lehrkraft", "q4-Scores zu niedrig", "Pearson/MAE/RMSE nachrechnen", "Blind-Review auswerten" oder "neue Kalibrierungsrunde" hast, oder (d) scripts/export_review_workbooks.py bzw. scripts/compare_teacher_rubric_scores.py bedienen willst. Keywords: LLM-as-Judge, Alignment, Kalibrierung, teacher_awarded_points, review_item_id, q4, Bloom 6, MAE, Pearson, Blind-Review, Rescore.
 ---
 
 # Judge-Alignment-Kampagne: q4/Bloom-6-Unterbewertung beheben
 
-Stand aller Zahlen und Pfade: 2026-07-08.
+Stand aller Zahlen und Pfade: 2026-07-09 (Studien-Zahlen unverändert vom 2026-05-31).
 
 ## Wann diese Skill NICHT gilt
 
@@ -15,6 +15,7 @@ Stand aller Zahlen und Pfade: 2026-07-08.
 | Was zählt als Evidenz, Test-Landkarte, CI-Gates | `toadapt-validation-and-qa` |
 | Blind-Review-Protokoll im Detail, Analysemethodik mit Rechenbeispiel | `toadapt-proof-and-analysis-toolkit` |
 | Was bedeutet Bloom 6 / q4 / Canvas-Scoring fachlich? | `bwl-scaffolding-reference` |
+| Pädagogische Qualität der Tutor-/Chat-Antworten bewerten (anderer Judge: NAACL-Taxonomie, nicht Punktevergabe) | `toadapt-tutor-response-evaluation` |
 | Darf ich das ändern? Gates vor Deploy? | `toadapt-change-control` (Judge-Änderungen = Klasse [B]) |
 | Warum sieht rubric_evaluator.py historisch so aus (12 Commits Churn)? | `toadapt-failure-archaeology` |
 | venv/Env aufsetzen, damit die Skripte überhaupt laufen | `toadapt-build-and-env` |
@@ -35,7 +36,7 @@ Begriffe (einmalig definiert, danach vorausgesetzt):
 | **Pearson r** | Rangähnliche Korrelation der Punktvergabe Judge vs. Lehrkraft. Hoch = Judge sortiert Antworten in derselben Reihenfolge wie die Lehrkraft, auch wenn das Niveau abweicht. |
 | **Blind-Review** | Die Lehrkraft bewertet Antworten in einem Excel-Workbook, das KEINE Judge-Scores enthält (Spalten `teacher_awarded_points`, `teacher_rationale` leer zum Ausfüllen). |
 | **review_item_id** | Join-Schlüssel zwischen Lehrer- und Judge-Workbook, Format `{case_id}:{question_id}:{nnn}` (dreistellig laufend), erzeugt in `scripts/export_review_workbooks.py` (Zeile 178). |
-| **Kalibrierungsanker** | Hartkodierte Bewertungshinweise pro Frage-ID (q1–q4) im Judge-Prompt, abgeleitet aus der Lehrerbewertung: `_format_calibration_notes` in `backend/evaluator/rubric_evaluator.py` (Zeilen 155–181). |
+| **Kalibrierungsanker** | Bewertungshinweise im Judge-Prompt, seit 2026-07-09 ZWEISTUFIG: case-spezifische `question.calibration_notes` aus dem Case-JSON (die aus der Lehrerbewertung abgeleiteten q1–q4-Anker wurden wörtlich nach `backend/cases/pool/alpes-bank-genai-001.json` + `-en.json` migriert; im Case-Editor der Admin-UI editierbar), Fallback: generische `BLOOM_CALIBRATION_ANCHORS` pro Bloom-Stufe 2–6 in `backend/evaluator/rubric_evaluator.py` (Zeile 174; Auswahl in `_format_calibration_notes`, Zeile 277 — case-Notes ERSETZEN die generischen). Die früher hartkodierten q1–q4-Anker im Python-Code existieren nicht mehr. |
 
 ### Die Studie (docs/teacher_alignment_report_20260531_17submissions.md)
 
@@ -172,14 +173,14 @@ Lesart (Stand 2026-07-08): Der Diff ist NICHT konstant → H1 allein erklärt es
 
 | Rang | Option | Ort | Adressiert | Aufwand | Risiko |
 |---|---|---|---|---|---|
-| a | q4-Kalibrierungsanker verfeinern | `backend/evaluator/rubric_evaluator.py`, `_format_calibration_notes`, q4-Einträge Zeilen 172–176 | H1, H2 | klein | gering; nur q4 betroffen |
-| b | `tp4_rubric.json` überarbeiten (evaluation_focus, Canvas-Erwartungen) | `backend/config/rubrics/tp4_rubric.json` | H4 | klein–mittel | Canvas-Scoring-Verschiebung; Exemplar-Schwellen (82/75) mitdenken |
-| c | Score-Band-Anker für 30-Punkte-Fragen im Prompt | `backend/evaluator/rubric_evaluator.py`, EVALUATE_PROMPT "Vergabe-Leitlinien" Zeilen 104–111 (mid=0.55×max, low=0.25×max aus Zeilen 295–296 → für q4 nur 30/16.5/7.5/0) | H3 | mittel | wirkt auf ALLE Fragen → q1–q3-Recheck Pflicht |
+| a | q4-Kalibrierungsanker verfeinern | q4-Feld `calibration_notes` im Golden-Case-JSON (`backend/cases/pool/alpes-bank-genai-001.json` + `-en.json`), editierbar im Case-Editor der Admin-UI — NICHT mehr im Python-Code; generischer Bloom-6-Fallback `BLOOM_CALIBRATION_ANCHORS[6]` in `rubric_evaluator.py` nur für Cases ohne eigene Notes | H1, H2 | klein | gering; nur q4 des Cases betroffen; beide Sprachvarianten synchron halten |
+| b | TP4-Rubric überarbeiten (evaluation_focus, Canvas-Erwartungen) | primär die EINGEBETTETE Rubric der q4 im Golden-Case-JSON (`required_canvas_blocks`, `evaluation_focus`); `backend/config/rubrics/tp4_rubric.json` ist seit 2026-07-09 nur noch Datei-Fallback für Fragen ohne eingebettete Rubric (embedded-first, `backend/evaluator/rubric_loader.py`) | H4 | klein–mittel | Canvas-Scoring-Verschiebung; Exemplar-Schwellen (82/75) mitdenken; Äquivalenz-Tests in `tests/test_case_package.py` beachten |
+| c | Score-Band-Anker für 30-Punkte-Fragen im Prompt | `backend/evaluator/rubric_evaluator.py`, EVALUATE_PROMPT "Vergabe-Leitlinien" ab Zeile 152 (`MID_BAND_FACTOR = 0.55`, `LOW_BAND_FACTOR = 0.25`, Zeilen 40–41 → für q4 nur 30/16.5/7.5/0) | H3 | mittel | wirkt auf ALLE Fragen → q1–q3-Recheck Pflicht |
 | d | Few-Shot-Exemplar (geankertes q4-Beispiel im Prompt) | EVALUATE_PROMPT-Erweiterung | H2, H3 | mittel | **Kontamination:** NIE ein Item aus dem 16er-Eval-Set; nur synthetisches/neu verfasstes Beispiel. Token-Kosten steigen. Keine Musterlösung darf ins studierendensichtbare Feedback durchsickern |
 | e | Modellwechsel via `OPENROUTER_MODEL` | Env-Variable, `backend/llm.py` Zeile 22 | alle (Schrotflinte) | Test billig | **invalidiert die GESAMTE Kalibrierung** (q1–q4) → volle Neubewertung und ggf. neue Anker nötig |
 | f | Zweistufiger Judge für Bloom 6 (Pass 1: Integrations-/Kaskadenanalyse, Pass 2: Punktvergabe) | neuer Code-Pfad im Evaluator | H2 | groß | Kandidat, UNBEWIESEN; doppelte Kosten/Latenz; nur angehen, wenn a–c nachweislich nicht reichen |
 
-Hinweise zu (b), am 2026-07-08 im File verifiziert: `tp4_rubric.json` verlangt vier Pflicht-Blöcke (value_propositions, key_activities, key_resources, cost_structure); die `expectation`-Texte sind Alpes-Bank-spezifisch formuliert ("…der Bank") — bei neuen Cases prüfen; in den `accepted_keywords` von cost_structure steht der Tippfehler `"risko"` neben `"risiko"`.
+Hinweise zu (b), am 2026-07-09 re-verifiziert: `tp4_rubric.json` verlangt vier Pflicht-Blöcke (value_propositions, key_activities, key_resources, cost_structure); die `expectation`-Texte sind Alpes-Bank-spezifisch formuliert ("…der Bank") — bei neuen Cases prüfen; in den `accepted_keywords` von cost_structure steht der Tippfehler `"risko"` neben `"risiko"` (Zeile 34). Seit 2026-07-09 trägt der Golden Case dieselbe Rubric eingebettet im Case-JSON; `tests/test_case_package.py` beweist die Äquivalenz von eingebetteter und Datei-Rubric — wer (b) angeht, ändert die eingebettete Variante (und hält die Datei-Fallback-Variante konsistent oder dokumentiert die Abweichung).
 
 ### Die Rescore-Lücke (Vorarbeit für JEDE Option)
 
@@ -191,7 +192,7 @@ PYTHONPATH=. OPENROUTER_API_KEY=… .venv/bin/python scripts/retry_technical_fal
   --dry-run
 ```
 
-Schreibe für die Kampagne einen abgeleiteten Bulk-Rescore-Treiber (z. B. `scripts/rescore_submissions.py`), der ALLE q4-Antworten (bzw. alle Fragen bei Option c/e) neu bewertet und einen neuen Submission-States-JSON **nach `~/ToAdapt_sensitive_data/`** schreibt (nie ins Repo). Kosten: 64 Antworten = 64 LLM-Calls (+ evtl. Repair-Calls), max_tokens 1200 pro Call.
+Schreibe für die Kampagne einen abgeleiteten Bulk-Rescore-Treiber (z. B. `scripts/rescore_submissions.py`), der ALLE q4-Antworten (bzw. alle Fragen bei Option c/e) neu bewertet und einen neuen Submission-States-JSON **nach `~/ToAdapt_sensitive_data/`** schreibt (nie ins Repo). Kosten: 64 Antworten = 64 LLM-Calls (+ evtl. Repair-Calls), max_tokens 1200 pro Call (`EVALUATOR_MAX_TOKENS`). Hinweis: `evaluate_submission` bewertet seit 2026-07-09 alle Fragen parallel (asyncio.gather; ein Fehler bricht die ganze Auswertung ab) — für den Rescore-Treiber weiterhin `evaluate_question` pro Item aufrufen.
 
 Iterations-Loop pro Kandidat (Entwicklungssignal, KEIN Erfolgsnachweis — siehe Abschnitt 5):
 
@@ -221,7 +222,7 @@ Iterations-Loop pro Kandidat (Entwicklungssignal, KEIN Erfolgsnachweis — siehe
 
 1. **Auf dem Eval-Set tunen und auf dem Eval-Set Erfolg verkünden.** Die aktuellen Kalibrierungsanker wurden AUS diesen 16 Submissions abgeleitet — das Set ist für Anker-Tuning verbraucht. Iterationen darauf sind nur Entwicklungssignal; jede Erfolgsaussage braucht eine neue Blind-Runde oder ein Held-out-Set.
 2. **Nach Augenschein urteilen** ("das Feedback liest sich jetzt fairer"). Nur die Pipeline-Metriken zählen.
-3. **`needs_human_review` lockern, um weniger Flags zu bekommen.** Die Flags (43 von 64 in der Studie) sind Feature, nicht Bug: der Judge soll die Lehrkraft unterstützen, nicht ersetzen. Insbesondere `judge_confidence == "low"` erzwingt das Flag hart (rubric_evaluator.py Zeilen 352–354) — stehen lassen.
+3. **`needs_human_review` lockern, um weniger Flags zu bekommen.** Die Flags (43 von 64 in der Studie) sind Feature, nicht Bug: der Judge soll die Lehrkraft unterstützen, nicht ersetzen. Insbesondere `judge_confidence == "low"` erzwingt das Flag hart (rubric_evaluator.py Zeile 417, Stand 2026-07-09) — stehen lassen.
 4. **Judge-Prompt ändern und ohne Recheck deployen.** Doktrin-Regel des Projekts und Change-Control-Gate Klasse [B]: jede Änderung an EVALUATOR_SYSTEM / EVALUATE_PROMPT / Ankern / Rubrics erfordert den Vergleichs-Durchlauf gegen Teacher-Scores VOR produktivem Einsatz.
 5. **Eval-Daten ins Repo holen** ("nur kurz als Fixture"). Siehe PII-Regel, Abschnitt 1.
 
@@ -253,12 +254,15 @@ Iterations-Loop pro Kandidat (Entwicklungssignal, KEIN Erfolgsnachweis — siehe
 
 Erstellt: 2026-07-08. Alle Zahlen gegen `docs/teacher_alignment_report_20260531_17submissions.md`, die Artefakte unter `~/ToAdapt_sensitive_data/` und einen tatsächlichen Reproduktionslauf des compare-Skripts verifiziert; Zeilenverweise gegen den Code am selben Tag.
 
+Update 2026-07-09 (HEAD 64b62f9): q1–q4-Anker aus `_format_calibration_notes` in die Golden-Case-JSONs migriert (Feld `calibration_notes`, Case-Editor-editierbar), generische `BLOOM_CALIBRATION_ANCHORS` als Fallback; Rubrics embedded-first (`tp4_rubric.json` nur noch Datei-Fallback); Evaluator restrukturiert (benannte Konstanten `MID_BAND_FACTOR`/`LOW_BAND_FACTOR`/`EVALUATOR_MAX_TOKENS`, `evaluate_submission` parallel); alle Zeilenverweise und Re-Verifikations-Kommandos aktualisiert. Skripte (`export_review_workbooks.py` Zeile 178, `compare_teacher_rubric_scores.py`, `retry_technical_fallback_scores.py`) und `backend/llm.py` Zeile 22 unverändert verifiziert.
+
 Re-Verifikation drift-anfälliger Fakten (je ein Kommando):
 
 | Fakt | Kommando |
 |---|---|
-| Kalibrierungsanker-Position (Zeilen 155–181 / q4 172–176) | `grep -n "_format_calibration_notes\|\"q4\": \[" backend/evaluator/rubric_evaluator.py` |
-| Vergabe-Leitlinien / mid=0.55, low=0.25 | `grep -n "Vergabe-Leitlinien\|max_points \* 0.55\|max_points \* 0.25" backend/evaluator/rubric_evaluator.py` |
+| Kalibrierungsanker: generischer Fallback (Zeile 174) + Auswahl (Zeile 277) | `grep -n "BLOOM_CALIBRATION_ANCHORS\|_format_calibration_notes" backend/evaluator/rubric_evaluator.py` |
+| Case-spezifische q4-Anker im Golden Case | `grep -n "calibration_notes" backend/cases/pool/alpes-bank-genai-001.json` |
+| Vergabe-Leitlinien / MID_BAND_FACTOR=0.55, LOW_BAND_FACTOR=0.25 | `grep -n "Vergabe-Leitlinien\|MID_BAND_FACTOR\|LOW_BAND_FACTOR" backend/evaluator/rubric_evaluator.py` |
 | low-Confidence erzwingt Review | `grep -n 'judge_confidence == "low"' backend/evaluator/rubric_evaluator.py` |
 | Default-Modell | `grep -n "DEFAULT_OPENROUTER_MODEL" backend/llm.py` |
 | tp4-Rubric-Inhalt (Blöcke, Schwellen 82/75, "risko"-Typo) | `grep -n "exemplar_threshold_pct\|score_floor_pct\|risko" backend/config/rubrics/tp4_rubric.json` |

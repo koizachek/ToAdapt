@@ -62,7 +62,7 @@ erklärt? Dann ist entweder der Mechanismus falsch oder unvollständig.
 **Das Lehrstück des Projekts (Stand: 2026-07-08, Quelle:
 `docs/teacher_alignment_report_20260531_17submissions.md`):**
 
-Die Kalibrierung des Judges (hartkodierte Kalibrierungsanker pro Frage, siehe
+Die Kalibrierung des Judges (case-spezifische Kalibrierungsanker pro Frage — seit 2026-07-09 im Case-JSON statt hartkodiert, siehe
 `_format_calibration_notes` in `backend/evaluator/rubric_evaluator.py`, Commit
 `9a8077f` "human alignment with teacher scores") veränderte die Metriken so:
 
@@ -212,7 +212,7 @@ Quellen echter Verbesserungen in diesem Repo:
 
 | Quelle | Beispiel im Repo | Beleg |
 |---|---|---|
-| **Blind-Review-Empirie** (was Lehrende real bestrafen/belohnen) | Kalibrierungsanker q1–q4 im Judge-Prompt — direkt aus Lehrer-Rationales destilliert | Commit `9a8077f`; `_format_calibration_notes` in `backend/evaluator/rubric_evaluator.py` |
+| **Blind-Review-Empirie** (was Lehrende real bestrafen/belohnen) | Kalibrierungsanker q1–q4 im Judge-Prompt — direkt aus Lehrer-Rationales destilliert | Commit `9a8077f`; heute als `calibration_notes` im Golden-Case-JSON (zweistufig mit `BLOOM_CALIBRATION_ANCHORS`) |
 | **Deploy-Schmerz** (wiederholtes Blind-Debugging) | `/health/diagnostics`-Endpoint entstand aus der Mongo-Debugging-Saga gegen Railway | Commits `464bbca` ("Expose Mongo env diagnostics"), `dbc92f2` |
 | **Lehrpersonen-Feedback** (Unterstützungs-Doktrin) | Review-Flags (`needs_human_review`) als explizite "hier soll ein Mensch draufschauen"-Signale | Report-Schlusssatz: "Review-Flags markieren Stellen, an denen der Judge die Lehrkraft unterstuetzen und nicht ersetzen soll." |
 
@@ -304,7 +304,7 @@ Re-Verifikations-Kommandos für drift-anfällige Fakten (vom Repo-Root ausführe
 |---|---|
 | Alignment-Report existiert, Scope 16/64 | `grep -n "Eindeutige Submissions\|Teacher-Items" docs/teacher_alignment_report_20260531_17submissions.md` |
 | Metriken r/MAE/MeanDiff vor→nach | `grep -n "Pearson r\|Mean Diff\|MAE" docs/teacher_alignment_report_20260531_17submissions.md` |
-| Kalibrierungsanker noch hartkodiert q1–q4 | `grep -n "_format_calibration_notes" backend/evaluator/rubric_evaluator.py` |
+| Kalibrierung zweistufig (Case-Anker vor Bloom-Generik) | `grep -n "calibration_notes\|BLOOM_CALIBRATION_ANCHORS" backend/evaluator/rubric_evaluator.py \| head` |
 | Unterstützen-nicht-ersetzen im Judge-Prompt | `grep -n "Du unterstützt Lehrende" backend/evaluator/rubric_evaluator.py` |
 | SHA-256-Manifest im Import-Skript | `grep -n "sha256\|manifest" scripts/import_prolific_runs.py` |
 | review_item_id-Format | `grep -n "review_item_id = f" scripts/export_review_workbooks.py` |
@@ -314,3 +314,5 @@ Re-Verifikations-Kommandos für drift-anfällige Fakten (vom Repo-Root ausführe
 | retry-Skript macht echte LLM-Calls | `sed -n '1,2p' scripts/retry_technical_fallback_scores.py && grep -n "dry-run" scripts/retry_technical_fallback_scores.py` |
 | Ideen-Herkunfts-Commits existieren | `git log --oneline --all \| grep -E "9a8077f\|464bbca"` |
 | Sensible Daten außerhalb des Repos | `ls ~/ToAdapt_sensitive_data` |
+
+Update 2026-07-09 (HEAD 64b62f9): Kalibrierungsanker-Verweise auf das zweistufige Modell (Case-JSON vor Bloom-Generik) aktualisiert.

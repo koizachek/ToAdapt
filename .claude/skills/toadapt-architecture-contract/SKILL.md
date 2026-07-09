@@ -198,7 +198,7 @@ approve, reject, retire) verlangen den API-Key.
 
 - **Was:** Siehe Auth-Tabelle oben. Kernpunkte: `require_api_key` liefert
   **503 statt Durchlass**, wenn `TOADAPT_API_KEY` fehlt; Cookie-Login liefert
-  Redirect mit Fehler, wenn `TEACHER_ACCESS_CODE` fehlt; alle Vergleiche
+  Redirect mit Fehler, wenn weder `TEACHER_ACCESS_CODES` (Einzelcodes) noch der Legacy-Fallback `TEACHER_ACCESS_CODE` konfiguriert ist; alle Vergleiche
   timing-sicher (`hmac.compare_digest` bzw. eigene `timingSafeEqual`).
 - **Warum:** Das frühere statische Cookie `teacher_access=true` konnte jeder
   selbst setzen (dokumentiert in `frontend/lib/teacherAuth.ts`); Dashboards

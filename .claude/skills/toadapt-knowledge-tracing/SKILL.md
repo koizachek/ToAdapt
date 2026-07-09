@@ -104,6 +104,22 @@ adaptives System, dessen Wirkung niemand belegen kann.
   systematisch von wem nicht (Logging: `formative_feedback_requested`) —
   für Wirksamkeitsfragen randomisieren oder zumindest kontrollieren.
 
+## 6. Quellenrahmen (von der Ownerin gesetzt, bewertet 2026-07-09)
+
+| Quelle | Was übernehmen | Was NICHT |
+|---|---|---|
+| **IKT** (Minn et al., AAAI 2022) + **EIKT** (AIED) — `github.com/Simon-tan/IKT`, **KEINE Lizenz** → Methode nachimplementieren, nie Code kopieren; WEKA/Java-Abhängigkeit ohnehin ungeeignet | Interpretierbares Feature-Gerüst: Skill-Mastery pro Lernziel-Tag, Frage-Schwierigkeit aus Kohorten-Lösungsraten, Ability-Profile per Clustering über die Kohorte (~2.000 Studierende stabilisieren, was die 3–6 Messpunkte pro Person nicht hergeben). EIKT als Einhängepunkt für zusätzliche interpretierbare Features | TAN-über-WEKA; Binarisierung 0/1 als Pflicht (unsere Scores sind kontinuierlich, Judge-MAE ~2.7 macht Schwellen-Binarisierung rauschanfällig); Next-Answer-Prediction als Selbstzweck (bei uns Validierungskriterium TP n → TP n+1, nicht Produkt) |
+| arXiv:2606.20611 (AIED 2026, "…Without Temporal Information") | CDM-Einordnung: Fragen→Tags ist unsere Q-Matrix | Pseudo-Temporal-Ordering (wir HABEN Zeitstempel + TP-Ordnung); neuronales Dynamik-Modul (datenhungrig) |
+| arXiv:2505.10742 (Cognitive Load aus Transkripten; 34 Profis, 1.178 Subtask-Beobachtungen, Arbeitskontext) | Idee: Load-/Engagement-Indikatoren aus Studierenden-Prompts — erhoben über UNSERE vorhandene Annotations-Pipeline (Muster: `toadapt-tutor-response-evaluation`), plus fertige Proxies (Turn-Latenzen, edit_seconds, Denkanstoß-Nutzung) | Ungeprüfte Übertragung der Indikatoren auf Studierende (Arbeitskontext ≠ Scaffolding-Dialog — selbst validieren, publizierbares Terrain); kein Code verfügbar |
+
+Konsolidierter Pfad **"IKT-lite"** (noch NICHT beauftragt): (1) Kohorten-
+gestützte Mastery pro Tag + Frage-Schwierigkeit (kontinuierlich, EWMA/
+BKT-vereinfacht), (2) Lerner-Profile per Clustering über Leistungs- UND
+Interaktions-Features (Ownerin: auch Prompts tracen — Engagement +
+Cognitive Load), (3) Validierung: TP-n→TP-n+1-Vorhersage gegen
+Mittelwert-Baseline. Attribution-Pflicht: Quellen-Block oben in jede
+Datei (siehe `toadapt-docs-and-writing`, Haus-Stil).
+
 ## Provenance und Wartung
 
 Erstellt 2026-07-09 (HEAD 64b62f9), verifiziert gegen den Code; das

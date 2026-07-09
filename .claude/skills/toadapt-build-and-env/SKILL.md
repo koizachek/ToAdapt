@@ -87,6 +87,11 @@ Hinweise zur `.env`:
   **Niemals committen** — die Datei enthält im echten Betrieb Secrets.
 - `pytest`-Konfiguration liegt in `pyproject.toml`
   (`asyncio_mode = "auto"`, `testpaths = ["tests"]`).
+- Seit 2026-07-09 dokumentiert `.env.example` zusätzlich `PSEUDONYM_SECRET`
+  (HMAC-Secret für Pseudonymisierung; in Produktion Pflicht) und
+  `RESEARCH_API_KEY` (Forschungs-Endpunkte; leer = fail-closed 503). Beide
+  sind **für lokale Entwicklung optional** — Bedeutung/Wirkung:
+  `toadapt-config-and-flags`.
 
 ### Tests laufen lassen — IMMER vom Repo-Root
 
@@ -94,7 +99,7 @@ Hinweise zur `.env`:
 .venv/bin/python -m pytest tests/ -q
 ```
 
-Erwartet (Stand: 2026-07-08): `48 passed` in wenigen Sekunden.
+Erwartet (Stand: 2026-07-09): `90 passed` in ~20 Sekunden.
 
 **cwd-Falle:** Das `backend`-Paket liegt im Repo-Root und wird über das
 Arbeitsverzeichnis importierbar. Startest du pytest aus `tests/` (oder irgendwo
@@ -113,6 +118,10 @@ Erwartete Log-Zeile beim Start (structlog, Console-Renderer in development):
 ```
 toadapt_startup  environment=development llm_provider=openrouter ... tp_phase=1
 ```
+
+(`tp_phase` ist seit 2026-07-09 datumsabhängig — `current_tp_phase()` aus dem
+hartkodierten `TP_SCHEDULE`; vor Semesterstart und während TP1 ist es `1`.
+Details: `toadapt-config-and-flags`.)
 
 Ohne gesetzten `STUDENT_ACCESS_CODE` folgt zusätzlich die Warnung
 `student_flow_open` — im Dev-Betrieb normal, in Produktion ein Alarmsignal
@@ -143,7 +152,8 @@ Hand anlegen. Variablen (alle Verwendungen im Code verifiziert):
 | `NEXT_PUBLIC_API_URL` | Browser (public) | Basis-URL des Backends für den Studenten-Flow; Default `http://localhost:8000` | `frontend/lib/api.ts:1` |
 | `BACKEND_API_URL` | nur Server | Backend-URL für den Teacher-Proxy; Fallback auf `NEXT_PUBLIC_API_URL` | `frontend/app/api/teacher/[...path]/route.ts` |
 | `TOADAPT_API_KEY` | nur Server | Shared Secret; der Proxy hängt es server-seitig als `X-API-Key` an — MUSS identisch mit Backend-`TOADAPT_API_KEY` sein | dito |
-| `TEACHER_ACCESS_CODE` | nur Server | Login-Code für das Teacher-Dashboard | `frontend/app/teacher-login/route.ts:9` |
+| `TEACHER_ACCESS_CODES` | nur Server | Tutor-Einzelcodes als JSON `{"kennung":"code",...}` (Generator: `scripts/generate_tutor_codes.py`) | `frontend/lib/teacherAuth.ts:95` |
+| `TEACHER_ACCESS_CODE` | nur Server | Legacy-Einzelcode fürs Teacher-Dashboard — Fallback, wenn `TEACHER_ACCESS_CODES` nicht gesetzt ist | `frontend/lib/teacherAuth.ts:111` |
 | `TEACHER_SESSION_SECRET` | nur Server | HMAC-Secret fürs Teacher-Session-Cookie; Teacher-Login wirft ohne dieses Secret einen Fehler | `frontend/lib/teacherAuth.ts:44` |
 
 Minimal für lokalen Studenten-Flow reicht:
@@ -154,7 +164,8 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
 Teacher-Bereich lokal testen? Dann zusätzlich `TOADAPT_API_KEY` (identisch zur
-Backend-`.env`), `TEACHER_ACCESS_CODE` und `TEACHER_SESSION_SECRET` setzen.
+Backend-`.env`), `TEACHER_ACCESS_CODES` (oder legacy `TEACHER_ACCESS_CODE`)
+und `TEACHER_SESSION_SECRET` setzen.
 
 ### Frontend-Kommandos (alle in `frontend/`)
 
@@ -208,7 +219,7 @@ Führe die Sequenz vom Repo-Root aus; jede Zeile nennt den erwarteten Output
 ```bash
 # 1) Backend-Tests
 .venv/bin/python -m pytest tests/ -q
-# → "48 passed"
+# → "90 passed"
 
 # 2) Backend bootet
 .venv/bin/python -m uvicorn backend.main:app --port 8000
@@ -234,12 +245,19 @@ Alle fünf grün? Umgebung steht. Weiter mit `toadapt-run-and-operate`
 ## Provenance und Wartung
 
 Erstellt: 2026-07-08. Jede Zeile gegen das Repo verifiziert (Tests, uvicorn-Boot,
-curl, tsc, eslint am 2026-07-08 real ausgeführt). Drift-anfällige Fakten und
-ihr Re-Verifikations-Kommando:
+curl, tsc, eslint am 2026-07-08 real ausgeführt).
+
+Update 2026-07-09 (HEAD 64b62f9): Testanzahl 48→90 (pytest real ausgeführt:
+`90 passed`); neue Backend-Env-Variablen `PSEUDONYM_SECRET` und
+`RESEARCH_API_KEY` (in `.env.example` dokumentiert, lokal optional) sowie
+Frontend-Env `TEACHER_ACCESS_CODES` (JSON-Einzelcodes, `TEACHER_ACCESS_CODE`
+nur noch Legacy-Fallback in `frontend/lib/teacherAuth.ts`) ergänzt.
+
+Drift-anfällige Fakten und ihr Re-Verifikations-Kommando:
 
 | Fakt | Re-Verifikation |
 |---|---|
-| "48 passed" | `.venv/bin/python -m pytest tests/ -q` |
+| "90 passed" | `.venv/bin/python -m pytest tests/ -q` |
 | Version "0.2.0" in /health | `grep -n '"version"\|version=' backend/main.py \| head` |
 | requirements.txt-Inhalt (kein pytest, pymongo drin) | `cat requirements.txt` |
 | CI: Python 3.11, Node 22, PYTHONPATH=. | `grep -nE 'python-version|node-version|PYTHONPATH' .github/workflows/ci.yml` |

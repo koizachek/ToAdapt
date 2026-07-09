@@ -3,7 +3,8 @@ name: toadapt-docs-and-writing
 description: >
   Lade diese Skill, BEVOR du im ToAdapt-Repo Dokumentation liest, schreibst
   oder aktualisierst. Sie sagt dir, welchem Dokument du glauben darfst
-  (ROLLOUT_PLAN.md = Wahrheit; CLAUDE.md, TODO.md, dev-docs/ = Fossile;
+  (ROLLOUT_CHECKLIST.md = operativer Gate-Workflow, ROLLOUT_PLAN.md =
+  Hintergrund-Wahrheit; CLAUDE.md, TODO.md, dev-docs/ = Fossile;
   README.md = Einstieg mit bekannten Fehlern), wie Forschungs-Reports und
   Pipeline-Artefakte benannt werden (teacher_alignment_report_*, review_item_id,
   UTC-Timestamps), und welchen Haus-Stil das Projekt hat (Deutsch primär,
@@ -46,19 +47,21 @@ schreibt, folgt den Konventionen hier.
 
 ## 1. Dokumente-der-Wahrheit-Hierarchie
 
-Regel Nummer eins: **Bei Widerspruch zwischen Dokumenten gewinnt
-ROLLOUT_PLAN.md. Bei Widerspruch zwischen Doku und Code gewinnt der Code.**
+Regel Nummer eins: **Bei Widerspruch zwischen Dokumenten gewinnt für den
+operativen Rollout-Ablauf ROLLOUT_CHECKLIST.md, sonst ROLLOUT_PLAN.md.
+Bei Widerspruch zwischen Doku und Code gewinnt der Code.**
 
 | Dokument | Status | Wofür verwenden | Wofür NIEMALS verwenden |
 |---|---|---|---|
-| `ROLLOUT_PLAN.md` | **MASSGEBLICH** (Stand: 2026-07-08) | Projektstatus, Roadmap (Phasen 0–3), Ist-Zustands-Beschreibung, offene Punkte | — |
+| `ROLLOUT_CHECKLIST.md` | **MASSGEBLICH, operativ** (Stand: 2026-07-09, Commit `64b62f9`) | Gate-basierter Rollout-Workflow W0–W6 (jede Phase erst abgeschlossen, wenn ihr GATE messbar erfüllt ist; Verantwortliche [O]/[C]/[G]) | — |
+| `ROLLOUT_PLAN.md` | **MASSGEBLICH als Hintergrund-Referenz** (Stand: 2026-07-08) | Projektstatus (Status-Block), Roadmap (Phasen 0–3), Ist-Zustands-Beschreibung, offene Punkte; verweist seit 2026-07-09 in Zeile 3 auf ROLLOUT_CHECKLIST.md | — |
 | `README.md` | Einstieg, **teilweise falsch** (s.u.) | Setup-Kommandos, Pipeline-Kurzanleitungen (Publish, Import, Export) | Architektur-/Tech-Stack-Aussagen ungeprüft übernehmen |
 | `CLAUDE.md` | **FOSSIL** (gitignored, nur lokal) | Lehrdesign-Abschnitte (Constructive Alignment, Anti-Pattern-Design, Guardrail-Regeln 1–10) — die gelten weiter | Architektur, Verzeichnisstruktur, Datenmodelle, "Geklärte Design-Entscheidungen" — beschreibt ein NIE fertig gebautes Gruppen-System |
-| `TODO.md` | **FOSSIL** (untracked, nie committet) | Historisches Security-Review-Transkript; Verständnis, warum Commit `8b21fc1` was härtete | Als aktuelle TODO-Liste — die Punkte sind großteils behoben (Reststand: ROLLOUT_PLAN.md "Noch offen aus dem Security-Review") |
+| `TODO.md` | **FOSSIL** (seit 2026-07-09 committet, Commit `d11ca96` — vorher untracked) | Historisches Security-Review-Transkript; Verständnis, warum Commit `8b21fc1` was härtete | Als aktuelle TODO-Liste — die Punkte sind großteils behoben (Reststand: ROLLOUT_PLAN.md "Noch offen aus dem Security-Review") |
 | `dev-docs/phase1/*.md` | **FOSSIL** | Historische Bau-Journale (datiert 2026-04-07) der toten Gruppen-Architektur | Als Ist-Doku für Backend-Skeleton/Agenten/Orchestrator |
 | `docs/` | Forschungsreports | Teacher-Alignment-Ergebnisse (derzeit genau eine Datei, s. Abschnitt 2) | — |
 | `data/prolific_runs/README.md` | gültig | Ablage-Konvention für lokale (gitignorte) Forschungsdaten: `raw/<batch>/`, `manifests/`, `derived/` | — |
-| `.claude/skills/*/SKILL.md` | gültig | Diese Skill-Library (Stand 2026-07-08: untracked, Committen offen) | — |
+| `.claude/skills/*/SKILL.md` | gültig | Diese Skill-Library — BEHOBEN (2026-07-09): committet (`26eedc4` mit 15 Skills, `d11ca96` ergänzt `toadapt-knowledge-tracing` und `toadapt-tutor-response-evaluation` → 17 Skills) | — |
 
 Begriffserklärung: "Fossil" = ein Dokument, das einen früheren, inzwischen
 verworfenen Projektzustand beschreibt und absichtlich NICHT gepflegt wird.
@@ -81,7 +84,9 @@ sind weiterhin harte Constraints des Projekts. Details zur Pivot-Geschichte:
 
 Der Plan hat GENAU EINEN datierten Status-Block — ein Markdown-Blockquote
 direkt unter der Überschrift "## Phase 0", der den Erledigungsstand ALLER
-Phasen zusammenfasst:
+Phasen zusammenfasst. (Nicht verwechseln mit dem seit 2026-07-09
+zusätzlichen Verweis-Blockquote in Zeile 3: "Operativer Ablauf zum breiten
+Rollout: siehe ROLLOUT_CHECKLIST.md" — der ist kein Status-Block.)
 
 ```markdown
 > **Status 2026-07-08 (abends):**
@@ -102,7 +107,7 @@ Prüfe beim Aktualisieren:
    `3ca3183 Rollout-Plan: Phase-0-Status ergänzt`, `2f7f15d Rollout-Plan:
    Status nach Phase 1+2-Teilumsetzung aktualisiert`).
 
-### README.md: bekannte Fehler (Stand: 2026-07-08)
+### README.md: bekannte Fehler (Stand: 2026-07-09, alle weiterhin vorhanden)
 
 Die README ist der Einstieg, enthält aber verifiziert falsche Aussagen.
 Korrigiere sie, wenn du ohnehin in der README arbeitest — bis dahin: nicht
@@ -110,7 +115,7 @@ zitieren.
 
 | README-Stelle | Behauptet | Wahr ist |
 |---|---|---|
-| Architektur-Diagramm ("REST + WebSocket") + API-Tabelle (`WS /ws/{session_id}`) | Es gibt einen WebSocket-Chat | Chat ist **HTTP POST** `/sessions/{id}/chat` (`backend/api/routes.py`, Kommentar Zeile 166: "zuverlässiger als WebSocket durch Railway-Proxy"). Das Feld `websocket_url` in `SessionResponse` (`backend/models/session.py:37`) ist tot — kein WS-Handler existiert. |
+| Architektur-Diagramm ("REST + WebSocket") + API-Tabelle (`WS /ws/{session_id}`) | Es gibt einen WebSocket-Chat | Chat ist **HTTP POST** `/sessions/{id}/chat` (`backend/api/routes.py`, Kommentar Zeile 185: "zuverlässiger als WebSocket durch Railway-Proxy"). Das Feld `websocket_url` in `SessionResponse` (`backend/models/session.py:39`) ist tot — kein WS-Handler existiert. |
 | Tech-Stack-Tabelle: "LLM: Anthropic API (claude-sonnet-4-6)" | Anthropic-SDK direkt | **OpenAI-SDK gegen OpenRouter** (`backend/llm.py`: `AsyncOpenAI`, Base-URL `openrouter.ai/api/v1`, Default-Modell `anthropic/claude-sonnet-4.5` via Env `OPENROUTER_MODEL`) |
 | Abschnitt "Aktueller Stand": Pfade unter `data/prolific_runs/derived/aligned_rescores/…` | Dateien lägen dort | `data/prolific_runs/` ist komplett gitignored und wurde am 2026-07-08 geleert: echte Teilnehmerdaten liegen in `~/ToAdapt_sensitive_data/` (NIEMALS zurückkopieren/committen). Die README-Pfade sind auf einem frischen Clone tot. Gleiches gilt für den Default-Pfad in `scripts/retry_technical_fallback_scores.py` (Zeile ~20–27). |
 | Tech-Stack: "Scoring Storage: JSON" / "Experiment Logging: Optional MongoDB" | Datei primär | Seit Phase 1 (Commit `0248921`) ist **MongoDB primärer Store** (wenn konfiguriert), Datei nur Dev-Fallback |
@@ -174,6 +179,19 @@ Regeln:
 | Code-Identifier | Englisch |
 | Produkttexte (UI, Agenten-Prompts, Feedback) | **DE + EN**, umschaltbar (s.u.) |
 
+### Quellen-Attribution im Code (harte Owner-Regel, seit 2026-07-09)
+
+Jede Code-Datei, die eine Methode/ein Framework aus einer EXTERNEN Quelle
+umsetzt, nennt die Quelle **oben im Modul-Docstring**: Paper (Autoren,
+Venue, Jahr), Repo-URL, Lizenz — plus die Klarstellung, ob Code übernommen
+oder nur die **Methode nachimplementiert** wurde (lizenzrelevant: z.B.
+`github.com/Simon-tan/IKT` hat KEINE Lizenz → Methode frei, Code-Kopie
+nicht). Rationale der Ownerin: "wir wollen nichts verschweigen" —
+wissenschaftliche Redlichkeit, das Projekt zielt auf Publikationen.
+Vorbilder: `backend/evaluator/tutor_eval.py`,
+`scripts/evaluate_tutor_responses.py` (Maurya et al., NAACL 2025,
+CC BY-SA 4.0).
+
 ### Commit-Messages
 
 - Beschreibend-deutsch, Scope-Präfix wo sinnvoll (`CI:`, `Rollout-Plan:`,
@@ -233,6 +251,7 @@ Führe nach jeder Code-Änderung diese Zuordnung durch:
 | Endpoint hinzugefügt/geändert/entfernt | README-API-Tabelle (und nutze die Gelegenheit, einen der bekannten README-Fehler aus Abschnitt 1 mit zu korrigieren) |
 | Env-Variable neu/umbenannt/entfernt | `.env.example` + Provenance-Abschnitt der Skill `toadapt-config-and-flags` |
 | Judge/Evaluator/Kalibrierungsanker | Alignment-Recheck fahren (Pflicht-Gate, s. `toadapt-change-control`), danach neuen Report in `docs/` nach Namensschema aus Abschnitt 2 |
+| Agent-/Formative-Feedback-Prompt geändert | Pädagogischen Regressionsnachweis fahren (Pflicht, s. `toadapt-tutor-response-evaluation`); beide Sprachobjekte synchron halten |
 | Forschungs-Skript (Verhalten/CLI) | Docstring im Skript + zugehörigen README-Abschnitt ("Review-Exporte", "Lokale Prolific-Exporte", "Bewertungen ins Lehrkräfte-Dashboard übertragen") |
 | Studierendensichtbaren Text (UI/Prompt/Feedback) | Beide Sprachobjekte (DE+EN) synchron, im selben Commit |
 | Eine Architektur-Entscheidung getroffen/revidiert | Skill `toadapt-architecture-contract` (Entscheidung + WARUM + Commit) |
@@ -243,9 +262,11 @@ Führe nach jeder Code-Änderung diese Zuordnung durch:
 
 ## 5. Pflege dieser Skill-Library
 
-Die Library liegt unter `.claude/skills/<skill-name>/SKILL.md`
-(Stand 2026-07-08: im Working Tree vorhanden, aber untracked — die
-Entscheidung, sie zu committen, ist offen).
+Die Library liegt unter `.claude/skills/<skill-name>/SKILL.md`.
+BEHOBEN (2026-07-09): Die zunächst untrackte Library ist committet —
+`26eedc4` (15 Skills) und `d11ca96` (ergänzt `toadapt-knowledge-tracing`
+für Lernverläufe/Mastery und `toadapt-tutor-response-evaluation` für die
+NAACL-basierte Tutor-Antwort-Qualität; Stand: 17 Skills).
 
 Prinzipien:
 1. **Jeder Fakt hat genau EIN Zuhause.** Bevor du etwas in eine Skill
@@ -271,13 +292,24 @@ Prinzipien:
 Erstellt: 2026-07-08. Alle Pfade, Zeilennummern und Behauptungen am
 2026-07-08 gegen das Repo verifiziert.
 
+Update 2026-07-09 (HEAD 64b62f9): ROLLOUT_CHECKLIST.md als massgebliches
+operatives Dokument (Gate-Workflow W0–W6) in die Hierarchie aufgenommen,
+ROLLOUT_PLAN.md als Hintergrund-Referenz eingestuft; Skill-Library und
+TODO.md sind jetzt committet (`26eedc4`/`d11ca96`); zwei neue Skills
+(`toadapt-knowledge-tracing`, `toadapt-tutor-response-evaluation`) im
+Inventar; Prompt-Änderungs-Regressionsnachweis in Checkliste verlinkt;
+README-Fehler re-verifiziert (alle weiterhin vorhanden, Zeilennummern
+routes.py 166→185, session.py 37→39); Report-/i18n-Anker re-verifiziert
+(unverändert).
+
 Re-Verifikations-Kommandos (vom Repo-Root ausführen):
 
 | Fakt | Kommando |
 |---|---|
 | ROLLOUT_PLAN-Status-Block existiert und ist datiert | `grep -n "^> \*\*Status" ROLLOUT_PLAN.md` |
+| ROLLOUT_CHECKLIST: Gates W0–W6 + Verweis im Plan | `grep -n "^## W" ROLLOUT_CHECKLIST.md && grep -n "ROLLOUT_CHECKLIST" ROLLOUT_PLAN.md` |
 | CLAUDE.md ist gitignored (Fossil, lokal) | `git check-ignore -v CLAUDE.md` |
-| TODO.md ist untracked | `git status --porcelain TODO.md` (erwartet `??`) |
+| TODO.md ist committet (Fossil) | `git ls-files TODO.md` (erwartet `TODO.md`; committet seit `d11ca96`) |
 | README-Fehler: toter WS-Endpoint | `grep -n "ws/{session_id}\|WebSocket" README.md backend/api/routes.py backend/models/session.py` |
 | README-Fehler: Anthropic-SDK-Zeile vs. real OpenRouter | `grep -n "Anthropic" README.md && grep -n "OPENROUTER_BASE_URL\|AsyncOpenAI" backend/llm.py` |
 | README-Fehler: tote aligned_rescores-Pfade | `grep -rn "aligned_rescores" README.md scripts/ && ls data/prolific_runs/` (erwartet: nur README.md) |
@@ -288,4 +320,4 @@ Re-Verifikations-Kommandos (vom Repo-Root ausführen):
 | i18n: Locale-Utilities + Copy-Objekte | `grep -n "Locale" frontend/lib/i18n.ts && grep -rn "Record<Locale" frontend/app frontend/components` |
 | Backend-Prompts DE/EN | `grep -n "AGENT_PROMPTS_EN\|_guardrail_fallback" backend/agents/orchestrator.py` |
 | dev-docs weiterhin nur Phase-1-Fossile | `ls dev-docs/phase1/` |
-| Skill-Library-Tracking-Status | `git status --porcelain .claude/` |
+| Skill-Library committet (17 Skills) | `git ls-files .claude/skills \| grep -c SKILL.md` (erwartet 17) und `git status --porcelain .claude/` (erwartet leer) |

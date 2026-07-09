@@ -28,6 +28,8 @@ Prozess. Diese Skill IST der Prozess.
 - Du willst wissen, **warum** die Architektur so ist → `toadapt-architecture-contract`.
 - Du willst wissen, welche **Tests/Evidenz** konkret zu schreiben sind → `toadapt-validation-and-qa`.
 - Du willst die **Alignment-Kampagne** für den q4-Judge fahren → `toadapt-judge-alignment-campaign`.
+- Du willst den **Tutor-Eval-Regressionsvergleich** (NAACL-Dimensionen) konkret durchführen → `toadapt-tutor-response-evaluation`.
+- Du willst **Lernverläufe/Mastery** auswerten → `toadapt-knowledge-tracing`.
 - Du suchst **Env-Variablen/Flags** im Detail → `toadapt-config-and-flags`.
 - Du willst die **Vorfälle in voller Chronik** → `toadapt-failure-archaeology`.
 - Du willst **deployen/betreiben** (Schritt-für-Schritt) → `toadapt-run-and-operate`.
@@ -215,6 +217,37 @@ python scripts/compare_teacher_rubric_scores.py \
 Vergleiche Pearson r, MAE und Mean Diff mit den Baseline-Werten oben. Wird
 irgendein Wert schlechter, geht die Änderung nicht live.
 
+### 2.6 Tutor:innen erhalten NIEMALS Einzelpersonen-Daten
+
+**Regel (seit 2026-07-09, Commit `e71d9ee`):** Tutor:innen sehen ausschließlich
+Gruppen-Aggregate (`GET /dashboard/groups`, `/dashboard/groups/{code}`). Die
+Einzelpersonen-Endpoints (`/dashboard/students`, `/dashboard/student/{m}`,
+`/dashboard/difficulties`) verlangen ZUSÄTZLICH den separaten
+`RESEARCH_API_KEY` via Header `X-Research-Key`
+(`backend/auth.py::require_research_key`, fail-closed: ohne Konfiguration 503,
+falscher Key 401). Der Teacher-Proxy des Frontends kennt nur `TOADAPT_API_KEY`
+— Tutor:innen erreichen Einzelprofile damit auch technisch nicht; der 401
+dort ist GEWOLLT, kein Bug. **Diese Key-Trennung nie aufweichen** — weder den
+Research-Key in den Teacher-Proxy injizieren noch Einzelpersonen-Felder in
+die Gruppen-Endpoints aufnehmen.
+
+**Rationale:** Der Studierenden-Login gibt eine explizite Privacy-Zusage
+("Tutor:innen sehen nur Gruppen-Zusammenfassungen"). Jede Aufweichung bricht
+dieses Versprechen gegenüber echten Studierenden.
+
+### 2.7 PSEUDONYM_SECRET nie rotieren ohne dokumentierten Beschluss
+
+**Regel (seit 2026-07-09, Commit `e71d9ee`):** Kennungen (`user_id`,
+Matrikelnummer) werden serverseitig per HMAC-SHA256 mit `PSEUDONYM_SECRET`
+pseudonymisiert (`backend/anonymize.py::pseudonymize`, Prefix `anon-`,
+idempotent). Das Pseudonym ist nur bei STABILEM Secret über die Zeit stabil —
+eine Rotation ändert alle Pseudonyme und **bricht damit alle
+Längsschnitt-Lernverläufe** (Knowledge Tracing über TP1–TP4, siehe
+`toadapt-knowledge-tracing`). Rotation nur mit dokumentiertem Beschluss
+(Anlass, Datum, Konsequenz akzeptiert), nie als "Hygiene-Maßnahme". Ohne
+gesetztes Secret bleiben Kennungen roh und es gibt eine Startup-Warnung
+`pseudonymization_disabled` (in production) — vor breitem Rollout setzen.
+
 ---
 
 ## 3. Solo-Workflow: main-Pushes, CI als einziges technisches Gate
@@ -255,7 +288,7 @@ Führe aus bzw. prüfe, in dieser Reihenfolge:
 - [ ] Änderung klassifiziert (A/B/C/D)? Strengstes zutreffendes Gate erfüllt?
 - [ ] `git status` + `git diff --stat` gelesen: keine echten Teilnehmerdaten,
       keine Secrets/`.env`, keine Dateien aus `~/ToAdapt_sensitive_data/`?
-- [ ] `.venv/bin/python -m pytest tests/ -q` → alles grün (48 Tests, Stand 2026-07-08)
+- [ ] `.venv/bin/python -m pytest tests/ -q` → alles grün (90 Tests, Stand 2026-07-09)
 - [ ] `.venv/bin/ruff check .` → sauber (E402-Ignores für `backend/main.py`
       und `backend/db/submission_store.py` sind beabsichtigt — `load_dotenv`
       muss dort vor den Imports laufen; nicht "aufräumen")
@@ -303,20 +336,31 @@ einen Deploy in eine Umgebung bringen, die echte Nutzer trifft.
 
 Erstellt: 2026-07-08, gegen den damaligen Stand des Repos verifiziert
 (Tests: 48 grün; CI-Workflow, Validator, Auth, Alignment-Report,
-Git-History-Fakten einzeln geprüft). Drift-anfällige Fakten und ihr
+Git-History-Fakten einzeln geprüft).
+
+Update 2026-07-09 (HEAD 64b62f9): neue Unverhandelbare 2.6
+(Research-Key-Trennung, Tutor:innen nur Gruppen-Aggregate) und 2.7
+(PSEUDONYM_SECRET-Rotation), Testbestand 48→90, Kalibrierungsanker-Fakt auf
+Zweistufigkeit (Golden-Case-JSON + BLOOM_CALIBRATION_ANCHORS) korrigiert,
+Wortlimit-Verweis auf question.min/max_words aktualisiert, Provenance-Tabelle
+um Research-Key/Pseudonymisierung ergänzt.
+
+Drift-anfällige Fakten und ihr
 Re-Verifikations-Kommando (vom Repo-Root):
 
 | Fakt (Stand 2026-07-08) | Re-Verifikation |
 |---|---|
-| 48 Backend-Tests, alle grün | `.venv/bin/python -m pytest tests/ -q` |
+| 90 Backend-Tests, alle grün (Stand 2026-07-09; vorher 48) | `.venv/bin/python -m pytest tests/ -q` |
 | Approve-Gate: 422 + `force`-Override, geloggt | `grep -n "force\|422\|case_approved" backend/admin/routes.py` |
 | Reservierte Case-Namen im Validator | `grep -n "RESERVED_CASE_TERMS" backend/cases/validator.py` |
 | `require_api_key` fail-closed (503) | `grep -n "503\|SERVICE_UNAVAILABLE" backend/auth.py` |
 | TP4 ohne `forbidden_framework_names` (Lücke) | `grep -c "forbidden_framework_names" backend/config/tp_configs.py` (3 = Lücke besteht) |
-| Kalibrierungsanker hartkodiert q1–q4 | `grep -n "_format_calibration_notes" backend/evaluator/rubric_evaluator.py` |
+| Kalibrierung zweistufig: `question.calibration_notes` vor generischen `BLOOM_CALIBRATION_ANCHORS` (hartkodierte q1–q4-Anker seit 2026-07-09 in die Golden-Case-JSONs migriert) | `grep -n "BLOOM_CALIBRATION_ANCHORS\|_format_calibration_notes" backend/evaluator/rubric_evaluator.py` und `grep -l "calibration_notes" backend/cases/pool/*.json` |
 | Alignment-Baseline r 0.631→0.796, q4-Schwäche | `grep -n "Pearson\|q4" docs/teacher_alignment_report_20260531_17submissions.md` |
 | CI-Schritte (ruff/pytest/eslint/tsc/build) | `cat .github/workflows/ci.yml` |
-| Wortlimits im Frontend (Zeilen ~311–313) | `grep -n "minWords" "frontend/app/cases/[id]/page.tsx"` |
+| Wortlimits: primär `question.min_words`/`max_words`, Index-Fallback in `questionRequirement` (Zeilen ~351–361) | `grep -n "questionRequirement\|minWords" "frontend/app/cases/[id]/page.tsx"` |
+| Research-Key-Trennung: Einzelpersonen-Endpoints fail-closed hinter `X-Research-Key` | `grep -n "require_research_key" backend/auth.py backend/dashboard/routes.py` |
+| Pseudonymisierung HMAC-basiert, Secret-abhängig | `grep -n "pseudonymize\|PSEUDONYM_SECRET" backend/anonymize.py` |
 | Alter PR-Ref zeigt noch auf Pre-Filter-History | `git ls-remote origin 'refs/pull/*'` und Hash lokal mit `git cat-file -t <hash>` prüfen (Fehler = Ref hängt noch an alter History) |
 | `data/prolific_runs` gitignored | `grep -n "prolific" .gitignore` |
 | Keine Branch Protection möglich/aktiv | `gh api repos/koizachek/ToAdapt/branches/main/protection` (403/404 = keine) |

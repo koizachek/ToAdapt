@@ -340,7 +340,7 @@ Scoring (alles in `rubric_evaluator.py`):
 4. **Exemplar-Kandidat** (`canvas_exemplar_candidate`): `percentage ≥
    min(score_floor_pct)` UND `canvas_alignment_pct ≥
    min(exemplar_threshold_pct)` — jeweils das MINIMUM über die beteiligten
-   Rubrics (`rubric_evaluator.py`, `_is_exemplar_candidate`; 75/80 sind
+   Rubrics (`rubric_evaluator.py`, `_canvas_exemplar_candidate`; 75/80 sind
    nur die Loader-Defaults). Für den Golden-Full-Case (nutzt alle vier
    tpN-Rubrics) gilt effektiv `percentage ≥ 72` (min über 75/75/72/75)
    und `canvas_alignment_pct ≥ 80` (min über 80/82/80/82). "Exemplar" =
@@ -466,6 +466,9 @@ Gruppen-Aggregaten fürs Tutor-Dashboard (Einzel-Endpoints research-gated);
 TP-Progression aktiv (target_tp-Hardcode BEHOBEN); Canvas-Guide/Glossar/
 Wortlimits/Agent-Guidance aus dem Case-Paket (Alpes-Hardcodes als Fallback
 bzw. Vorrang); Bloom-Tags jetzt Modul-Konstante BLOOM_TAGS.
+Update 2026-07-09 (HEAD 64b62f9): Re-Verifikation aller Fakten gegen den
+Code (90 pytest-Tests grün); Methodenname korrigiert:
+`_canvas_exemplar_candidate` (nicht `_is_exemplar_candidate`).
 Alle Code-Fakten wurden am 2026-07-09 direkt gegen die Quelldateien
 verifiziert. Re-Verifikation pro drift-anfälligem Fakt (vom Repo-Root):
 

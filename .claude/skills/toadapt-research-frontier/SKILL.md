@@ -25,6 +25,8 @@ description: >
 | Evidenz-Standards, Hypothesen-Format, Idee-Lebenszyklus | `toadapt-research-methodology` |
 | Analyse-Methoden mit durchgerechnetem Beispiel | `toadapt-proof-and-analysis-toolkit` |
 | Forschungs-Skripte bedienen (import → export → compare → publish) | `toadapt-run-and-operate` |
+| Lernverläufe/Mastery über Zeit auswerten (Knowledge Tracing, Trajektorien) | `toadapt-knowledge-tracing` |
+| Pädagogische Qualität der Tutor-/Agent-Antworten messen (NAACL-Taxonomie) | `toadapt-tutor-response-evaluation` |
 | Didaktik-Begriffe verstehen (Bloom, TP, Canvas, Scaffolding) | `bwl-scaffolding-reference` |
 | Bevor du dafür Code änderst | `toadapt-change-control` |
 
@@ -81,9 +83,15 @@ dieses Muster in publizierter Judge-Literatur repliziert ist: UNVERIFIZIERT
   `review_item_id = "{case_id}:{question_id}:{nnn}"`.
 - Lehrer-Ground-Truth existiert bereits (64 Items; Rohdaten in
   `~/ToAdapt_sensitive_data/`, NIEMALS ins Repo kopieren).
-- Hartkodierte Kalibrierungsanker pro Frage im Judge
-  (`_format_calibration_notes`, `backend/evaluator/rubric_evaluator.py`,
-  Zeile ~155) — Ergebnis der ersten Kalibrierungsrunde, direkt iterierbar.
+- Kalibrierungsanker pro Frage — Ergebnis der ersten Kalibrierungsrunde,
+  direkt iterierbar. Seit 2026-07-09 ZWEISTUFIG statt hartkodiert: die
+  validierten Alpes-Anker liegen als `calibration_notes` in den
+  Golden-Case-JSONs (`backend/cases/pool/alpes-bank-genai-001*.json`) und
+  haben Vorrang; fehlen sie (neu generierte Cases), greifen generische
+  Anker pro Bloom-Stufe (`BLOOM_CALIBRATION_ANCHORS`,
+  `backend/evaluator/rubric_evaluator.py`). Das frühere
+  `notes_by_question`-Dict in `_format_calibration_notes` existiert nicht
+  mehr im Code.
 - Konservativer Judge mit Unsicherheits-Signalen (`judge_confidence`,
   `needs_human_review`, `score_band`) — Ansatzpunkt für "Judge unterstützt
   statt ersetzt".
@@ -91,9 +99,18 @@ dieses Muster in publizierter Judge-Literatur repliziert ist: UNVERIFIZIERT
 **Erste 3 Schritte in diesem Repo:**
 1. Lies den Befund: `sed -n '33,41p' docs/teacher_alignment_report_20260531_17submissions.md`
    (Tabelle "Nach Frage").
-2. Lies die q4-Anker: `grep -n -A 8 '"q4": \[' backend/evaluator/rubric_evaluator.py`
-   — prüfe, ob die Anker Integration belohnen oder (Hypothese) übermäßig
-   bestrafen ("reicht nicht"-Formulierungen).
+2. Lies die q4-Anker (Feld `calibration_notes` der Frage q4 in
+   `backend/cases/pool/alpes-bank-genai-001.json`):
+   ```bash
+   python3 -c "
+   import json
+   c = json.load(open('backend/cases/pool/alpes-bank-genai-001.json'))
+   [print(*q['calibration_notes'], sep='\n') for q in c['questions'] if q['question_id'] == 'q4']
+   "
+   ```
+   Prüfe, ob die Anker Integration belohnen oder (Hypothese) übermäßig
+   bestrafen ("reicht nicht"-Formulierungen). Bloom-6-Generik zusätzlich in
+   `BLOOM_CALIBRATION_ANCHORS[6]` (`backend/evaluator/rubric_evaluator.py`).
 3. Lade `toadapt-judge-alignment-campaign` — dort liegt die executable
    Kampagne (Hypothesen, Re-Run-Protokoll, Akzeptanzkriterien). Diese
    Frontier-Skill beschreibt nur das Forschungsproblem.
@@ -121,31 +138,46 @@ ab → Tutor:in beurteilt die Gruppe in der Präsenzphase. Die Ownerin hat am
 2026-07-08 geklärt: Gruppen sind die Assessment-Einheit, die Tool-Arbeit ist
 individuelle Vorbereitung. Ein Dashboard, das Tutor:innen VOR der
 Präsenzphase sagt "in Gruppe 12 haben 4 von 6 Mitgliedern das Lernziel X
-verfehlt", existiert weder hier noch (nach Kenntnisstand) als etabliertes
-Muster.
+verfehlt", existiert (nach Kenntnisstand) nicht als etabliertes Muster —
+HIER existiert seit 2026-07-09 eine erste Version (s.u.); die
+Forschungslücke verschiebt sich damit auf den NUTZEN-Nachweis (verändert
+die Gruppen-Sicht das Tutor-Handeln?) und die Gruppen-Entwicklung über
+mehrere TP-Phasen.
 
 **Das spezifische Asset dieses Projekts:**
 - Die Aggregation pro PERSON existiert bereits vollständig:
-  `GET /dashboard/difficulties` (`backend/dashboard/routes.py`, Zeile ~341)
-  liefert pro Studierendem `attention_level` (high/medium/low), schwache
+  `GET /dashboard/difficulties` (`backend/dashboard/routes.py`) liefert pro
+  Studierendem `attention_level` (high/medium/low), schwache
   Lernziele (Schwelle `WEAK_THRESHOLD_PCT = 60.0`), fehlende Canvas-Blöcke
   und wiederkehrende Schwächen (`main_penalties`-Phrasen), plus
   Kohorten-Sicht (`cohort_weak_objectives`, `cohort_common_penalties`).
-- Die fehlende Zutat ist EIN Feld: Im gesamten Code existiert kein
-  Gruppenkonzept — `backend/models/user.py` kennt nur `matrikelnummer`
-  (verifiziere: `grep -rn group backend/models/` → leer). Das ist die größte
-  bekannte konzeptionelle Lücke des Projekts.
+  Seit 2026-07-09 verlangen die Einzelpersonen-Endpoints zusätzlich
+  `RESEARCH_API_KEY` via Header `X-Research-Key` — Tutor:innen sehen sie
+  bewusst NICHT mehr (Details: `toadapt-architecture-contract`).
+- BEHOBEN (2026-07-09): Die Skill führte "kein Gruppenkonzept im
+  Datenmodell" als größte konzeptionelle Lücke. Der Grundstein ist gebaut
+  (Commit e71d9ee): Studierende geben beim Login ihre Übungsgruppe an
+  (`group_code`, normalisiert via
+  `backend/anonymize.py::normalize_group_code`); Session + Submission
+  tragen `group_code`; `GET /dashboard/groups` und
+  `/dashboard/groups/{code}` liefern `GroupSummary`/`GroupDetail` inkl.
+  `members_below` pro Lernziel (`backend/dashboard/routes.py`); das
+  Dashboard-Frontend ist komplett auf Gruppen-Aggregate umgebaut
+  (Einzelprofil-UI entfernt). Tests: `tests/test_groups_and_privacy.py`.
+- Für die Forschungsfrage "Gruppen-ENTWICKLUNG über TPs" liefert die
+  Pseudonymisierung (HMAC, idempotent) stabile Längsschnitt-Kennungen —
+  Datenbasis und Grenzen: `toadapt-knowledge-tracing`.
 
-**Erste 3 Schritte in diesem Repo:**
-1. Datenmodell: Füge `group_id: str | None = None` in `User`
-   (`backend/models/user.py`) und denormalisiert in `SubmissionState`
-   (`backend/models/submission.py`, analog zu `matrikelnummer`, Zeile ~43)
-   hinzu. Vorher `toadapt-change-control` laden (Datenmodell-Änderung).
-2. Aggregation: Erweitere `backend/dashboard/routes.py` — das Muster
-   `by_student: dict[str, list] = defaultdict(list)` (Zeile ~352) wird
-   dupliziert zu `by_group`; ein neuer Endpoint `/dashboard/groups` liefert
-   pro Gruppe die schwächsten Lernziele + wie viele Mitglieder betroffen
-   sind. Tests analog `tests/test_dashboard_difficulties.py`.
+**Erste 3 Schritte in diesem Repo (Stand 2026-07-09):**
+1. Bestandsaufnahme des Gebauten: `grep -n "group_code" backend/models/session.py
+   backend/models/submission.py backend/dashboard/routes.py` und
+   `tests/test_groups_and_privacy.py` lesen — was die Aggregate heute
+   zeigen (schwache Lernziele + Betroffenenzahl) vs. was fehlt
+   (Entwicklung über TP-Phasen, Vergleich zwischen Gruppen über Zeit).
+2. Gruppen-Trajektorien: Erweitere die Aggregation um die Zeitachse
+   (Score-Entwicklung einer Gruppe über TP1→TP4; Grundlage:
+   `target_tp` an Submissions + stabile Pseudonyme, siehe
+   `toadapt-knowledge-tracing`). Vorher `toadapt-change-control` laden.
 3. Pilot: Erzeuge synthetische Gruppen (6er-Zuordnung über bestehende
    Testdaten), zeige das Gruppen-Dashboard 2–3 Tutor:innen und protokolliere
    strukturiert, welche Anzeige eine konkrete Vorbereitungshandlung auslöst.
@@ -180,6 +212,7 @@ bereits produktiv (`backend/db/experiment_logger.py`, Collection
 | `session_created` | Session-Dump inkl. `ExperimentContext` |
 | `chat_turn_completed` | `user_message`, `assistant_message`, `agent_type`, `message_count` |
 | `submission_answer_saved` | Frage-ID, Antworttext |
+| `formative_feedback_requested` (neu 2026-07-09) | Frage-ID, `draft_text` — Denkanstoß-Nutzung als Prozessvariable |
 | `submission_submitted` / `submission_evaluated` | vollständige Scores, Canvas-Alignment, Judge-Metadaten |
 
 Entscheidend: `ExperimentContext` (`backend/models/experiment.py`) hat
@@ -189,18 +222,22 @@ Excel (`*_chat_turns.xlsx`).
 
 **Erste 3 Schritte in diesem Repo:**
 1. Prüfe die Logging-Kette end-to-end mit einem synthetischen Durchlauf:
-   `grep -n "_log_experiment_event(" backend/api/routes.py` (8 Treffer =
-   1 Definition + 7 Call-Sites) und verifiziere, dass `condition` im
+   `grep -n "_log_experiment_event(" backend/api/routes.py` (9 Treffer =
+   1 Definition + 8 Call-Sites, seit 2026-07-09 inkl.
+   `formative_feedback_requested`) und verifiziere, dass `condition` im
    Event-Payload ankommt.
 2. Definiere die Manipulation: Metacognitive-First an/aus ist EIN Flag —
    `session.metacognitive_phase_complete` (`backend/agents/orchestrator.py`,
-   Zeile ~270/420). Eine Condition-abhängige Initialisierung in
+   Zeile ~270/439). Eine Condition-abhängige Initialisierung in
    `POST /sessions` (`backend/api/routes.py`) genügt als minimaler Eingriff.
    Change-Control beachten (studierendensichtbares Verhalten).
 3. Präregistriere die Analyse nach `toadapt-research-methodology`
    (Hypothese sagt Zahlen voraus), Outcome = `percentage` /
    `rubric_fit_pct` aus `submission_evaluated`, Prozessvariablen =
-   Turn-Anzahl und Agent-Mix aus `chat_turn_completed`.
+   Turn-Anzahl und Agent-Mix aus `chat_turn_completed`. Für die
+   PÄDAGOGISCHE Qualität der Agent-Antworten als Prozessmaß (8
+   NAACL-Dimensionen, z.B. "verrät der Agent Lösungen?") existiert seit
+   2026-07-09 eigene Messinfrastruktur: `toadapt-tutor-response-evaluation`.
 
 **Du hast ein Ergebnis, wenn:** eine präregistrierte Zwei-Gruppen-Analyse
 (Power-Rechnung mit d = 0.44 als Prior → benötigte n VOR Start festlegen)
@@ -220,10 +257,13 @@ Projekt ist selbst Negativ-Beispiel: Das Agent-Routing ist eine
 Keyword-Liste (`_select_agent`, `backend/agents/orchestrator.py`,
 Zeile ~265: "entscheidung"→STRATEGIC, "konzept"→CONCEPTUAL, …, Fallback
 STRATEGIC), und die metakognitive Phase (Reflexion vor Inhalt) gilt nach
-GENAU EINER Agenten-Antwort als abgeschlossen (Zeile ~420:
+GENAU EINER Agenten-Antwort als abgeschlossen (Zeile ~438:
 `message_count >= 1`). Eine `scaffolding_intensity` existiert im Code
 nirgends (das Konzept in CLAUDE.md ist ein Fossil der verworfenen
-Gruppen-Architektur).
+Gruppen-Architektur). Für die Lernstands-Seite der Adaption (welche
+Längsschnitt-Datenbasis existiert: stabile Pseudonyme seit 2026-07-09,
+`learning_objective_tags`, Bloom-Stufen; Mastery-Modelle wie BKT/EWMA):
+`toadapt-knowledge-tracing`.
 
 **Das spezifische Asset dieses Projekts:** Turn-Level-Daten mit
 Outcome-Verknüpfung: Jeder `chat_turn_completed`-Event enthält
@@ -233,7 +273,7 @@ Outcome-Verknüpfung: Jeder `chat_turn_completed`-Event enthält
 Readiness-Kandidaten OFFLINE evaluieren, bevor irgendetwas im
 Live-Verhalten geändert wird.
 Ehrliche Lücke: `guardrail_triggered` ist nur ein structlog-Warning
-(`backend/agents/orchestrator.py`, Zeile ~416), KEIN experiment_event —
+(`backend/agents/orchestrator.py`, Zeile ~434), KEIN experiment_event —
 Guardrail-Auslösungen sind in den Forschungsdaten derzeit nicht pro Turn
 auswertbar (nur der ersetzte Fallback-Text im Event verrät sie indirekt).
 
@@ -269,7 +309,11 @@ für "würde eine Lehrkraft diesen Case freigeben?" sind nicht etabliert
 Validator (`validate_case`, `backend/cases/validator.py`, Zeile ~49) prüft
 ausschließlich REGELN: verbotene Framework-Namen, reservierte
 Kurs-Case-Begriffe, leere Pflichtfelder, Section-/Exhibit-Anzahl,
-Bloom-Abdeckung, Punktesumme. Er prüft NICHT Güte: Plausibilität der
+Bloom-Abdeckung, Punktesumme; seit 2026-07-09 zusätzlich Vollständigkeit
+des eingebetteten Case-Pakets (`missing_embedded_rubric`,
+Canvas-Blöcke ohne Keywords, fehlendes Glossar/Agent-Guidance,
+Glossar-Begriffe, die nicht wörtlich im Text stehen) — weiterhin alles
+Regeln. Er prüft NICHT Güte: Plausibilität der
 Zahlen in Exhibits, innere Konsistenz, Schwierigkeitsgrad, didaktische
 Ergiebigkeit der Spannungsfelder.
 
@@ -283,7 +327,7 @@ action = "edited" | "regenerated" | "approved" | …); der Admin-Flow
 Reject hinein, inkl. protokolliertem `force`-Override beim Approve trotz
 Validierungsfehlern. Approve/Reject/Edit-Historie = kostenlose
 Qualitäts-Labels.
-Ehrliche Einschränkung (Stand 2026-07-08): Der Pool enthält erst 2 Cases
+Ehrliche Einschränkung (re-verifiziert 2026-07-09): Der Pool enthält erst 2 Cases
 (DE+EN-Variante desselben Cases, beide approved, `edit_history` leer) —
 die Label-Basis muss erst wachsen, bevor hier irgendetwas validierbar ist.
 
@@ -300,7 +344,9 @@ die Label-Basis muss erst wachsen, bevor hier irgendetwas validierbar ist.
    ```
 2. Definiere 4–6 Güte-Dimensionen, die der Regel-Validator NICHT abdeckt
    (Zahlen-Plausibilität in Exhibits, Konsistenz Sections↔Exhibits↔Fragen,
-   Ergiebigkeit der `key_tensions` aus `{case_id}-agent.json`), als
+   Ergiebigkeit der `key_tensions` aus `case.agent_guidance` — seit
+   2026-07-09 primär im Case-JSON eingebettet, `{case_id}-agent.json` nur
+   noch Fallback für Alt-Cases), als
    Rubrik-Dokument — abgeleitet aus dem, was Lehrpersonen in
    `review_notes`/`edit_history` tatsächlich bemängeln, sobald Daten da sind.
 3. Baue einen Offline-LLM-Judge für Case-Güte (analog
@@ -319,33 +365,47 @@ untereinander nicht konsistent genug sind (Inter-Rater-Check zuerst!).
 
 ---
 
-## Priorisierung (Empfehlung, Stand 2026-07-08)
+## Priorisierung (Empfehlung, Stand 2026-07-09)
 
 | # | Problem | Reifegrad | Blocker |
 |---|---|---|---|
 | 1 | q4/Bloom-6-Judge | Daten + Pipeline vorhanden, Befund dokumentiert | Lehrkraft-Zeit für neuen Blind-Batch |
 | 3 | Scaffolding-Wirksamkeit | Logging + `condition`-Feld produktiv | Teilnehmer-Rekrutierung, Ethik/Einwilligung |
-| 2 | Gruppen-Insights | Personen-Aggregation fertig | `group_id` fehlt im Datenmodell; Entscheidung A/B im ROLLOUT_PLAN offen |
-| 4 | Adaptive Intensität | Turn-Daten vorhanden | Manuelle Labels nötig; guardrail-Events fehlen in Forschungsdaten |
+| 2 | Gruppen-Insights | Gruppen-Aggregate GEBAUT (`group_code`, `/dashboard/groups`, Gruppen-UI) | Tutor-Pilotfeedback fehlt; Gruppen-Entwicklung über TPs noch nicht abgebildet |
+| 4 | Adaptive Intensität | Turn-Daten vorhanden; Längsschnitt-Basis via Pseudonyme (`toadapt-knowledge-tracing`) | Manuelle Labels nötig; guardrail-Events fehlen in Forschungsdaten |
 | 5 | Case-Güte-Judge | Label-Mechanik existiert | Nur 2 Cases im Pool — Label-Basis fehlt |
 
 ---
 
 ## Provenance und Wartung
 
-Erstellt: 2026-07-08 auf Basis direkter Repo-Verifikation. Drift-anfällige
-Fakten und ihr Re-Verifikations-Kommando (vom Repo-Root ausführen):
+Erstellt: 2026-07-08 auf Basis direkter Repo-Verifikation.
+Update 2026-07-09 (HEAD 64b62f9): Problem 2 großteils gebaut (group_code,
+/dashboard/groups + Gruppen-UI, Pseudonymisierung, X-Research-Key-Gate für
+Einzelpersonen-Endpoints) — als BEHOBEN markiert, nächste Meilensteine
+Gruppen-Trajektorien über TPs + Tutor-Pilot; Kalibrierungsanker von
+hartkodiert auf zweistufig migriert (calibration_notes im Case-JSON +
+BLOOM_CALIBRATION_ANCHORS); Event-Call-Sites 7→8
+(formative_feedback_requested); Validator prüft zusätzlich das eingebettete
+Case-Paket (weiterhin nur Regeln); Querverweise auf die neuen Skills
+toadapt-knowledge-tracing und toadapt-tutor-response-evaluation ergänzt;
+Zeilennummern-Drift korrigiert.
+
+Drift-anfällige Fakten und ihr Re-Verifikations-Kommando (vom Repo-Root
+ausführen):
 
 | Fakt | Re-Verifikation |
 |---|---|
 | q4-MAE ~4.97 / q1–q3-Werte (Report vom 2026-05-31) | `sed -n '33,41p' docs/teacher_alignment_report_20260531_17submissions.md` |
-| Kalibrierungsanker hartkodiert in q1–q4 | `grep -n '_format_calibration_notes' backend/evaluator/rubric_evaluator.py` |
-| Kein Gruppenkonzept im Datenmodell | `grep -rn group backend/models/` (leer = Fakt gilt noch) |
+| Zweistufige Kalibrierung (Case-Anker vor Bloom-Generik) | `grep -n 'calibration_notes\|BLOOM_CALIBRATION_ANCHORS' backend/evaluator/rubric_evaluator.py` |
+| Gruppenkonzept: `group_code` auf Session + Submission | `grep -rn group_code backend/models/` |
+| Gruppen-Aggregate: `/dashboard/groups` (Tutor-sichtbar) | `grep -n '/groups\|GroupSummary' backend/dashboard/routes.py` |
+| Einzelpersonen-Endpoints research-key-gated | `grep -n require_research_key backend/dashboard/routes.py` |
 | `/dashboard/difficulties` + Schwelle 60.0 | `grep -n 'WEAK_THRESHOLD_PCT\|/difficulties' backend/dashboard/routes.py` |
-| 7 Event-Call-Sites im Studenten-Flow | `grep -c '_log_experiment_event(' backend/api/routes.py` (8 = 1 Definition + 7 Calls) |
+| 8 Event-Call-Sites im Studenten-Flow | `grep -c '_log_experiment_event(' backend/api/routes.py` (9 = 1 Definition + 8 Calls) |
 | `condition`-Feld im ExperimentContext | `grep -n condition backend/models/experiment.py` |
 | Keyword-Routing + `message_count >= 1`-Heuristik | `grep -n '_select_agent\|message_count >= 1' backend/agents/orchestrator.py` |
 | `guardrail_triggered` nur Log, kein Event | `grep -n guardrail_triggered backend/agents/orchestrator.py backend/api/routes.py` |
 | Validator prüft nur Regeln | `grep -n 'code=' backend/cases/validator.py` |
 | Case-Pool-Größe / Label-Basis | `ls backend/cases/pool/ \| grep -v -- '-agent.json' \| wc -l` |
-| Rollout-Entscheidung A/B noch offen | `grep -n 'Weg B\|Entscheidung' ROLLOUT_PLAN.md` |
+| Rollout-Entscheidung A/B noch offen | `grep -n 'Weg B\|Entscheidung' ROLLOUT_PLAN.md` (operativer Status: ROLLOUT_CHECKLIST.md) |

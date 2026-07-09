@@ -4,7 +4,8 @@ description: >-
   MESSEN statt schätzen im ToAdapt-Repo. Lade diese Skill, wenn du den
   Zustand einer laufenden Backend-Instanz prüfen willst (GET /health vs.
   GET /health/diagnostics mit X-API-Key), ein Log-Event interpretieren musst
-  (toadapt_startup, student_flow_open, llm_call_completed, guardrail_triggered,
+  (toadapt_startup, student_flow_open, pseudonymization_disabled,
+  llm_call_completed, guardrail_triggered, formative_feedback_guardrail_triggered,
   chat_error, evaluation_json_parse_failed, mongo_*_failed, case_saved …),
   Railway-Logs nach Ereignissen filtern willst, Fragen über die Mongo-Collection
   experiment_events beantworten sollst ("wie viele Guardrail-Trigger pro Tag?",
@@ -95,8 +96,9 @@ JSON-Zeilen mit dem Event-Namen im Feld `"event"`; lokal Console-Format.
 
 | Event | Level | Felder / Interpretation |
 |---|---|---|
-| `toadapt_startup` | info | Konfigurations-Snapshot beim Boot: `tp_phase`, `llm_model`, `openrouter_api_key_configured` (bool), `mongo_logging_enabled`, `mongo_connection_mode`, `student_access_code_configured`, `sentry_enabled`, `environment`. **Erste Anlaufstelle nach jedem Deploy**: stimmen die Flags? |
+| `toadapt_startup` | info | Konfigurations-Snapshot beim Boot: `tp_phase`, `llm_model`, `openrouter_api_key_configured` (bool), `mongo_logging_enabled`, `mongo_connection_mode`, `student_access_code_configured`, `pseudonymization_enabled` (seit 2026-07-09: `PSEUDONYM_SECRET` gesetzt?), `research_key_configured` (seit 2026-07-09: `RESEARCH_API_KEY` gesetzt?), `sentry_enabled`, `environment`. **Erste Anlaufstelle nach jedem Deploy**: stimmen die Flags? |
 | `student_flow_open` | **warning** | `STUDENT_ACCESS_CODE` ist nicht gesetzt — Sessions/Chat/Submissions sind ÖFFENTLICH erreichbar, jeder im Internet kann LLM-Kosten auslösen. In Produktion ein Alarmsignal. |
+| `pseudonymization_disabled` | **warning** | Nur bei `ENVIRONMENT=production`: `PSEUDONYM_SECRET` ist nicht gesetzt — Teilnehmer-Kennungen (user_id, Matrikelnummer) werden ROH gespeichert statt HMAC-pseudonymisiert (`backend/anonymize.py`). Seit 2026-07-09 |
 | `toadapt_shutdown` | info | Sauberer Shutdown |
 | `unhandled_exception` | error | Global Exception Handler: `error`, `path`. Sollte selten sein — jede Zeile ist ein Bug-Kandidat |
 
@@ -106,13 +108,15 @@ JSON-Zeilen mit dem Event-Namen im Feld `"event"`; lokal Console-Format.
 |---|---|---|
 | `llm_call_completed` | info | `model`, `prompt_tokens`, `completion_tokens`, `total_tokens` — pro OpenRouter-Call, **egal ob Agent-Chat, Judge-Evaluation oder Case-Generierung** (gemeinsamer Client). Für Kostenkontrolle über einen Zeitraum: `total_tokens` aufsummieren und mit den OpenRouter-Preisen des Modells multiplizieren |
 
-### Chat & Guardrails (`backend/agents/orchestrator.py`, `backend/api/routes.py`)
+### Chat & Guardrails (`backend/agents/orchestrator.py`, `backend/api/routes.py`, `backend/evaluator/formative_feedback.py`)
 
 | Event | Level | Felder / Interpretation |
 |---|---|---|
 | `agent_response` | info | `agent` (metacognitive/strategic/conceptual/procedural), `tp`, `msg_count`, `language` — ein Chat-Turn wurde beantwortet |
 | `guardrail_triggered` | **warning** | `reason`, `agent`. Die Agent-Antwort verletzte eine Regel und wurde KOMPLETT durch einen festen Fallback-Text ersetzt (Guardrail = Filter, der Lehrdesign-Verstöße wie Framework-Namen oder direkte Antworten abfängt). Enthält KEINE session_id — Session-Zuordnung nur indirekt möglich (siehe §4-Skript) |
 | `chat_error` | error | `error`, `type` — der Orchestrator-Call ist geworfen (meist OpenRouter-Timeout/Quota); Client bekam 503 |
+| `formative_feedback_guardrail_triggered` | **warning** | Seit 2026-07-09: `case_id`, `question_id`, `reason` (gleiche reason-Codes wie unten) — ein "Denkanstoß" (formative Live-Unterstützung, `backend/evaluator/formative_feedback.py`) verletzte den `guardrail_check` und wurde durch eine feste Fallback-Frage ersetzt |
+| `formative_feedback_error` | error | Seit 2026-07-09: `error`, `type` — der Denkanstoß-LLM-Call ist geworfen; Client bekam 503 (`backend/api/routes.py`) |
 
 `reason`-Codes von `guardrail_check()` (Reihenfolge = Prüfreihenfolge):
 
@@ -131,6 +135,7 @@ JSON-Zeilen mit dem Event-Namen im Feld `"event"`; lokal Console-Format.
 |---|---|---|
 | `evaluation_json_parse_failed` | warning | `submission_id`, `question_id`, `raw_preview` (erste 500 Zeichen der Judge-Antwort). Judge-JSON war unparsebar → es folgt EIN Repair-LLM-Call |
 | `evaluation_json_repair_failed` | error | Auch der Repair-Call scheiterte → Frage bekommt `_fallback_payload`: 0 Punkte, `evaluation_status="technical_fallback"`, `needs_human_review=true`. Häufung hier = Judge-Prompt/Modell-Problem |
+| `evaluation_payload_invalid_types` | error | Seit 2026-07-09: `submission_id`, `question_id` — Judge-JSON war parsebar, aber mit typ-ungültigen Werten (z.B. `awarded_points="acht"`) → gleicher Weg wie Parse-Versagen: `technical_fallback` statt 500 |
 | `submission_evaluated` | info | `submission_id`, `total`, `max`, `pct`, `canvas_alignment_pct`, `rubric_fit_pct`, `canvas_exemplar_candidate` — Evaluation abgeschlossen |
 | `evaluation_error` | error | Kompletter `evaluate_submission`-Aufruf geworfen; Client bekam 503, Antworten blieben gespeichert |
 
@@ -181,14 +186,15 @@ Dokumentschema:
 { "event_type": "<typ>", "created_at": ISODate(...), "payload": { ... } }
 ```
 
-Event-Typen (alle Call-Sites in `backend/api/routes.py`; Stand: 2026-07-08):
+Event-Typen (alle Call-Sites in `backend/api/routes.py`; Stand: 2026-07-09):
 
 | event_type | Wann | Wichtige payload-Felder |
 |---|---|---|
 | `session_created` | POST /sessions | `session` (kompletter Session-Dump inkl. `session_id`, `case_id`, `tp_phase`), `experiment` |
 | `chat_turn_completed` | POST /sessions/{id}/chat | `session_id`, `case_id`, `user_id`, `message_count`, `history_length`, `agent_type`, **`user_message` und `assistant_message` im Klartext** |
 | `submission_created` | POST /submissions | `submission` (Dump) |
-| `submission_answer_saved` | POST /submissions/{id}/answer | `submission_id`, `question_id`, **`answer_text` im Klartext**, `answer_word_count`, `participant_id` |
+| `submission_answer_saved` | POST /submissions/{id}/answer | `submission_id`, `question_id`, **`answer_text` im Klartext**, `answer_word_count`, `participant_id`; seit 2026-07-09 zusätzlich `typing_stats` (AnswerStats-Aggregate: typed_chars, pasted_chars, paste_count, largest_paste, edit_seconds — keine Inhalte) |
+| `formative_feedback_requested` | POST /submissions/{id}/questions/{qid}/feedback (seit 2026-07-09) | `submission_id`, `question_id`, `participant_id`, **`draft_text` im Klartext**, `draft_word_count`, `request_number` (1 oder 2, danach 429), `feedback` (der ausgelieferte Denkanstoß) |
 | `submission_submitted` | POST /submissions/{id}/submit (vor Evaluation) | `submission` (Dump inkl. aller Antworten) |
 | `submission_evaluated` | nach erfolgreicher Evaluation | `submission` + `result` (alle Scores, Feedback) |
 | `canvas_exemplar_candidate` | nur wenn Result als Exemplar-Kandidat markiert | `submission_id`, `percentage`, `canvas_alignment_pct`, `scores` |
@@ -196,8 +202,11 @@ Event-Typen (alle Call-Sites in `backend/api/routes.py`; Stand: 2026-07-08):
 Jedes payload enthält zusätzlich `experiment_context_present` (bool) und ggf.
 `experiment_context_missing: true`.
 
-**DATENSCHUTZ:** `chat_turn_completed` / `submission_*` enthalten
-Klartext-Antworten und Teilnehmer-IDs (`matrikelnummer` bzw. Prolific-PID).
+**DATENSCHUTZ:** `chat_turn_completed` / `submission_*` /
+`formative_feedback_requested` enthalten Klartext-Antworten bzw. -Entwürfe
+und Teilnehmer-IDs (`matrikelnummer` bzw. Prolific-PID; seit 2026-07-09
+serverseitig HMAC-pseudonymisiert, WENN `PSEUDONYM_SECRET` gesetzt ist —
+sonst roh, siehe Warnung `pseudonymization_disabled` in §2).
 Exporte dieser Collection sind Teilnehmerdaten: Ablage NUR unter
 `~/ToAdapt_sensitive_data/`, NIEMALS ins Repo committen, nicht in Fixtures
 oder Skills. Für Skript-Tests synthetische Daten verwenden.
@@ -336,6 +345,7 @@ verarbeitet ISO-Strings und Mongo-Extended-JSON (`$date`, `$numberLong`).
 | Frage | Werkzeug | Kommando |
 |---|---|---|
 | Läuft die Instanz? Welcher Build? | /health + Diagnostics | `curl -s $BASE/health`; `build_marker` in Diagnostics |
+| Welche TP-Phase ist aktiv (ohne Admin-Key)? | GET /tp (seit 2026-07-09) | `curl -s $BASE/tp` → `current_tp` + `schedule`; liegt im Studenten-Router, verlangt also `X-Student-Access-Code`, sobald der Zugangscode aktiv ist |
 | Ist Mongo konfiguriert/verbunden? | Diagnostics | `curl -s -H "X-API-Key: $KEY" $BASE/health/diagnostics` → `mongo_connection_mode`, `mongo_last_connection_failure` |
 | Welche Env-Variablen sieht der Prozess wirklich? | Diagnostics + Startup-Log | `mongo_env_keys` / `*_len`-Felder; `toadapt_startup` im Log |
 | Ist der Studenten-Flow offen? | Startup-Log / Diagnostics | Warnung `student_flow_open`; `student_access_code_configured` in `toadapt_startup` |
@@ -350,12 +360,15 @@ verarbeitet ISO-Strings und Mongo-Extended-JSON (`$date`, `$numberLong`).
 | Wer hat welchen Case freigegeben (und mit force)? | Railway-Logs | `case_approved` → Felder `reviewer`, `forced` |
 
 Hinweis zu Dashboards: Die aggregierten Sichten gibt es auch als API —
-`GET /dashboard/overview`, `/dashboard/students`,
-`/dashboard/student/{matrikelnummer}`, `/dashboard/difficulties` (alle
-X-API-Key; `backend/dashboard/routes.py`). Ohne Mongo und ohne lokale
-Result-Dateien fällt das Dashboard auf einen Seed-Datensatz zurück
-(`backend/db/dashboard_seed/…` — Pfad existiert im Working Tree derzeit
-nicht, dann liefert es leere Listen).
+`GET /dashboard/overview` sowie (seit 2026-07-09) `GET /dashboard/groups`
+und `/dashboard/groups/{code}` (Gruppen-Aggregate, nur X-API-Key);
+`/dashboard/students`, `/dashboard/student/{matrikelnummer}` und
+`/dashboard/difficulties` verlangen seit 2026-07-09 ZUSÄTZLICH den Header
+`X-Research-Key` (`RESEARCH_API_KEY`, fail-closed: ohne Key 503, falsch 401
+— `backend/dashboard/routes.py`, `backend/auth.py::require_research_key`).
+Ohne Mongo und ohne lokale Result-Dateien fällt das Dashboard auf einen
+Seed-Datensatz zurück (`backend/db/dashboard_seed/…` — Pfad existiert im
+Working Tree derzeit nicht, dann liefert es leere Listen).
 
 ---
 
@@ -365,6 +378,16 @@ Erstellt: 2026-07-08 gegen Commit-Stand `141bb63` (main, HEAD nach dem
 filter-repo-Rewrite vom 2026-07-08). Alle Pfade,
 Felder, Event-Namen und Statuscodes am 2026-07-08 gegen den Code verifiziert;
 Skripte am selben Tag mit synthetischen Daten bzw. lokalem Backend getestet.
+
+Update 2026-07-09 (HEAD 64b62f9): Startup-Felder pseudonymization_enabled/
+research_key_configured; neue Log-Events pseudonymization_disabled,
+formative_feedback_guardrail_triggered, formative_feedback_error,
+evaluation_payload_invalid_types; neue experiment_events
+formative_feedback_requested (mit draft_text im Klartext) und typing_stats
+in submission_answer_saved; Diagnose-Ziele GET /tp und GET /dashboard/groups;
+X-Research-Key-Pflicht auf /dashboard/students|student/{m}|difficulties.
+smoke_backend.sh gegen den Code re-geprüft: alle getesteten Endpunkte und
+Statuscodes unverändert, Skript unverändert gültig.
 
 Re-Verifikation drift-anfälliger Fakten (je ein Kommando, vom Repo-Root):
 

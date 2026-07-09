@@ -32,7 +32,7 @@ sind repo-relativ, alle Kommandos laufen vom Repo-Root.
 | Workbook | Excel-Datei (xlsx) aus der Export-Pipeline; eine Zeile = eine Frage-Antwort |
 | review_item_id | Join-Schlüssel `{case_id}:{question_id}:{nnn}` zwischen Blind- und Rubric-Workbook |
 | q1–q4 | Die vier Fragen eines Cases; q4 ist die Integrationsfrage (Bloom 6, 30 Punkte im Golden Case `alpes-bank-genai-001`) |
-| Kalibrierungsanker | Hartkodierte Bewertungshinweise pro Frage im Judge-Prompt (`_format_calibration_notes` in `backend/evaluator/rubric_evaluator.py`, ab Zeile 155) |
+| Kalibrierungsanker | Bewertungshinweise im Judge-Prompt — ZWEISTUFIG seit 2026-07-09: case-spezifische `question.calibration_notes` (im Case-JSON, editierbar im Case-Editor; die studien-validierten Alpes-Anker liegen dort) haben Vorrang vor generischen `BLOOM_CALIBRATION_ANCHORS` pro Bloom-Stufe (`backend/evaluator/rubric_evaluator.py`) |
 | Guardrail | Substring-/Regex-Prüfung `guardrail_check(text, tp)` in `backend/agents/orchestrator.py`, die Agent-Antworten bei Verstoß komplett durch einen Fallback-Text ersetzt |
 | TP | Touchpoint 1–4, die Kursphasen; konfiguriert in `backend/config/tp_configs.py` (`TP_CONFIGS`) |
 
@@ -383,7 +383,7 @@ STATUS        offen | bestätigt | falsifiziert | unentscheidbar (n zu klein)
 ## Hypothese q4-anker-zu-hart      (illustrativ, Status: offen/Kandidat)
 BEOBACHTUNG   q4 (Bloom 6, 30 Pkt): MAE 4.969, Mean Diff −4.969 (n=16),
               Unterbewertung — docs/teacher_alignment_report_20260531….md
-HYPOTHESE     Die q4-Kalibrierungsanker (rubric_evaluator.py,
+HYPOTHESE     Die q4-Kalibrierungsanker (calibration_notes im Golden-Case-JSON,
               _format_calibration_notes) bestrafen fehlende
               Integrations-Explizitheit härter als die Lehrkraft, die
               implizite Integration honoriert.
@@ -442,9 +442,11 @@ Re-Verifikation drift-anfälliger Fakten:
 | Token-Logging-Event | `grep -n 'llm_call_completed' backend/llm.py` |
 | Default-Modell | `grep -n 'DEFAULT_OPENROUTER_MODEL' backend/llm.py` |
 | Chat-max_tokens 220/320 | `grep -n 'max_tokens=220' backend/agents/orchestrator.py` |
-| Judge-max_tokens 1200 | `grep -n 'max_tokens=1200' backend/evaluator/rubric_evaluator.py` |
+| Judge-max_tokens 1200 | `grep -n 'EVALUATOR_MAX_TOKENS' backend/evaluator/rubric_evaluator.py` |
 | Guardrail-Reihenfolge/Patterns | `sed -n '113,132p' backend/agents/orchestrator.py` |
 | TP4 ohne forbidden_framework_names | `grep -n 'forbidden_framework_names' backend/config/tp_configs.py` (3 Treffer = Lücke besteht) |
-| Kalibrierungsanker q1–q4 | `grep -n '_format_calibration_notes' backend/evaluator/rubric_evaluator.py` |
+| Kalibrierungsanker zweistufig | `grep -n 'calibration_notes\|BLOOM_CALIBRATION_ANCHORS' backend/evaluator/rubric_evaluator.py backend/cases/pool/alpes-bank-genai-001.json \| head` |
 | Guardrail-Regressionstests | `.venv/bin/python -m pytest tests/test_orchestrator_guardrails.py -q` |
 | Golden-Case-Punkte (q4 = 30, Bloom 6) | `python3 -c "import json; print([(q['question_id'],q['bloom_level'],q['max_points']) for q in json.load(open('backend/cases/pool/alpes-bank-genai-001.json'))['questions']])"` |
+
+Update 2026-07-09 (HEAD 64b62f9): Kalibrierungsanker auf das zweistufige Modell umgestellt (Case-Anker vor Bloom-Generik), Re-Verifikations-Kommandos an die restrukturierte rubric_evaluator.py angepasst.
