@@ -219,6 +219,9 @@ function LoginPageContent({
       await apiFetch('/auth/student/verify', { method: 'POST' })
     } catch (err) {
       setLoading(false)
+      // Technischen Grund in die Browser-Konsole (Diagnose: falsche
+      // NEXT_PUBLIC_API_URL, CORS oder Backend nicht erreichbar).
+      console.error('Login-Verify fehlgeschlagen:', err)
       const message = err instanceof Error ? err.message : ''
       setError(/zugangscode|access code/i.test(message) ? text.studentAccessError : text.loginUnavailable)
       return
