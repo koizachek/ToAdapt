@@ -414,6 +414,7 @@ async def formative_feedback(submission_id: str, question_id: str, body: DraftAn
             if sub.experiment else None
         ),
         question_id=question_id,
+        draft_text=body.answer_text,
         draft_word_count=len(body.answer_text.split()),
         request_number=used + 1,
         feedback=feedback,
