@@ -409,6 +409,11 @@ function hasSentenceStructure(text: string): boolean {
   return /[.!?]/.test(text.trim())
 }
 
+// Icon je Exhibit-Position (Exhibit 1 → Rechner, 2 → Chart-Lupe, 3 → Warnung).
+// Dateien liegen als public/icons/*.svg (Vectorly, siehe public/icons/README.md);
+// Einbettung über NotionIcon wie alle anderen Icons. Weitere Exhibits: kein Icon.
+const EXHIBIT_ICONS = ['calculator', 'chart-magnifier', 'warning']
+
 function parseExhibitTable(content: string): ParsedExhibitTable | null {
   const lines = content
     .split('\n')
@@ -1104,15 +1109,20 @@ export default function CasePage() {
                   <section>
                     <h2 className="mb-5 text-base font-medium">{text.exhibits}</h2>
                     <div className="flex flex-col gap-6">
-                      {caseData.exhibits.map(exhibit => (
+                      {caseData.exhibits.map((exhibit, exhibitIndex) => (
                         <div
                           key={exhibit.exhibit_id}
                           className="rounded-2xl p-5"
                           style={{ border: '1px solid var(--hairline)', background: 'rgba(250,250,248,0.45)' }}
                         >
-                          <p className="mb-3 text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
-                            {exhibit.title}
-                          </p>
+                          <div className="mb-3 flex items-center gap-2.5">
+                            {EXHIBIT_ICONS[exhibitIndex] && (
+                              <NotionIcon name={EXHIBIT_ICONS[exhibitIndex]} size={28} className="shrink-0" />
+                            )}
+                            <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
+                              {exhibit.title}
+                            </p>
+                          </div>
                           {exhibit.exhibit_type === 'table'
                             ? <ExhibitTable content={exhibit.content} />
                             : (
