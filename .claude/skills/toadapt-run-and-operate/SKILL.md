@@ -6,12 +6,14 @@ description: >
   Teacher-Login), Deploy-Anatomie Railway (Nixpacks, railway.toml) + Vercel,
   Scharf-Schalten-Checkliste für Produktion (Env-Reihenfolge, WEB_CONCURRENCY),
   wo Daten landen (Mongo-Collections vs. Datei-Fallbacks, ephemeres Railway-FS),
-  Bedienung der 5 Forschungs-Skripte in scripts/ (import → export → compare →
-  retry → publish) und Secrets-Ablage. Lade diese Skill bei Aufgaben wie:
-  "starte das System lokal", "deploye", "geht der Server?", "wo liegen die
-  Submissions?", "Daten nach Redeploy weg", "Review-Workbooks exportieren",
-  "Prolific-Daten importieren", "Teacher-Alignment-Vergleich rechnen",
-  "welches Secret gehört wohin?", "STUDENT_ACCESS_CODE scharf schalten".
+  Bedienung der Forschungs-Pipeline-Skripte in scripts/ (import → export →
+  compare → retry → publish) plus Tutor-Code-Generator und Secrets-Ablage
+  (inkl. PSEUDONYM_SECRET, RESEARCH_API_KEY, TEACHER_ACCESS_CODES). Lade diese
+  Skill bei Aufgaben wie: "starte das System lokal", "deploye", "geht der
+  Server?", "wo liegen die Submissions?", "Daten nach Redeploy weg",
+  "Review-Workbooks exportieren", "Prolific-Daten importieren",
+  "Teacher-Alignment-Vergleich rechnen", "welches Secret gehört wohin?",
+  "STUDENT_ACCESS_CODE scharf schalten", "Tutor-Codes generieren".
 ---
 
 # ToAdapt — Run & Operate
@@ -27,6 +29,8 @@ description: >
 | Diagnose-Endpoint/Log-Events im Detail, Messen statt Schätzen | `toadapt-diagnostics-and-tooling` |
 | Tests ausführen/ergänzen, Evidenz-Standards, CI-Gates | `toadapt-validation-and-qa` |
 | Warum die Architektur so ist (Auth-Pfade, Stores, kein WebSocket) | `toadapt-architecture-contract` |
+| Pädagogische Qualität der Tutor-Antworten messen (`scripts/evaluate_tutor_responses.py`) | `toadapt-tutor-response-evaluation` |
+| Lernverläufe/Mastery über Zeit auswerten | `toadapt-knowledge-tracing` |
 | BWL-Fachbegriffe (TP, Bloom, Canvas, Judge) | `bwl-scaffolding-reference` |
 
 ## 30-Sekunden-Kontext
@@ -63,7 +67,8 @@ Console-Renderer):
 
 - Event `toadapt_startup` mit `openrouter_api_key_configured=True` (sonst schlägt jeder Chat/Submit fehl),
 - `mongo_logging_enabled` / `mongo_connection_mode` (ohne Mongo: `disabled`),
-- Warnung `student_flow_open`, falls `STUDENT_ACCESS_CODE` leer ist — dann sind Sessions/Chat/Submissions ohne Code erreichbar.
+- Warnung `student_flow_open`, falls `STUDENT_ACCESS_CODE` leer ist — dann sind Sessions/Chat/Submissions ohne Code erreichbar,
+- Warnung `pseudonymization_disabled` (nur bei `ENVIRONMENT=production`), falls `PSEUDONYM_SECRET` fehlt — dann werden Teilnehmer-Kennungen ROH gespeichert (`backend/anonymize.py`).
 
 ### Frontend (Port 3000)
 
@@ -71,7 +76,8 @@ Console-Renderer):
 cd frontend && npm run dev
 ```
 
-`frontend/.env.local` braucht mindestens `TEACHER_ACCESS_CODE`,
+`frontend/.env.local` braucht mindestens `TEACHER_ACCESS_CODES` (JSON
+`{"kennung":"code",...}`; Legacy-Fallback: `TEACHER_ACCESS_CODE`),
 `TEACHER_SESSION_SECRET` und `TOADAPT_API_KEY` (identisch zum Backend-Wert),
 sonst liefert der Teacher-Bereich 503/Redirects. `NEXT_PUBLIC_API_URL` ist
 optional — Default ist `http://localhost:8000` (`frontend/lib/api.ts:1`).
@@ -150,9 +156,15 @@ alle `/dashboard/*`-Routen verlangen `X-API-Key`.
 Der Teacher-Login läuft komplett im Next.js-Frontend:
 
 1. `POST /teacher-login` (Form-Feld `teacher_code`) an das FRONTEND —
-   `frontend/app/teacher-login/route.ts` prüft gegen `TEACHER_ACCESS_CODE`
-   und setzt das signierte httpOnly-Cookie `teacher_session` (HMAC-SHA256
-   mit `TEACHER_SESSION_SECRET`, 12 h gültig; `frontend/lib/teacherAuth.ts`).
+   `frontend/app/teacher-login/route.ts` löst den Code über
+   `resolveTutorByCode` (`frontend/lib/teacherAuth.ts`) gegen
+   `TEACHER_ACCESS_CODES` (JSON Kennung→Code; Einzelcodes pro Tutor:in,
+   Legacy-Fallback `TEACHER_ACCESS_CODE` mit Kennung "teacher") auf und
+   setzt das signierte httpOnly-Cookie `teacher_session` (HMAC-SHA256
+   mit `TEACHER_SESSION_SECRET`, 12 h gültig) plus ein `teacher_name`-Cookie
+   (Tutor-Kennung, belegt das Reviewer-Feld in der UI vor). Codes erzeugen:
+   `scripts/generate_tutor_codes.py --count N` bzw. `--names <datei>`
+   (Format `xxxx-xxxx-xxxx`, ohne 0/O/1/l; `--csv` für die Verteilliste).
 2. `frontend/middleware.ts` schützt `/admin/*` und `/dashboard/*` (Redirect
    auf `/?mode=teacher` ohne gültiges Cookie).
 3. Teacher-API-Calls gehen über den same-origin Proxy
@@ -162,6 +174,23 @@ Der Teacher-Login läuft komplett im Next.js-Frontend:
 
 Smoke im Browser: `http://localhost:3000/?mode=teacher` → Code eingeben →
 Redirect auf `/cases`; danach muss `/dashboard` laden (Proxy → Backend).
+
+### 2.6 Dashboard: Gruppen-Sicht vs. Forschungs-Gate
+
+Tutor:innen sehen NUR Gruppen-Aggregate: `GET /dashboard/groups` und
+`/dashboard/groups/{code}` verlangen wie bisher `X-API-Key`. Die
+Einzelpersonen-Endpunkte `/dashboard/students`, `/dashboard/student/{m}`
+und `/dashboard/difficulties` verlangen ZUSÄTZLICH den Header
+`X-Research-Key` (= `RESEARCH_API_KEY`; fail-closed: 503 wenn serverseitig
+nicht gesetzt, 401 bei falschem Key; `backend/auth.py`). Der Teacher-Proxy
+kennt nur `TOADAPT_API_KEY` — dass Tutor:innen dort 401 bekommen, ist
+GEWOLLT.
+
+```bash
+curl -s $API/dashboard/groups -H "X-API-Key: <TOADAPT_API_KEY>"
+curl -s $API/dashboard/students -H "X-API-Key: <TOADAPT_API_KEY>" \
+  -H "X-Research-Key: <RESEARCH_API_KEY>"
+```
 
 ---
 
@@ -195,8 +224,8 @@ restartPolicyMaxRetries = 3
 - Vercel baut das Next.js-Frontend; es gibt KEIN `vercel.json` im Repo —
   Projekt-Einstellungen (Root Directory `frontend/`, Env-Variablen) leben
   ausschließlich im Vercel-Dashboard (UNVERIFIZIERT aus dem Repo heraus;
-  Stand 2026-07-08 laut ROLLOUT_PLAN.md noch nicht vollständig scharf
-  geschaltet).
+  Stand 2026-07-09 laut ROLLOUT_CHECKLIST.md, Phase W0, noch nicht
+  vollständig scharf geschaltet).
 
 ### Die eine Regel daraus
 
@@ -213,16 +242,23 @@ Es gibt keine Branch Protection und kein Staging (Stand: 2026-07-08). Also:
 
 ## 4. Produktion scharf schalten — Checkliste (Reihenfolge einhalten!)
 
+Der vollständige operative Gate-Workflow für den breiten Rollout steht in
+`ROLLOUT_CHECKLIST.md` (Phasen W0–W6, Gate-basiert; W0 = genau dieses
+Scharfschalten). Diese Sektion ist die technische Kurzfassung.
+
 Die Reihenfolge existiert, weil `WEB_CONCURRENCY>1` ohne funktionierende
 Mongo-Verbindung laufende Chats mit `404 Session nicht gefunden` zerschießt
 (Sessions haben KEINEN Datei-Fallback, nur Mongo oder Worker-RAM).
 
 1. **Railway-Variablen setzen** (Werte-Referenz: `toadapt-config-and-flags`):
-   `OPENROUTER_API_KEY`, `TOADAPT_API_KEY`, `ALLOWED_ORIGINS`
-   (= konkrete Vercel-Domain, kommagetrennt), `ENVIRONMENT=production`
-   (schaltet JSON-Logs), MongoDB-Zugang (`MONGODB_URI` ODER
-   `MONGODB_MAS_NAME`+`MONGODB_MAS_KEY`+`MONGODB_HOST`), optional
-   `SENTRY_DSN`. `WEB_CONCURRENCY` noch NICHT anfassen.
+   `OPENROUTER_API_KEY`, `TOADAPT_API_KEY`, `PSEUDONYM_SECRET`
+   (Pflicht in Produktion — ohne wird `pseudonymization_disabled` gewarnt
+   und Kennungen landen roh in der DB; Rotation bricht alle Lernverläufe!),
+   `RESEARCH_API_KEY` (Gate für Einzelpersonen-Dashboards, §2.6),
+   `ALLOWED_ORIGINS` (= konkrete Vercel-Domain, kommagetrennt),
+   `ENVIRONMENT=production` (schaltet JSON-Logs), MongoDB-Zugang
+   (`MONGODB_URI` ODER `MONGODB_MAS_NAME`+`MONGODB_MAS_KEY`+`MONGODB_HOST`),
+   optional `SENTRY_DSN`. `WEB_CONCURRENCY` noch NICHT anfassen.
 2. **Deploy auslösen/abwarten**, dann `curl $API/health` → `{"status":"ok",...}`.
 3. **Mongo verifizieren:**
    ```bash
@@ -239,8 +275,11 @@ Mongo-Verbindung laufende Chats mit `404 Session nicht gefunden` zerschießt
    kommunizieren (Reihenfolge egal, aber beides vor Kursnutzung; solange er
    leer ist, warnt das Startup-Log `student_flow_open` — dann kann jeder im
    Internet LLM-Kosten auslösen).
-6. **Vercel-Variablen prüfen** (siehe §7) und Teacher-Login-Smoke (§2.5)
-   gegen die Prod-Domain fahren.
+6. **Vercel-Variablen prüfen** (siehe §7): insbesondere
+   `TEACHER_ACCESS_CODES` mit `scripts/generate_tutor_codes.py` erzeugen
+   und setzen (server-only, niemals `NEXT_PUBLIC_*`; CSV der Codes nach
+   `~/ToAdapt_sensitive_data/`, Legacy-`TEACHER_ACCESS_CODE` entfernen).
+   Danach Teacher-Login-Smoke (§2.5) gegen die Prod-Domain fahren.
 
 ---
 
@@ -254,7 +293,7 @@ liegt IMMER davor (prozesslokal).
 |---|---|---|---|
 | Chat-Sessions | `sessions` (`MONGODB_SESSIONS_COLLECTION`) | **NUR In-Memory** — weg bei Restart, unsichtbar für andere Worker | `backend/db/session_store.py` |
 | Submission-Zustände (Antworten, Status, Scores) | `submission_states` (`MONGODB_SUBMISSIONS_COLLECTION`) | Dateien `backend/db/runtime_submissions/*.json` | `backend/db/submission_store.py` |
-| Dashboard-Ergebnisse (evaluierte Scores) | `dashboard_results` (`MONGODB_DASHBOARD_COLLECTION`) | Dateien `backend/db/submissions/*.json` | `backend/db/dashboard_store.py` |
+| Dashboard-Ergebnisse (evaluierte Scores; Dokumente tragen seit 2026-07-09 zusätzlich `group_code`, `answer_stats` (Tipp-/Paste-Telemetrie) und `feedback_requests`) | `dashboard_results` (`MONGODB_DASHBOARD_COLLECTION`) | Dateien `backend/db/submissions/*.json` | `backend/db/dashboard_store.py` |
 | Forschungs-Events (jeder Chat-Turn, jede Submission) | `experiment_events` (`MONGODB_COLLECTION`) | **KEINER — Events werden stillschweigend verworfen** | `backend/db/experiment_logger.py` |
 | Cases | `cases` (fest) | Dateien `backend/cases/pool/*.json` (kuratierte Cases sind zusätzlich im Repo/Image) | `backend/cases/manager.py` |
 
@@ -287,6 +326,12 @@ Zweck: Judge-Scores gegen Blind-Bewertungen einer Lehrkraft alignen
 5) retry_technical_fallback_scores [optional — ACHTUNG: echte LLM-Calls, kostet Geld]
 6) publish_dashboard_scores  Evaluierte Scores in den Dashboard-Store publizieren
 ```
+
+Daneben liegen in `scripts/` zwei weitere Skripte, die NICHT zu dieser
+Pipeline gehören: `generate_tutor_codes.py` (Betrieb: Tutor-Einzelcodes für
+`TEACHER_ACCESS_CODES`, siehe §2.5/§4/§7) und `evaluate_tutor_responses.py`
+(pädagogische Tutor-Antwort-Evaluation → Skill
+`toadapt-tutor-response-evaluation`).
 
 ### 6.1 Import
 
@@ -379,8 +424,11 @@ Input: JSON-Liste von Submission-Zuständen. Schreibt NUR Einträge mit
 | `OPENROUTER_API_KEY` | Root-`.env` | Railway | LLM-Calls (Agenten + Judge) |
 | `TOADAPT_API_KEY` | Root-`.env` UND `frontend/.env.local` (identischer Wert!) | Railway UND Vercel | Shared Secret `X-API-Key` für /dashboard/* + schreibende /admin-Routen; Frontend-Seite nur im Server-Proxy, nie im Browser |
 | `STUDENT_ACCESS_CODE` | Root-`.env` (Dev meist leer) | Railway | Kohorten-Code für den Studierenden-Flow; leer = offen |
+| `PSEUDONYM_SECRET` | Root-`.env` (Dev meist leer) | Railway (Pflicht) | HMAC-Key der Pseudonymisierung von user_id/matrikelnummer (`backend/anonymize.py`); Rotation bricht alle Lernverläufe |
+| `RESEARCH_API_KEY` | Root-`.env` | Railway | Forschungs-Key `X-Research-Key` für Einzelpersonen-Dashboards (§2.6); fail-closed, bewusst ≠ `TOADAPT_API_KEY` |
 | `MONGODB_URI` bzw. `MONGODB_MAS_NAME`/`MONGODB_MAS_KEY`/`MONGODB_HOST` | Root-`.env` | Railway | Mongo-Zugang (eine der beiden Formen) |
-| `TEACHER_ACCESS_CODE` | `frontend/.env.local` | Vercel | Teacher-Login-Code (fail-closed: ohne Wert kein Login) |
+| `TEACHER_ACCESS_CODES` | `frontend/.env.local` | Vercel | Tutor-Einzelcodes als JSON `{"kennung":"code",...}`; Generator: `scripts/generate_tutor_codes.py` |
+| `TEACHER_ACCESS_CODE` | `frontend/.env.local` | Vercel | Legacy-Fallback (Kennung "teacher"), wenn `TEACHER_ACCESS_CODES` nicht gesetzt (fail-closed: ganz ohne Wert kein Login) |
 | `TEACHER_SESSION_SECRET` | `frontend/.env.local` | Vercel | HMAC-Key des Teacher-Session-Cookies |
 | `NEXT_PUBLIC_API_URL` | `frontend/.env.local` (optional) | Vercel | Browser→Backend-Basis-URL (öffentlich, kein Secret) |
 | `BACKEND_API_URL` | `frontend/.env.local` (optional) | Vercel | Server-seitige Backend-URL für den Teacher-Proxy (Fallback: `NEXT_PUBLIC_API_URL`) |
@@ -401,17 +449,30 @@ Regeln:
 
 Erstellt: 2026-07-08. Alle curl-Antworten in §2 wurden an diesem Tag gegen
 einen lokal gestarteten Server verifiziert; Deploy-Zustand (Railway/Vercel
-"scharf geschaltet"?) ist volatil — maßgeblich ist der Status-Block in
-`ROLLOUT_PLAN.md`.
+"scharf geschaltet"?) ist volatil — maßgeblich ist der Gate-Workflow in
+`ROLLOUT_CHECKLIST.md` (W0–W6; Hintergrund: `ROLLOUT_PLAN.md`).
+
+Update 2026-07-09 (HEAD 64b62f9): Scharfschalten-Checkliste um
+PSEUDONYM_SECRET + RESEARCH_API_KEY (Railway) und TEACHER_ACCESS_CODES
+(Vercel, Generator scripts/generate_tutor_codes.py) ergänzt; Verweis auf
+ROLLOUT_CHECKLIST.md (W0–W6); neue Dashboard-Endpunkte /dashboard/groups
+(Tutor-Sicht) + Forschungs-Gate X-Research-Key dokumentiert (§2.6);
+dashboard_results-Dokumente tragen group_code/answer_stats/feedback_requests;
+neue Skripte evaluate_tutor_responses.py + generate_tutor_codes.py und
+Querverweise auf die Skills toadapt-tutor-response-evaluation und
+toadapt-knowledge-tracing. Endpunkt-/Auth-Fakten gegen Code geprüft
+(backend/auth.py, backend/dashboard/routes.py, backend/api/routes.py,
+frontend/lib/teacherAuth.ts); Testbestand: 90 pytest-Tests grün.
 
 Re-Verifikation pro drift-anfälligem Fakt:
 
 - Start-Kommando/Worker/Healthcheck: `cat railway.toml`
 - Health-/Diagnostics-Endpunkte und Version: `grep -n '"version"\|/health' backend/main.py`
 - Studenten-Header + Verify-Route: `grep -n "X-Student-Access-Code\|auth/student/verify" backend/auth.py backend/api/routes.py`
+- Forschungs-Gate + Gruppen-Endpunkte: `grep -n "X-Research-Key\|require_research_key\|/groups" backend/auth.py backend/dashboard/routes.py`
 - Rate-Limits der Studenten-Routen: `grep -n "rate_limit(" backend/api/routes.py`
 - Collection-Namen + Fallback-Pfade: `grep -rn "COLLECTION\", \|_DIR = Path" backend/db/*.py backend/cases/manager.py`
 - Skript-Argumente: `for f in scripts/*.py; do PYTHONPATH=. .venv/bin/python $f --help; done`
 - Env-Katalog aktuell?: `git log -1 --format=%ci -- .env.example` (und mit `toadapt-config-and-flags` abgleichen)
-- Vercel-/Rollout-Status: `grep -n "Vercel\|Railway" ROLLOUT_PLAN.md`
+- Vercel-/Rollout-Status: `grep -n "^## W\|Vercel\|Railway" ROLLOUT_CHECKLIST.md`
 - Teacher-Auth-Flow: `ls frontend/app/teacher-login frontend/app/api/teacher; grep -n MAX_AGE frontend/lib/teacherAuth.ts`

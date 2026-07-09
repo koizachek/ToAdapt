@@ -5,12 +5,13 @@ description: >
   hinterfragst oder versehentlich rückgängig machst. Trigger: du willst
   WebSockets/Streaming einführen; du fragst dich, wo Chat-History oder
   Session-State liegt; du willst einen neuen Store/eine neue Collection bauen;
-  du änderst Auth (X-API-Key, Student-Access-Code, Teacher-Cookie, Proxy);
+  du änderst Auth (X-API-Key, Student-Access-Code, X-Research-Key,
+  Teacher-Cookie mit Tutor-Kennung, Proxy);
   du änderst Guardrails oder wunderst dich, warum eine Agent-Antwort komplett
   ersetzt wurde; du fragst "warum ist das so gebaut?"; du suchst die Liste
-  der Invarianten oder der bekannten offenen Schwachstellen (kein
-  Gruppenkonzept, target_tp hartkodiert, Keyword-Routing, TP4-Lücke).
-  Enthält: Ist-Architektur-Diagramm, die 3 Auth-Pfade, 6 tragende
+  der Invarianten oder der bekannten offenen Schwachstellen (Keyword-Routing,
+  TP4-Lücke, per-Worker-Rate-Limits).
+  Enthält: Ist-Architektur-Diagramm, die 4 Auth-Pfade, 6 tragende
   Entscheidungen mit WARUM+Commit-Beleg, harte Invarianten, ehrliche
   Schwachstellenliste.
 ---
@@ -40,6 +41,8 @@ Antworten bepunktet.
 | die Umgebung aufsetzen oder deployen | `toadapt-build-and-env`, `toadapt-run-and-operate` |
 | BWL-Didaktik verstehen (Bloom, TPs, Canvas) | `bwl-scaffolding-reference` |
 | das q4/Bloom-6-Judge-Problem angehen | `toadapt-judge-alignment-campaign` |
+| pädagogische Qualität der Tutor-Antworten messen | `toadapt-tutor-response-evaluation` |
+| Lernverläufe/Mastery über Zeit auswerten | `toadapt-knowledge-tracing` |
 | Tests/Evidenz-Standards | `toadapt-validation-and-qa` |
 
 **ACHTUNG Fossil:** Die `CLAUDE.md` im Repo-Root beschreibt eine verworfene
@@ -49,7 +52,7 @@ IST-Zustand. Bei Widerspruch gilt diese Skill bzw. der Code.
 
 ---
 
-## 1. Ist-Architektur (Stand: 2026-07-08)
+## 1. Ist-Architektur (Stand: 2026-07-09)
 
 ```
   Browser (Studierende + Lehrkraft)
@@ -63,8 +66,9 @@ IST-Zustand. Bei Widerspruch gilt diese Skill bzw. der Code.
   │  Next.js 16 @ Vercel     │────────────▶│  backend/main.py         │
   │  frontend/               │             │  uvicorn --proxy-headers │
   │                          │             │                          │
-  │  Teacher-Flow:           │             │  /sessions /chat         │
+  │  Teacher-Flow:           │             │  /sessions /chat  /tp    │
   │  /api/teacher/[...path]  │             │  /submissions /submit    │
+  │                          │             │  …/coverage …/feedback   │
   │  (same-origin Proxy,     │             │  /admin/*  /dashboard/*  │
   │   ergänzt X-API-Key      │             │  /health /health/diag..  │
   │   server-seitig)         │             └────┬────────────┬────────┘
@@ -89,18 +93,22 @@ Kein RAG, kein Redis, kein Postgres, keine WebSockets. `docker-compose.yml`
 enthält nur `api` + `mongo`. Chat-Streaming existiert nicht — jede
 Agent-Antwort ist ein einzelner HTTP-POST-Roundtrip.
 
-### Die drei Auth-Pfade
+### Die vier Auth-Pfade
 
 | # | Pfad | Mechanismus | Quelle | Verhalten ohne Config |
 |---|---|---|---|---|
-| 1 | Studenten-Flow (`/sessions`, `/submissions`, `/auth/student/verify`) | Header `X-Student-Access-Code`, Vergleich per `hmac.compare_digest` gegen Env `STUDENT_ACCESS_CODE`; Frontend hält den Code in `sessionStorage` | `backend/auth.py` (`require_student_access`, Router-Dependency in `backend/api/routes.py:38`), `frontend/lib/api.ts` | **OFFEN** (Dev-/Prolific-Modus); Startup loggt Warnung `student_flow_open` |
-| 2 | Teacher-Browser-Session (`/admin/*`- und `/dashboard/*`-SEITEN) | Signiertes httpOnly-Cookie `teacher_session` (HMAC-SHA256 via Web Crypto, 12 h Ablauf, Secret `TEACHER_SESSION_SECRET`); Login: POST `/teacher-login` prüft `TEACHER_ACCESS_CODE` **fail-closed** (kein Code konfiguriert = kein Zugang); `frontend/middleware.ts` schützt `/admin/:path*` + `/dashboard/:path*` | `frontend/lib/teacherAuth.ts`, `frontend/app/teacher-login/route.ts` | Login unmöglich (fail-closed) |
+| 1 | Studenten-Flow (`/sessions`, `/submissions`, `/auth/student/verify`, `/tp`, `…/coverage`, `…/feedback`) | Header `X-Student-Access-Code`, Vergleich per `hmac.compare_digest` gegen Env `STUDENT_ACCESS_CODE`; Frontend hält den Code in `sessionStorage` | `backend/auth.py` (`require_student_access`, Router-Dependency in `backend/api/routes.py:44`), `frontend/lib/api.ts` | **OFFEN** (Dev-/Prolific-Modus); Startup loggt Warnung `student_flow_open` |
+| 2 | Teacher-Browser-Session (`/admin/*`- und `/dashboard/*`-SEITEN) | Signiertes httpOnly-Cookie `teacher_session` (HMAC-SHA256 via Web Crypto, 12 h Ablauf, Secret `TEACHER_SESSION_SECRET`); das Cookie trägt die **Tutor-Kennung**. Login: POST `/teacher-login` prüft Einzelcodes aus `TEACHER_ACCESS_CODES` (Frontend-Env, JSON kennung→code, `resolveTutorByCode`; Generator `scripts/generate_tutor_codes.py`), Legacy-`TEACHER_ACCESS_CODE` bleibt Fallback (Kennung "teacher") — **fail-closed** (kein Code konfiguriert = kein Zugang); `frontend/middleware.ts` schützt `/admin/:path*` + `/dashboard/:path*` | `frontend/lib/teacherAuth.ts`, `frontend/app/teacher-login/route.ts` | Login unmöglich (fail-closed) |
 | 3 | Backend-API-Key (alle `/dashboard/*`-Endpoints, schreibende `/admin`-Routen, `/health/diagnostics`) | Header `X-API-Key` = Env `TOADAPT_API_KEY`, `hmac.compare_digest`; **fail-closed: 503 wenn kein Key konfiguriert** | `backend/auth.py` (`require_api_key`), `backend/dashboard/routes.py:19` (Router-weit), `backend/admin/routes.py` (pro Route) | 503 auf allen geschützten Routen |
+| 4 | Forschungs-Key (Einzelpersonen-Endpoints `/dashboard/students`, `/dashboard/student/{m}`, `/dashboard/difficulties`) | Header `X-Research-Key` = Env `RESEARCH_API_KEY`, **zusätzlich** zum `X-API-Key` (Route-Dependency `require_research_key`); fail-closed 503 ohne Key, 401 bei falschem Key. BEWUSST ein anderer Key als `TOADAPT_API_KEY`: der Teacher-Proxy kennt nur `TOADAPT_API_KEY` → Tutor:innen bekommen auf Einzelprofilen 401, **das ist gewollt** | `backend/auth.py` (`require_research_key`), `backend/dashboard/routes.py` | 503 auf den Forschungs-Routen |
 
 Pfad 2 und 3 sind verkettet: Der Browser spricht NIE direkt mit den
 geschützten Backend-Routen. `frontend/app/api/teacher/[...path]/route.ts`
 verifiziert das Cookie und ergänzt den `X-API-Key` **server-seitig** —
-der Key gelangt nie ins Browser-Bundle.
+der Key gelangt nie ins Browser-Bundle. Tutor:innen erreichen über diesen
+Proxy nur Gruppen-Aggregate (`GET /dashboard/groups`,
+`/dashboard/groups/{code}` — `GroupSummary`/`GroupDetail`, keine
+Einzelkennungen); Pfad 4 ist absichtlich vom Proxy aus unerreichbar.
 
 **Bewusste Ausnahme:** `GET /admin/cases` und `GET /admin/cases/{case_id}`
 sind ungeschützt (Lese-Routen) — der Studenten-Flow lädt approved Cases
@@ -114,9 +122,9 @@ approve, reject, retire) verlangen den API-Key.
 
 ### D1: Chat per HTTP POST, nicht WebSocket
 
-- **Was:** `POST /sessions/{id}/chat` (`backend/api/routes.py:177`). Ein
+- **Was:** `POST /sessions/{id}/chat` (`backend/api/routes.py:197`). Ein
   Request = eine Agent-Antwort. Das Feld `websocket_url` in
-  `SessionResponse` (`backend/models/session.py:37`) ist ein **totes Relikt**
+  `SessionResponse` (`backend/models/session.py:39`) ist ein **totes Relikt**
   — es gibt keinen WS-Endpoint.
 - **Warum:** WebSockets brachen wiederholt am Railway-Proxy. Kapitulation
   nach mehreren Fix-Versuchen: Commit `e2cc925` "fix: replace WebSocket with
@@ -127,8 +135,8 @@ approve, reject, retire) verlangen den API-Key.
 ### D2: Chat-History liegt CLIENTSEITIG
 
 - **Was:** Das Frontend hält den Verlauf in `historyRef`
-  (`frontend/app/cases/[id]/page.tsx:653`) und schickt pro Chat-Request die
-  **letzten 10 Einträge** mit (`historyRef.current.slice(-10)`, Zeile 761).
+  (`frontend/app/cases/[id]/page.tsx:764`) und schickt pro Chat-Request die
+  **letzten 10 Einträge** mit (`historyRef.current.slice(-10)`, Zeile 894).
   Das Backend nimmt `ChatRequest.history: list[dict]` entgegen und speichert
   KEINEN Dialogverlauf — die Server-`Session` zählt nur `message_count` und
   `metacognitive_phase_complete`.
@@ -194,8 +202,9 @@ approve, reject, retire) verlangen den API-Key.
   timing-sicher (`hmac.compare_digest` bzw. eigene `timingSafeEqual`).
 - **Warum:** Das frühere statische Cookie `teacher_access=true` konnte jeder
   selbst setzen (dokumentiert in `frontend/lib/teacherAuth.ts`); Dashboards
-  enthalten PII (Matrikelnummern + Scores). Fail-closed verhindert, dass eine
-  vergessene Env-Variable die Daten öffnet.
+  enthielten damals PII (Matrikelnummern + Scores; seit `e71d9ee`
+  pseudonymisiert, aber weiterhin schützenswert). Fail-closed verhindert,
+  dass eine vergessene Env-Variable die Daten öffnet.
 - **Konsequenz:** Ein 503 "Auth nicht konfiguriert" ist KEIN Bug, sondern
   fehlende Env-Variable. Der `X-API-Key` darf niemals in Client-Code,
   `NEXT_PUBLIC_*`-Variablen oder Browser-Requests auftauchen.
@@ -223,11 +232,13 @@ Prüfe bei jeder Änderung, ob eine davon verletzt wird. Verletzung = Stopp +
 `toadapt-change-control`.
 
 1. **Kein studierendensichtbarer Framework-Name, keine Musterlösung, keine
-   direkte Empfehlung.** Durchgesetzt an drei Stellen: (a) Guardrail-Filter
+   direkte Empfehlung.** Durchgesetzt an vier Stellen: (a) Guardrail-Filter
    auf Chat-Antworten (D4), (b) Case-Validator beim Approve
    (`backend/cases/validator.py`, 422 mit force-Override), (c)
    Feedback-Sanitizing im Evaluator (`DISALLOWED_FEEDBACK_PATTERNS` in
-   `backend/evaluator/rubric_evaluator.py`). Gilt auch in Tests und
+   `backend/evaluator/rubric_evaluator.py`), (d) Guardrail auf den
+   formativen Denkanstößen (`backend/evaluator/formative_feedback.py`
+   nutzt `guardrail_check`, Fallback-Frage bei Treffer). Gilt auch in Tests und
    Experimenten. Ebenso tabu: Bezüge auf die kurs-reservierten Cases
    ON Running und NORDIC HOME sowie echte Teilnehmerdaten im Repo.
 2. **Jede Judge-Ausgabe ist validiert-oder-technical_fallback — nie Crash,
@@ -255,10 +266,32 @@ Prüfe bei jeder Änderung, ob eine davon verletzt wird. Verletzung = Stopp +
    `orchestrator.py`; einzige Ausnahme: explizite Begriffs-Fragen routen
    sofort zu CONCEPTUAL). Empirische Grundlage: CompEd-Publikation
    (Cohen's d = 0.44) — siehe `bwl-scaffolding-reference`.
+6. **Tutor:innen sehen NIE Einzelkennungen.** (Seit `e71d9ee`.) Das
+   Teacher-Dashboard arbeitet ausschließlich auf Gruppen-Aggregaten
+   (`/dashboard/groups`, `/dashboard/groups/{code}`). Einzelpersonen-Daten
+   (`/dashboard/students`, `/dashboard/student/{m}`, `/dashboard/difficulties`)
+   verlangen zusätzlich den `RESEARCH_API_KEY` (Auth-Pfad 4), den der
+   Teacher-Proxy nicht kennt. Login verspricht den Studierenden:
+   "Tutor:innen sehen nur Gruppen-Zusammenfassungen" — kein neuer Endpoint
+   darf das brechen.
+7. **Pseudonymisierung am Eingang.** `user_id` und `matrikelnummer` werden
+   bei Session-/Submission-Erstellung serverseitig pseudonymisiert
+   (`backend/anonymize.py::pseudonymize`, HMAC-SHA256 mit `PSEUDONYM_SECRET`,
+   Prefix `anon-`, idempotent) — nachgelagerte Stores sehen nur Pseudonyme.
+   Ohne Secret: Roh-Speicherung + Startup-Warnung `pseudonymization_disabled`.
+   ACHTUNG: Rotation des Secrets bricht alle Lernverläufe (siehe
+   `toadapt-knowledge-tracing`).
+8. **Rubric ist embedded-first.** `backend/evaluator/rubric_loader.py` nimmt
+   die im Case eingebettete Rubric (`CaseQuestion.required_canvas_blocks`,
+   `calibration_notes` etc.); die `tp{n}_rubric.json`-Dateien sind nur noch
+   Fallback für Alt-Cases (Alpes). Kalibrierung ist zweistufig:
+   case-spezifische `question.calibration_notes` ERSETZEN die generischen
+   `BLOOM_CALIBRATION_ANCHORS` (pro Bloom 2–6, `rubric_evaluator.py`). Neue
+   Bewertungslogik darf keine Datei-Rubric voraussetzen.
 
 ---
 
-## 4. Offene Schwachstellen (ehrlich, Stand: 2026-07-08)
+## 4. Offene Schwachstellen (ehrlich, Stand: 2026-07-09)
 
 Diese Lücken sind BEKANNT und AKZEPTIERT-bis-auf-Weiteres. Nicht heimlich
 "mitfixen" — jede davon ist entweder ein bewusster Trade-off oder wartet auf
@@ -267,11 +300,11 @@ eine Grundsatzentscheidung (siehe `toadapt-change-control` /
 
 | Schwachstelle | Detail / Fundort | Status |
 |---|---|---|
-| **Kein Gruppenkonzept trotz Gruppen-Assessment** | Im Code existiert nur `matrikelnummer` pro Person. Ownerin bestätigte 2026-07-08: Gruppen bleiben die Assessment-Einheit (Tutor beurteilt Gruppenabgaben in Präsenz), die Tool-Arbeit ist individuelle Vorbereitung. Folge: Tutor-Dashboard kann nicht nach Gruppen aggregieren. | Größte konzeptionelle Lücke; Grundsatzentscheidung offen |
-| **`target_tp: 1` hartkodiert** | `frontend/app/cases/[id]/page.tsx` (Submission-POST, Zeile ~717). `TP_SCHEDULE`/`current_tp_phase()` existieren in `backend/config/tp_configs.py`, greifen für Sessions aber nur, wenn `case.target_tp == 0` (FULL). | Offen (TP-Progression = Rollout-Phase 2) |
+| **Kein Gruppenkonzept trotz Gruppen-Assessment** | BEHOBEN (2026-07-09, `e71d9ee`): Studierende geben beim Login ihre Gruppe an (`group_code`, normalisiert via `backend/anonymize.py::normalize_group_code`, '12'→'G12'; Pflichtfeld außer bei Prolific-URL-Ankunft); Session+Submission tragen `group_code`; Tutor-Dashboard aggregiert nach Gruppen (`/dashboard/groups`). Historie: Im Code existierte nur `matrikelnummer` pro Person; Ownerin bestätigte 2026-07-08, dass Gruppen die Assessment-Einheit bleiben. | BEHOBEN |
+| **`target_tp: 1` hartkodiert** | BEHOBEN (2026-07-09, `e71d9ee`): `target_tp` kommt jetzt aus `case.target_tp` bzw. (bei full-Cases, `target_tp=0`) aus `GET /tp` (`current_tp_phase()` + `TP_SCHEDULE`); Fallback 1 nur, wenn der Endpoint unerreichbar ist. Case-Pool filtert auf die aktuelle Phase (umschaltbar). Die `TP*_START`-Env-Variablen bleiben weiterhin TOT — `TP_SCHEDULE` ist hartkodiert. | BEHOBEN |
 | **Keyword-basiertes Agent-Routing** | `_select_agent` in `orchestrator.py:265`: Substring-Listen, keine Intent-Klassifikation. "warum" in irgendeinem Kontext → STRATEGIC. | Bewusst simpel; Kandidat für spätere Verbesserung |
-| **Metacognitive-First endet nach 1 Antwort** | `metacognitive_phase_complete = True` sobald `message_count >= 1` (`orchestrator.py:420`) — keine echte Readiness-Messung. | Rudimentär vs. ursprünglicher Vision |
-| **Glossar + Canvas-Blöcke im Frontend hartkodiert** | `CASE_GLOSSARY` (pro case_id) und `BUSINESS_MODEL_CANVAS_BLOCKS` in `frontend/app/cases/[id]/page.tsx` (Zeilen ~86/~190). Neue Cases bekommen KEIN Glossar ohne Frontend-Änderung. | Offen |
+| **Metacognitive-First endet nach 1 Antwort** | `metacognitive_phase_complete = True` sobald `message_count >= 1` (`orchestrator.py:~439`) — keine echte Readiness-Messung. | Rudimentär vs. ursprünglicher Vision |
+| **Glossar + Canvas-Blöcke im Frontend hartkodiert** | BEHOBEN (2026-07-09, `4fda3e9`/`f8abdc9`): Canvas-Guide wird aus der Union der Frage-Blöcke (`required_canvas_blocks`) gebaut, Glossar kommt aus `case.glossary`. Die Alpes-Hardcodes (`CASE_GLOSSARY`, `BUSINESS_MODEL_CANVAS_BLOCKS`) bleiben als Vorrang (Glossar) bzw. Fallback (Canvas) bestehen. | BEHOBEN |
 | **TP4 ohne `forbidden_framework_names`** | `TP_CONFIGS[4]` hat den Key nicht (`tp_configs.py`; `grep` findet ihn nur 3× für TP1–TP3). `guardrail_check` nutzt `.get(..., [])` → in TP4 greifen nur die globalen `FORBIDDEN_PATTERNS`. Vermutlich unbeabsichtigt. | Offen; Fix wäre klein, braucht aber Guardrail-Regressionstest |
 | **Rate-Limits pro Worker, nicht global** | `backend/ratelimit.py` ist ein In-Process-Sliding-Window; bei N Workern effektiv bis zu N-faches Limit. Bewusster Trade-off (Kostenbremse, keine exakte Quote; kein Redis). | Akzeptiert |
 | **In-Memory-Caches können stale sein** | `_sessions`/`_submissions`-Dicts in `api/routes.py` cachen neben dem Mongo-Store; bei mehreren Workern kann ein Worker veralteten Zustand haben (Mongo macht es korrekt-genug, nicht konsistent). | Akzeptiert für aktuelle Größenordnung |
@@ -284,7 +317,14 @@ eine Grundsatzentscheidung (siehe `toadapt-change-control` /
 
 Erstellt: 2026-07-08, gegen den damaligen Stand von `main` verifiziert
 (HEAD `141bb63`, nach dem filter-repo-Rewrite vom 2026-07-08; die
-Security-Härtung heißt post-rewrite `8b21fc1`). Alle Zeilenangaben sind
+Security-Härtung heißt post-rewrite `8b21fc1`).
+Update 2026-07-09 (HEAD `64b62f9`): 4. Auth-Pfad (RESEARCH_API_KEY /
+X-Research-Key), Teacher-Cookie mit Tutor-Kennung (TEACHER_ACCESS_CODES),
+neue Endpoints /tp + coverage/feedback + /dashboard/groups; neue Invarianten
+6–8 (Gruppen-Aggregate für Tutor:innen, Pseudonymisierung am Eingang,
+embedded-first Rubric); Schwachstellen "kein Gruppenkonzept",
+"target_tp hartkodiert", "Glossar/Canvas-Hardcodes" als BEHOBEN markiert;
+Zeilenangaben nachgezogen. Alle Zeilenangaben sind
 zirka-Werte und drift-anfällig. Re-Verifikation pro Fakt (vom Repo-Root):
 
 | Fakt | Re-Verifikations-Kommando |
@@ -297,7 +337,11 @@ zirka-Werte und drift-anfällig. Re-Verifikation pro Fakt (vom Repo-Root):
 | Teacher-Proxy ergänzt Key server-seitig | `grep -n "X-API-Key" "frontend/app/api/teacher/[...path]/route.ts"` |
 | LLM-Client-Defaults (60s/2/16) | `grep -n "LLM_TIMEOUT_SECONDS\|LLM_MAX_RETRIES\|LLM_MAX_CONCURRENCY" backend/llm.py` |
 | TP4 weiterhin ohne forbidden_framework_names | `grep -n "forbidden_framework_names" backend/config/tp_configs.py` (3 Treffer = Lücke besteht) |
-| target_tp noch hartkodiert | `grep -n "target_tp: 1" "frontend/app/cases/[id]/page.tsx"` |
+| target_tp aus Case bzw. GET /tp (nicht mehr hartkodiert) | `grep -n "resolveTargetTp\|current_tp" "frontend/app/cases/[id]/page.tsx"` |
+| Research-Key-Pfad (X-Research-Key, fail-closed) | `grep -n "require_research_key\|X-Research-Key" backend/auth.py backend/dashboard/routes.py` |
+| Pseudonymisierung am Eingang | `grep -n "pseudonymize\|normalize_group_code" backend/api/routes.py` |
+| Gruppen-Endpoints ohne Einzelkennungen | `grep -n "/groups" backend/dashboard/routes.py` |
+| Rubric embedded-first | `grep -n "_embedded_rubric\|lru_cache" backend/evaluator/rubric_loader.py` |
 | Judge-Fallback intakt | `grep -n "technical_fallback" backend/evaluator/rubric_evaluator.py` |
 | WEB_CONCURRENCY-Warnung | `grep -n "WEB_CONCURRENCY" railway.toml` |
 | Commit-Belege existieren | `git log --oneline --all \| grep -E "e2cc925\|8df4cfd\|1fb727e"` |

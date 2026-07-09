@@ -11,7 +11,7 @@ description: >
   schreiben willst (TestClient, Mongo-Env wegräumen, LLM mocken, Stores auf
   tmp_path patchen); (c) den Judge/Evaluator/Prompts geändert hast und wissen
   musst, welcher Nachweis akzeptiert wird; (d) Tests fehlschlagen (z. B.
-  ModuleNotFoundError backend, 2-Sekunden-Hänger, 48-Tests-Baseline verletzt);
+  ModuleNotFoundError backend, 2-Sekunden-Hänger, 90-Tests-Baseline verletzt);
   (e) den Golden Case oder eine Rubric-JSON anfassen willst; (f) fragst
   "reicht dieser Beweis?" oder "welcher Test deckt X ab?". Keywords: pytest,
   ruff, CI, ci.yml, TestClient, monkeypatch, Golden Case, Rubric, Alignment,
@@ -47,8 +47,9 @@ NICHT nach dem, was am bequemsten ist.
 |---|---|---|
 | 1 | **CI grün** (ruff + pytest; eslint + tsc + next build) | Refactorings ohne Verhaltensänderung, Doku, Tests selbst |
 | 2 | **Lokaler Smoke-Test** (Backend starten, Endpoint real anfragen) | API-Routen-Änderungen, Auth-/Rate-Limit-Änderungen, neue Endpoints |
-| 3 | **Guardrail-Regressionstests** (gezielte pytest-Fälle für neue verbotene/erlaubte Muster) | Änderungen an `backend/agents/orchestrator.py` (Guardrails, Prompts, Routing) und am Feedback-Sanitizing des Evaluators |
-| 4 | **Teacher-Alignment-Metriken** (Vergleichs-Pipeline gegen Lehrkraft-Scores, siehe §6) | JEDE Änderung an `EVALUATOR_SYSTEM`, `EVALUATE_PROMPT`, den Kalibrierungsankern oder den Rubric-JSONs |
+| 3 | **Guardrail-Regressionstests** (gezielte pytest-Fälle für neue verbotene/erlaubte Muster) | Änderungen an `backend/agents/orchestrator.py` (Guardrails, Prompts, Routing), an `backend/evaluator/formative_feedback.py` (Denkanstöße laufen durch `guardrail_check`) und am Feedback-Sanitizing des Evaluators |
+| 3b | **Tutor-Eval-Regressionsvergleich** (NAACL-Dimensionen vorher/nachher via `scripts/evaluate_tutor_responses.py`) | Studierendensichtbare Prompt-Änderungen an Agenten- oder Formative-Feedback-Prompts (Klasse A). Durchführung und Akzeptanzkriterien: `toadapt-tutor-response-evaluation` |
+| 4 | **Teacher-Alignment-Metriken** (Vergleichs-Pipeline gegen Lehrkraft-Scores, siehe §6) | JEDE Änderung an `EVALUATOR_SYSTEM`, `EVALUATE_PROMPT`, den Kalibrierungsankern (`calibration_notes` im Case / `BLOOM_CALIBRATION_ANCHORS`) oder den Rubric-Daten (eingebettet oder JSON-Dateien) |
 
 Harte Regeln:
 
@@ -71,7 +72,7 @@ ruff check .
 
 # Backend-Tests — IMMER via `python -m pytest` (siehe PYTHONPATH-Falle, §7)
 .venv/bin/python -m pytest tests/ -q
-# Erwartung (Stand 2026-07-08): "48 passed"
+# Erwartung (Stand 2026-07-09): "90 passed"
 
 # Frontend
 cd frontend && npm run lint && npx tsc --noEmit && npm run build
@@ -89,7 +90,7 @@ Für vollständige Start-Anleitung (Env-Variablen, Frontend-Kopplung, Mongo):
 
 ---
 
-## 2. Test-Landkarte (Stand: 2026-07-08, 48 Tests)
+## 2. Test-Landkarte (Stand: 2026-07-09, 90 Tests)
 
 Alle Tests liegen flach in `tests/` (kein `conftest.py`, kein `__init__.py`).
 Konfiguration in `pyproject.toml`: `asyncio_mode = "auto"` (async-Tests
@@ -101,10 +102,14 @@ brauchen keinen Decorator), `testpaths = ["tests"]`.
 | `tests/test_phase1_hardening.py` | 9 | Studenten-Zugangscode (`STUDENT_ACCESS_CODE` offen/erzwungen), Rate-Limiter (429 + Retry-After, Keying per Path-Param), Session-/Dashboard-Store-Fallbacks ohne Mongo, geteilter OpenRouter-HTTP-Client, LLM-Concurrency-Semaphore |
 | `tests/test_case_editor.py` | 13 | Case-Validator (Framework-Namen-Verbot, NORDIC-HOME-Sperre, Bloom-Coverage-Warnung), PATCH-Editor (Revision-Bump, Draft-Reset), Approve-Gate (422 + `force`-Override), Retire, Teil-Regenerierung mit gemocktem LLM, JSON-Fence-Stripping |
 | `tests/test_orchestrator_guardrails.py` | 3 | `guardrail_check()`: blockt direkte Use-Case-Empfehlung, Case-Spekulation (FINMA/Azure), Slang + Emoji |
-| `tests/test_rubric_evaluator.py` | 7 | JSON-Extraktion (plain/fenced/umschlossen), Feedback-Sanitizing (Antwort-Templates raus), Canvas-Rationale-Sanitizing, `technical_fallback`-Payload (0 Punkte, `needs_human_review`), Totals-Neuberechnung aus Scores |
+| `tests/test_rubric_evaluator.py` | 11 | JSON-Extraktion (plain/fenced/umschlossen), Feedback-Sanitizing (Antwort-Templates raus), Canvas-Rationale-Sanitizing, `technical_fallback`-Payload (0 Punkte, `needs_human_review`), Totals-Neuberechnung aus Scores; NEU (2026-07-09): Repair-Kette (zweiter LLM-Call rettet invalides erstes JSON), Typ-Fallback (`awarded_points="acht"` → `technical_fallback` statt 500), Parallel-Auswertung behält Fragen-Reihenfolge, Prompt-Pinning der Band-Anker (13.8/6.2 Punkte = 25 × 0.55/0.25) |
 | `tests/test_rubric_loader.py` | 1 | Golden Case → alle 4 Rubrics ladbar, `required_canvas_blocks` pro q1–q4 korrekt verkettet |
+| `tests/test_case_package.py` | 13 | **Gate für den Golden Case:** eingebettetes Bewertungspaket ≡ Datei-Rubric (Äquivalenz DE+EN), migrierte `calibration_notes` wortgleich gepinnt, generische `BLOOM_CALIBRATION_ANCHORS` (Bloom 2–6) für unkalibrierte Fragen, Embedded-vor-Datei-Vorrang + Datei-Fallback, Validator-Warnungen (fehlende Rubric/Glossar/Guidance, Glossar-Begriff nicht im Text), Generator parst Komplettpaket, Orchestrator bevorzugt `case.agent_guidance` (Golden Case: `-agent.json`-Fallback) |
+| `tests/test_formative_support.py` | 7 | Formative Live-Unterstützung: Coverage-Endpoint (Canvas-Abdeckung, 404 bei unbekannter Frage), Denkanstoß-Feedback (max. 2 pro Frage → 429, Guardrail ersetzt verbotenen Output, leerer Draft abgelehnt), AnswerStats-Persistenz, `paste_heavy`-Schwellenlogik |
+| `tests/test_groups_and_privacy.py` | 10 | Pseudonymisierung (HMAC stabil/irreversibel, ohne Secret roh), `normalize_group_code`, Session/Submission tragen Pseudonym + group_code, `GET /tp`-Schedule, `/dashboard/groups` ohne Einzelkennungen, Einzelpersonen-Endpoints verlangen `X-Research-Key` (fail-closed), `scripts/generate_tutor_codes.py` |
+| `tests/test_tutor_eval.py` | 8 | NAACL-Taxonomie (8 Dimensionen), Judge-Prompt-Vollständigkeit, Annotation-Normalisierung, Desirability-Aggregation, Judge-JSON-Parsing, `scripts/evaluate_tutor_responses.py` (stabile Item-IDs, Annotation-Workbook, Summary) — inhaltlich: `toadapt-tutor-response-evaluation` |
 | `tests/test_submission_store.py` | 1 | Submission-Recovery aus Store in den In-Memory-Cache (`routes._get_submission`) |
-| `tests/test_dashboard_difficulties.py` | 3 | `/dashboard/difficulties`: API-Key-Pflicht, Priorisierung schwacher Studierender (attention_level, weak_objectives, Penalty-Aggregation case-insensitiv), Kohorten-Aggregation — mit **synthetischen** Submissions im tmp-Dateistore |
+| `tests/test_dashboard_difficulties.py` | 3 | `/dashboard/difficulties`: API-Key-Pflicht, Priorisierung schwacher Studierender (attention_level, weak_objectives, Penalty-Aggregation case-insensitiv), Kohorten-Aggregation — mit **synthetischen** Submissions im tmp-Dateistore; seit 2026-07-09 zusätzlich mit `X-Research-Key`-Header (Endpoint verlangt `RESEARCH_API_KEY`) |
 | `tests/test_export_review_workbooks.py` | 1 | Forschungs-Skript: Rubric-/Blind-/Chat-Workbooks (Blind-Sheet ohne Judge-Scores — Grundlage der Alignment-Studie) |
 | `tests/test_compare_teacher_rubric_scores.py` | 1 | Forschungs-Skript: Lehrer-Workbook ist kanonischer Scope, rubric-only-Zeilen by design ausgeschlossen |
 | `tests/test_import_prolific_runs.py` | 1 | Forschungs-Skript: Rohdaten-Import + SHA-256-Manifest, ignoriert `.DS_Store` |
@@ -133,7 +138,7 @@ brauchen keinen Decorator), `testpaths = ["tests"]`.
 ### Der Golden Case: `alpes-bank-genai-001`
 
 Der EINZIGE kuratierte, freigegebene Case im Pool (`backend/cases/pool/`),
-Stand 2026-07-08. Vier Dateien gehören zusammen:
+Stand 2026-07-09. Vier Dateien gehören zusammen:
 
 | Datei | Rolle |
 |---|---|
@@ -151,14 +156,26 @@ Fragenstruktur (Fixture-Anker — Tests und Kalibrierung hängen daran):
 | q3 | 4 | 22 | tp3_rubric.json |
 | q4 | 6 | 30 | tp4_rubric.json |
 
+Seit 2026-07-09 trägt der Golden Case (DE und EN) ein **eingebettetes
+Bewertungspaket** pro Frage: `evaluation_focus`, `required_canvas_blocks`,
+`calibration_notes`, `exemplar_threshold_pct`/`score_floor_pct`. Der
+`rubric_loader` arbeitet EMBEDDED-FIRST; die `tp{n}_rubric.json`-Dateien sind
+nur noch Fallback für Cases ohne eingebettetes Paket.
+
 **Warum eigene Gate-Stufe:** Eine Änderung an diesem Case ist gleichzeitig
 (a) eine Fixture-Änderung — `tests/test_rubric_loader.py` (asserted konkrete
 Canvas-Blöcke pro Frage), `tests/test_skeleton.py` und
 `tests/test_submission_store.py` referenzieren die case_id hart —, (b) eine
 **studierendensichtbare Verhaltensänderung** (der Case IST das Produkt) und
-(c) potenziell eine Kalibrierungs-Invalidierung (siehe unten). Zusätzlich ist
+(c) potenziell eine Kalibrierungs-Invalidierung (siehe unten). **Das
+technische Gate für Änderungen am eingebetteten Paket sind die
+Äquivalenz-Tests in `tests/test_case_package.py`:** sie beweisen, dass das
+eingebettete Paket dem Datei-Rubric entspricht und die migrierten
+Kalibrierungsanker wortgleich erhalten sind — wer das Paket ändert, bricht
+sie bewusst und braucht Stufe-4-Evidenz. Zusätzlich ist
 das Glossar pro Case im Frontend hartkodiert
-(`CASE_GLOSSARY["alpes-bank-genai-001"]` in `frontend/app/cases/[id]/page.tsx`)
+(`CASE_GLOSSARY["alpes-bank-genai-001"]` in `frontend/app/cases/[id]/page.tsx`;
+Alpes-Hardcode hat Vorrang, neue Cases bringen `case.glossary` mit)
 — Case-Inhalt und Glossar können auseinanderlaufen. Vor jeder Änderung:
 `toadapt-change-control` laden.
 
@@ -168,19 +185,28 @@ das Glossar pro Case im Frontend hartkodiert
 `evaluation_focus` (worauf der Judge achtet) und `required_canvas_blocks`
 (Business-Model-Canvas-Blöcke mit `accepted_keywords` und `weight`), plus
 Schwellen (`exemplar_threshold_pct`/`score_floor_pct`: 80/75, 82/75, 80/72,
-82/75 für tp1–tp4).
+82/75 für tp1–tp4). Seit 2026-07-09 sind sie nur noch **Datei-Fallback** für
+Alt-Cases ohne eingebettetes Paket (per `lru_cache` gecacht) — der Golden
+Case liest de facto sein eingebettetes Paket, das per Äquivalenz-Test mit
+den Dateien identisch gehalten wird. Kalibrierte Artefakte bleiben BEIDE.
 
-**Entscheidend:** Die Kalibrierungsanker des Evaluators
-(`_format_calibration_notes` in `backend/evaluator/rubric_evaluator.py`,
-Zeile ~155) sind HARTKODIERT auf `question_id` q1–q4 und inhaltlich auf
-GENAU DIESEN Case gemünzt ("drei definierte Use Cases", Make-or-Buy-Faktoren
-etc.). Sie sind das Ergebnis der Teacher-Alignment-Studie (§6). Konsequenzen:
+**Entscheidend — Kalibrierungsanker, Stand 2026-07-09 (zweistufig):**
 
-1. Rubric-JSON oder Case-Fragen ändern → Kalibrierung potenziell hinfällig →
-   Stufe-4-Evidenz nötig.
-2. Ein NEUER Case bekommt die Anker NICHT automatisch — seine q1–q4 erben
-   Anker, die für einen anderen Case formuliert wurden. Das ist eine bekannte
-   Design-Schwäche, kein Feature.
+1. Case-spezifische Anker liegen in `question.calibration_notes` DIREKT im
+   Case-JSON (für den Golden Case: die wörtlich migrierten Anker der
+   Teacher-Alignment-Studie, §6 — gepinnt durch
+   `tests/test_case_package.py::test_golden_case_calibration_notes_unchanged`).
+   Sie ERSETZEN bei Vorhandensein alles andere.
+2. Fehlen sie, greifen generische `BLOOM_CALIBRATION_ANCHORS` (pro Bloom 2–6)
+   in `backend/evaluator/rubric_evaluator.py`.
+
+BEHOBEN (2026-07-09): Die früher in `_format_calibration_notes` HARTKODIERTEN
+q1–q4-Anker existieren nicht mehr im Code — damit erben NEUE Cases nicht mehr
+automatisch Anker, die für den Alpes-Case formuliert wurden (die frühere
+bekannte Design-Schwäche). Unverändert gilt:
+
+1. Rubric-Daten (eingebettet oder Datei), `calibration_notes` oder Case-Fragen
+   ändern → Kalibrierung potenziell hinfällig → Stufe-4-Evidenz nötig.
 
 ---
 
@@ -346,7 +372,8 @@ Wissenswert:
 
 ### Test-Baseline
 
-- **48 Tests grün ist die Basis (Stand 2026-07-08) — nie unterschreiten.**
+- **90 Tests grün ist die Basis (Stand 2026-07-09; vorher 48) — nie
+  unterschreiten.**
   Tests dürfen nur ersetzt/entfernt werden, wenn das getestete Feature selbst
   entfernt wird (dann: `toadapt-change-control`). Neue Features ohne neuen
   Test sind ein Review-Smell.
@@ -409,16 +436,29 @@ Projekt-Doktrin — siehe `toadapt-change-control`.
 Erstellt: 2026-07-08. Alle Fakten am 2026-07-08 gegen das Repo verifiziert
 (48/48 Tests lokal grün, ruff sauber, PYTHONPATH-Falle reproduziert).
 
+Update 2026-07-09 (HEAD 64b62f9): Test-Baseline 48 → 90 (lokal reproduziert);
+Landkarte um test_case_package (13), test_formative_support (7),
+test_groups_and_privacy (10), test_tutor_eval (8) ergänzt;
+test_rubric_evaluator 7 → 11 (Repair-Kette, Typ-Fallback,
+Parallel-Reihenfolge, Prompt-Pinning); Golden Case trägt eingebettetes
+Bewertungspaket, Äquivalenz-Tests in test_case_package.py sind das Gate;
+Kalibrierungsanker aus dem Evaluator-Code in die Case-JSONs migriert
+(+ generische BLOOM_CALIBRATION_ANCHORS) — Anker-Vererbungs-Schwäche BEHOBEN;
+Evidenz-Staffel um Stufe 3b (Tutor-Eval-Regressionsvergleich, Querverweis
+toadapt-tutor-response-evaluation) erweitert; /dashboard/difficulties
+verlangt zusätzlich X-Research-Key.
+
 Re-Verifikation drift-anfälliger Fakten (je ein Kommando, vom Repo-Root):
 
 | Fakt | Kommando |
 |---|---|
-| Testanzahl (Baseline 48) | `.venv/bin/python -m pytest tests/ -q \| tail -1` |
+| Testanzahl (Baseline 90) | `.venv/bin/python -m pytest tests/ -q \| tail -1` |
 | Test-Dateiliste | `ls tests/test_*.py` |
 | CI-Schritte + PYTHONPATH-Env | `cat .github/workflows/ci.yml` |
 | Golden Case einziger Pool-Inhalt | `ls backend/cases/pool/` |
 | q1–q4 Bloom/Punkte des Golden Case | `python3 -c "import json;[print(q['question_id'],q['bloom_level'],q['max_points'],q['rubric_reference']) for q in json.load(open('backend/cases/pool/alpes-bank-genai-001.json'))['questions']]"` |
-| Kalibrierungsanker noch hartkodiert q1–q4 | `grep -n '_format_calibration_notes' -A 5 backend/evaluator/rubric_evaluator.py` |
+| Kalibrierungsanker zweistufig (Case-Notes vor Bloom-Ankern) | `grep -n 'calibration_notes\|BLOOM_CALIBRATION_ANCHORS' backend/evaluator/rubric_evaluator.py` |
+| Golden-Case-Anker im Case-JSON gepinnt | `grep -c calibration_notes backend/cases/pool/alpes-bank-genai-001.json` (>0) |
 | Rubric-Schwellen | `grep -n 'threshold_pct\|score_floor_pct' backend/config/rubrics/*.json` |
 | TP4-Guardrail-Lücke besteht noch | `grep -c forbidden_framework_names backend/config/tp_configs.py` (3 = Lücke besteht, 4 = geschlossen) |
 | LLM-Mock-Signatur unverändert | `grep -n 'async def complete' -A 6 backend/llm.py` |

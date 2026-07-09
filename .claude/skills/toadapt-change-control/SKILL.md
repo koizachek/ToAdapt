@@ -40,8 +40,8 @@ Klassifiziere JEDE Änderung zuerst. Bei Überschneidung gilt das strengste Gate
 
 | Klasse | Was fällt darunter | Gate (Pflicht, VOR Deploy) |
 |---|---|---|
-| **[A] Studierendensichtbares Verhalten** | Agent-System-Prompts (`backend/agents/orchestrator.py`: `AGENT_PROMPTS`, `AGENT_PROMPTS_EN`), Guardrail-Patterns (`guardrail_check`, ebd. Zeile ~113), Wortlimits (`frontend/app/cases/[id]/page.tsx` Zeilen ~311–313), Case-Inhalte/Case-Generator, Evaluator-Feedback-Text | Guardrail-Regressionstests grün (`tests/test_orchestrator_guardrails.py`) + manueller Lehrdesign-Check (Abschnitt 2.1) + bei Prompt-Änderung am Judge zusätzlich Gate B |
-| **[B] Judge-/Scoring-Logik** | `backend/evaluator/rubric_evaluator.py` (`EVALUATOR_SYSTEM`, `EVALUATE_PROMPT`, Kalibrierungsanker in `_format_calibration_notes` Zeile ~155, Schwellwerte), `backend/config/rubrics/*.json`, Punkte/Bloom in Case-Fragen | Kompletter Durchlauf der Teacher-Alignment-Pipeline (Abschnitt 2.5) und Vergleich der Metriken gegen die Baseline, BEVOR die Änderung produktiv bewertet |
+| **[A] Studierendensichtbares Verhalten** | Agent-System-Prompts (`backend/agents/orchestrator.py`: `AGENT_PROMPTS`, `AGENT_PROMPTS_EN`), Guardrail-Patterns (`guardrail_check`, ebd. Zeile ~113), formativer Denkanstoß (`backend/evaluator/formative_feedback.py`, ebenfalls guardrail-gefiltert), Wortlimits (jetzt primär `question.min_words`/`max_words` im Case-JSON; Index-Fallback in `frontend/app/cases/[id]/page.tsx`, `questionRequirement` Zeilen ~352–362), Case-Inhalte/Case-Generator, Evaluator-Feedback-Text | Guardrail-Regressionstests grün (`tests/test_orchestrator_guardrails.py`) + manueller Lehrdesign-Check (Abschnitt 2.1) + bei Änderung an Agent-/Formative-Prompts zusätzlich Tutor-Eval-Regressionsvergleich (NAACL-Dimensionen; Ablauf in `toadapt-tutor-response-evaluation`) + bei Prompt-Änderung am Judge zusätzlich Gate B |
+| **[B] Judge-/Scoring-Logik** | `backend/evaluator/rubric_evaluator.py` (`EVALUATOR_SYSTEM`, `EVALUATE_PROMPT`, generische `BLOOM_CALIBRATION_ANCHORS`, Schwellwerte), case-spezifische `calibration_notes` in den Case-JSONs (u.a. Golden Case `backend/cases/pool/alpes-bank-genai-001*.json`), `backend/config/rubrics/*.json` (nur noch Fallback für Alt-Cases ohne eingebettete Rubric), Punkte/Bloom in Case-Fragen | Kompletter Durchlauf der Teacher-Alignment-Pipeline (Abschnitt 2.5) und Vergleich der Metriken gegen die Baseline, BEVOR die Änderung produktiv bewertet |
 | **[C] Infra/Deploy** | `backend/main.py`, `railway.toml`, `Dockerfile`, `docker-compose.yml`, CI-Workflow, Env-Variablen, Auth (`backend/auth.py`), CORS, Mongo-Anbindung | CI grün + Smoke-Test gegen die laufende Instanz (`/health`, danach `/health/diagnostics` mit `X-API-Key`) |
 | **[D] Forschungs-Skripte** | `scripts/*.py` (Import, Workbook-Export, Score-Vergleich, Publish, Retry) | Zugehörige Tests in `tests/` grün (es existieren Tests pro Skript, z.B. `tests/test_compare_teacher_rubric_scores.py`); bei Skripten mit echten LLM-Calls (`scripts/retry_technical_fallback_scores.py`) zuerst `--dry-run` |
 
@@ -51,7 +51,7 @@ Browser oder im Judge-Feedback bemerken KÖNNTE, ist es Klasse A (ggf. +B).
 ### Gate-Kommandos (copy-paste, vom Repo-Root)
 
 ```bash
-# Backend-Tests (48 Tests, Stand 2026-07-08; asyncio_mode=auto via pyproject.toml)
+# Backend-Tests (90 Tests, Stand 2026-07-09; asyncio_mode=auto via pyproject.toml)
 .venv/bin/python -m pytest tests/ -q
 
 # Nur Guardrail-Regression (Gate A)
@@ -100,9 +100,11 @@ Validator falsch-positiv anschlägt.
 Agent-Antworten werden zur Laufzeit von `guardrail_check()`
 (`backend/agents/orchestrator.py`) gefiltert; bei Treffer wird die Antwort
 komplett durch einen Fallback-Text ersetzt und `guardrail_triggered` geloggt.
-Bekannte Lücke (Stand 2026-07-08): `TP_CONFIGS[4]` hat keinen
+Bekannte Lücke (erneut verifiziert 2026-07-09): `TP_CONFIGS[4]` hat keinen
 `forbidden_framework_names`-Key — in TP4 greifen nur die globalen Patterns.
 Diese Lücke ist offen dokumentiert, nicht als Freibrief zu verstehen.
+Auch der formative Denkanstoß (`backend/evaluator/formative_feedback.py`)
+läuft durch `guardrail_check()` — bei Treffer Fallback-Frage statt Text.
 
 ### 2.2 PII-Regel — echte Teilnehmerdaten niemals ins Repo
 
@@ -175,11 +177,16 @@ noch — das ist Alt-Bestand von vor der Regel, kein Präzedenzfall.
 ### 2.5 Prompt-/Judge-Änderung ⇒ Alignment-Recheck
 
 **Regel:** Jede Änderung an `EVALUATOR_SYSTEM`, `EVALUATE_PROMPT`, den
-hartkodierten Kalibrierungsankern (`_format_calibration_notes`, je Frage
-q1–q4) oder den Scoring-Schwellwerten in
+Kalibrierungsankern oder den Scoring-Schwellwerten in
 `backend/evaluator/rubric_evaluator.py` erfordert VOR dem produktiven
 Einsatz einen Durchlauf der Teacher-Alignment-Pipeline und einen
-Metrik-Vergleich gegen die Baseline.
+Metrik-Vergleich gegen die Baseline. Seit 2026-07-09 sind die Anker
+zweistufig: case-spezifische `question.calibration_notes` (die früher
+hartkodierten q1–q4-Anker wurden wörtlich in die Golden-Case-JSONs
+`backend/cases/pool/alpes-bank-genai-001*.json` migriert) haben Vorrang
+vor den generischen `BLOOM_CALIBRATION_ANCHORS` (pro Bloom-Stufe 2–6,
+in `rubric_evaluator.py`). Änderungen an BEIDEN Ebenen sind Klasse B —
+auch am Golden-Case-JSON.
 
 **Der Vorfall (der Beweis, dass Prompts das Verhalten messbar kippen):** Die
 Kalibrierung vom Mai 2026 verbesserte die Judge-Teacher-Korrelation deutlich
