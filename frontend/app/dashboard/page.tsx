@@ -6,6 +6,7 @@ import HelpHint from '@/components/HelpHint'
 import NotionIcon from '@/components/NotionIcon'
 import TeacherIntro from '@/components/TeacherIntro'
 import { teacherFetch } from '@/lib/api'
+import { TEACHER_GUIDE } from '@/lib/teacherGuide'
 import { APP_MODE_STORAGE_KEY } from '@/lib/appMode'
 import { Locale } from '@/lib/i18n'
 import { useLanguage } from '@/lib/useLanguage'
@@ -90,16 +91,6 @@ const DASHBOARD_TEXT = {
     noData: 'Noch keine Daten.',
     noFindings: 'Keine auffälligen Schwierigkeiten.',
     ungrouped: 'Ohne Gruppenangabe',
-    introTitle: 'Kurzanleitung: Dein Dashboard in 60 Sekunden',
-    introSteps: [
-      'Oben siehst du Kennzahlen über alle Studierenden hinweg — sie geben das Gesamtbild, nicht den Einzelfall.',
-      'Der Kern ist die Gruppen-Liste unten: Klicke eine Gruppe auf, um zu sehen, wo sie hakt — als Vorbereitung auf deine Präsenzphase.',
-      '„Mit Unterstützungsbedarf" heißt: mehrere schwache Lernziele oder sehr niedrige Scores. Sprich Themen an, keine Personen — Einzelprofile siehst du bewusst nicht.',
-      'Der Copy-Paste-Anteil ist ein HINWEIS auf mögliche KI-Nutzung, kein Beweis — bitte nie als Vorwurf verwenden.',
-      'Alle Zahlen stammen aus der individuellen Vorbereitung im Tool, nicht aus der Gruppenabgabe.',
-    ],
-    introHint: 'Die ?-Symbole neben den Abschnitten erklären jede Ansicht — sie bleiben dauerhaft verfügbar.',
-    introDismiss: 'Verstanden',
     helpKpis: 'Kennzahlen über alle aktiven Studierenden. „Review/Fallback": Antworten, bei denen die automatische Bewertung unsicher war (Review) oder technisch scheiterte (Fallback) — diese Antworten verdienen deinen menschlichen Blick zuerst.',
     helpBloom: 'Durchschnittliche Leistung nach Denk-Niveau (Bloom-Taxonomie): Verstehen ist einfacher als Analysieren oder Synthese. Niedrige Werte auf hohen Stufen sind normal — auffällig sind Einbrüche auf niedrigen Stufen.',
     helpObjectives: 'Lernziele, bei denen die Kohorte im Schnitt am schwächsten abschneidet — gute Kandidaten für den Fokus deiner nächsten Präsenzphase.',
@@ -134,16 +125,6 @@ const DASHBOARD_TEXT = {
     noData: 'No data yet.',
     noFindings: 'No notable difficulties.',
     ungrouped: 'No group specified',
-    introTitle: 'Quick guide: your dashboard in 60 seconds',
-    introSteps: [
-      'The numbers at the top aggregate across all students — they give the big picture, not individual cases.',
-      'The core is the group list below: expand a group to see where it struggles — as preparation for your in-person session.',
-      '"Need support" means several weak objectives or very low scores. Address topics, not people — you deliberately never see individual profiles.',
-      'The copy-paste share is an INDICATOR of possible AI use, not proof — never use it as an accusation.',
-      'All numbers come from individual preparation in the tool, not from the group submission.',
-    ],
-    introHint: 'The ?-icons next to each section explain every view — they stay available permanently.',
-    introDismiss: 'Got it',
     helpKpis: 'Metrics across all active students. "Review/Fallback": answers where automatic scoring was uncertain (review) or failed technically (fallback) — these deserve your human eye first.',
     helpBloom: 'Average performance by thinking level (Bloom taxonomy): understanding is easier than analysis or synthesis. Low values on high levels are normal — drops on low levels are the anomaly.',
     helpObjectives: 'Learning objectives where the cohort is weakest on average — good candidates for the focus of your next in-person session.',
@@ -217,10 +198,10 @@ export default function DashboardPage() {
 
         <TeacherIntro
           storageKey="toadapt_intro_dashboard_v1"
-          title={text.introTitle}
-          steps={text.introSteps}
-          hint={text.introHint}
-          dismissLabel={text.introDismiss}
+          title={TEACHER_GUIDE[language].dashboard.title}
+          steps={TEACHER_GUIDE[language].dashboard.steps}
+          hint={TEACHER_GUIDE[language].hint}
+          dismissLabel={TEACHER_GUIDE[language].dismissLabel}
         />
 
         <div className="divider mb-10" />

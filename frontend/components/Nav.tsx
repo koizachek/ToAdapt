@@ -18,9 +18,10 @@ const studentLinks = [
   { href: '/cases', label: 'Cases' },
 ]
 
-const teacherLinks = [
+const teacherLinks = (language: Locale) => [
   { href: '/cases', label: 'Cases' },
   { href: '/dashboard', label: 'Dashboard' },
+  { href: '/guide', label: language === 'en' ? 'Guide' : 'Anleitung' },
   { href: '/admin', label: 'Admin' },
 ]
 
@@ -45,7 +46,7 @@ const NAV_TEXT: Record<Locale, {
 }
 
 function modeFromPath(path: string): AppMode | null {
-  if (path.startsWith('/dashboard') || path.startsWith('/admin')) return 'teacher'
+  if (path.startsWith('/dashboard') || path.startsWith('/admin') || path.startsWith('/guide')) return 'teacher'
   if (path.startsWith('/results') || path.startsWith('/goodbye')) return 'student'
   return null
 }
@@ -74,7 +75,7 @@ export default function Nav() {
 
   const visibleLinks = !hasTeacherAccess && (isExperimentalRun || mode === 'student')
     ? studentLinks
-    : teacherLinks
+    : teacherLinks(language)
 
   const switchMode = (nextMode: AppMode) => {
     if (nextMode === 'student') {

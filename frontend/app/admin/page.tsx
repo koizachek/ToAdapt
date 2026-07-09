@@ -6,6 +6,7 @@ import HelpHint from '@/components/HelpHint'
 import NotionIcon from '@/components/NotionIcon'
 import TeacherIntro from '@/components/TeacherIntro'
 import { teacherFetch } from '@/lib/api'
+import { TEACHER_GUIDE } from '@/lib/teacherGuide'
 import { Plus, Check, X, ChevronDown, ChevronUp, RefreshCw, Save, ShieldCheck, Archive } from 'lucide-react'
 import { APP_MODE_STORAGE_KEY } from '@/lib/appMode'
 import { languageQuery, Locale } from '@/lib/i18n'
@@ -112,16 +113,6 @@ const ADMIN_TEXT = {
     blockKeywords: 'Signal-Keywords (kommagetrennt)',
     blockExpectation: 'Erwartung an die Antwort',
     noBlocks: 'Keine Canvas-Bausteine — der Judge nutzt den Alpes-Bank-Datei-Fallback!',
-    introTitle: 'Kurzanleitung: Cases erstellen und freigeben',
-    introSteps: [
-      'Generieren: Branche, Land und Ziel-TP wählen — die KI erstellt einen vollständigen Entwurf inkl. Bewertungspaket.',
-      'Kuratieren: Klappe den Case auf. Der wichtigste Review-Gegenstand sind nicht nur die Texte, sondern Prüfkriterien, Signal-Keywords und Bewertungs-Anker — danach bewertet die KI später die Antworten.',
-      'Einzelne Teile kannst du mit einer Anweisung gezielt regenerieren lassen („mehr Zahlen, kürzer").',
-      'Prüfen → Freigeben: Der Check blockiert Regelverstöße (z.B. Modellnamen im Text). Erst nach Freigabe sehen Studierende den Case.',
-      'Änderungen an freigegebenen Cases setzen den Status zurück — erneute Freigabe nötig.',
-    ],
-    introHint: 'Die ?-Symbole erklären jedes Feld — sie bleiben dauerhaft verfügbar.',
-    introDismiss: 'Verstanden',
     helpGenerator: 'Erstellt per KI einen vollständigen Case-Entwurf: Fallgeschichte, Exhibits, Fragen samt Bewertungskriterien, Glossar und Chat-Kontext. Der Entwurf ist ein Startpunkt — freigegeben wird erst nach deiner Kuratierung.',
     helpReviewer: 'Wird aus deinem Login vorbelegt und an Freigaben/Änderungen protokolliert — so bleibt nachvollziehbar, wer welchen Case verantwortet.',
     helpRubric: 'Diese Kriterien und Signal-Keywords steuern die automatische Bewertung: Die Keywords zeigen an, ob Studierende einen Pflicht-Baustein ansprechen; die Erwartung beschreibt, was eine gute Antwort dazu zeigen muss. Formuliere pfadoffen — mehrere gute Antwortwege müssen volle Punkte erreichen können.',
@@ -182,16 +173,6 @@ const ADMIN_TEXT = {
     blockKeywords: 'Signal keywords (comma-separated)',
     blockExpectation: 'Expectation for the answer',
     noBlocks: 'No canvas blocks — the judge falls back to the Alpes-Bank file rubric!',
-    introTitle: 'Quick guide: creating and approving cases',
-    introSteps: [
-      'Generate: pick industry, country, and target TP — the AI creates a complete draft including the assessment package.',
-      'Curate: expand the case. The most important review targets are not just the texts, but the assessment criteria, signal keywords, and calibration anchors — the AI later grades answers based on them.',
-      'You can regenerate individual parts with an instruction ("more numbers, shorter").',
-      'Validate → Approve: the check blocks rule violations (e.g. framework names in the text). Students only see the case after approval.',
-      'Editing an approved case resets its status — it needs re-approval.',
-    ],
-    introHint: 'The ?-icons explain every field — they stay available permanently.',
-    introDismiss: 'Got it',
     helpGenerator: 'Uses AI to create a complete case draft: story, exhibits, questions with assessment criteria, glossary, and chat context. The draft is a starting point — it only goes live after your curation.',
     helpReviewer: 'Prefilled from your login and recorded with approvals/edits — so it stays traceable who owns which case.',
     helpRubric: 'These criteria and signal keywords drive the automatic grading: keywords indicate whether students address a required block; the expectation describes what a good answer must show. Phrase them path-open — several good answer paths must be able to reach full points.',
@@ -387,10 +368,10 @@ export default function AdminPage() {
 
         <TeacherIntro
           storageKey="toadapt_intro_admin_v1"
-          title={text.introTitle}
-          steps={text.introSteps}
-          hint={text.introHint}
-          dismissLabel={text.introDismiss}
+          title={TEACHER_GUIDE[language].admin.title}
+          steps={TEACHER_GUIDE[language].admin.steps}
+          hint={TEACHER_GUIDE[language].hint}
+          dismissLabel={TEACHER_GUIDE[language].dismissLabel}
         />
 
         <div className="divider mb-10" />
