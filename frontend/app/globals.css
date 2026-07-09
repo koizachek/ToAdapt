@@ -22,6 +22,7 @@
     color: var(--ink);
     font-family: 'DM Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
   }
 
   ::selection {

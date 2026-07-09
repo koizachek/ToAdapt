@@ -91,9 +91,9 @@ const DASHBOARD_TEXT = {
     noData: 'Noch keine Daten.',
     noFindings: 'Keine auffälligen Schwierigkeiten.',
     ungrouped: 'Ohne Gruppenangabe',
-    helpKpis: 'Kennzahlen über alle aktiven Studierenden. „Review/Fallback": Antworten, bei denen die automatische Bewertung unsicher war (Review) oder technisch scheiterte (Fallback) — diese Antworten verdienen deinen menschlichen Blick zuerst.',
+    helpKpis: 'Kennzahlen über alle aktiven Studierenden. „Review/Fallback": Antworten, bei denen die automatische Bewertung unsicher war (Review) oder technisch scheiterte (Fallback) — diese Antworten verdienen Ihren menschlichen Blick zuerst.',
     helpBloom: 'Durchschnittliche Leistung nach Denk-Niveau (Bloom-Taxonomie): Verstehen ist einfacher als Analysieren oder Synthese. Niedrige Werte auf hohen Stufen sind normal — auffällig sind Einbrüche auf niedrigen Stufen.',
-    helpObjectives: 'Lernziele, bei denen die Kohorte im Schnitt am schwächsten abschneidet — gute Kandidaten für den Fokus deiner nächsten Präsenzphase.',
+    helpObjectives: 'Lernziele, bei denen die Kohorte im Schnitt am schwächsten abschneidet — gute Kandidaten für den Fokus Ihrer nächsten Präsenzphase.',
     helpGroups: 'Eine Zeile pro Übungsgruppe (Selbstauskunft der Studierenden beim Login — Tippfehler erscheinen als eigene Gruppe). Aufklappen zeigt schwache Lernziele („x von y Mitgliedern unter 60 %"), häufige Schwächen in Worten und Bloom-Stufen. Einzelpersonen werden aus Datenschutzgründen nie angezeigt.',
   },
   en: {

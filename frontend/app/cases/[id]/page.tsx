@@ -595,6 +595,31 @@ function BusinessModelCanvasGuide({ language, blocks }: { language: Locale; bloc
   )
 }
 
+// Erwähnungen wie „Exhibit 2" / „(siehe Exhibit 2)" werden zu Ankerlinks, die
+// zum jeweiligen Exhibit weiter unten springen (id="exhibit-N").
+const EXHIBIT_MENTION = /(Exhibit\s+\d+)/g
+
+function linkifyExhibits(text: string, keyPrefix: string) {
+  const segments = text.split(EXHIBIT_MENTION)
+  if (segments.length === 1) return text
+  return segments.map((seg, i) => {
+    const match = /^Exhibit\s+(\d+)$/.exec(seg)
+    if (match) {
+      return (
+        <a
+          key={`${keyPrefix}-ex-${i}`}
+          href={`#exhibit-${match[1]}`}
+          className="font-medium underline decoration-dotted underline-offset-2"
+          style={{ color: 'var(--accent)' }}
+        >
+          {seg}
+        </a>
+      )
+    }
+    return <Fragment key={`${keyPrefix}-t-${i}`}>{seg}</Fragment>
+  })
+}
+
 function RichText({
   text,
   sectionId,
@@ -616,13 +641,13 @@ function RichText({
   onDiscuss: (term: GlossaryTerm) => void
   language: Locale
 }) {
-  if (!glossaryPattern) return text
+  if (!glossaryPattern) return linkifyExhibits(text, `${sectionId}-${paragraphIndex}`)
 
   return text.split(glossaryPattern).filter(Boolean).map((part, index) => {
     const match = glossaryMap.get(part.toLowerCase())
-    if (!match) return <Fragment key={`${part}-${index}`}>{part}</Fragment>
+    if (!match) return <Fragment key={`${part}-${index}`}>{linkifyExhibits(part, `${sectionId}-${paragraphIndex}-${index}`)}</Fragment>
     if (highlightTargets.get(match.term.toLowerCase()) !== glossaryHighlightKey(sectionId, paragraphIndex, index)) {
-      return <Fragment key={`${match.term}-plain-${index}`}>{part}</Fragment>
+      return <Fragment key={`${match.term}-plain-${index}`}>{linkifyExhibits(part, `${sectionId}-${paragraphIndex}-p${index}`)}</Fragment>
     }
 
     return (
@@ -1138,7 +1163,8 @@ export default function CasePage() {
                       {caseData.exhibits.map((exhibit, exhibitIndex) => (
                         <div
                           key={exhibit.exhibit_id}
-                          className="rounded-2xl p-5"
+                          id={`exhibit-${exhibitIndex + 1}`}
+                          className="scroll-mt-28 rounded-2xl p-5"
                           style={{ border: '1px solid var(--hairline)', background: 'rgba(250,250,248,0.45)' }}
                         >
                           <div className="mb-3 flex items-center gap-2.5">
@@ -1153,7 +1179,7 @@ export default function CasePage() {
                             ? <ExhibitTable content={exhibit.content} />
                             : (
                               <pre
-                                className="overflow-x-auto whitespace-pre-wrap text-xs leading-6"
+                                className="overflow-x-auto whitespace-pre-wrap text-base leading-7"
                                 style={{ fontFamily: 'inherit' }}
                               >
                                 {exhibit.content}

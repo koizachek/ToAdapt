@@ -26,9 +26,9 @@ export const TEACHER_GUIDE: Record<Locale, TeacherGuideContent> = {
     dashboard: {
       title: 'Dashboard: Gruppen verstehen in 60 Sekunden',
       steps: [
-        'Oben siehst du Kennzahlen über alle Studierenden hinweg — sie geben das Gesamtbild, nicht den Einzelfall.',
-        'Der Kern ist die Gruppen-Liste unten: Klicke eine Gruppe auf, um zu sehen, wo sie hakt — als Vorbereitung auf deine Präsenzphase.',
-        '„Mit Unterstützungsbedarf" heißt: mehrere schwache Lernziele oder sehr niedrige Scores. Sprich Themen an, keine Personen — Einzelprofile siehst du bewusst nicht.',
+        'Oben sehen Sie Kennzahlen über alle Studierenden hinweg — sie geben das Gesamtbild, nicht den Einzelfall.',
+        'Der Kern ist die Gruppen-Liste unten: Klicken Sie eine Gruppe auf, um zu sehen, wo sie hakt — als Vorbereitung auf Ihre Präsenzphase.',
+        '„Mit Unterstützungsbedarf" heißt: mehrere schwache Lernziele oder sehr niedrige Scores. Sprechen Sie Themen an, keine Personen — Einzelprofile sehen Sie bewusst nicht.',
         'Der Copy-Paste-Anteil ist ein HINWEIS auf mögliche KI-Nutzung, kein Beweis — bitte nie als Vorwurf verwenden.',
         'Alle Zahlen stammen aus der individuellen Vorbereitung im Tool, nicht aus der Gruppenabgabe.',
       ],
@@ -37,13 +37,13 @@ export const TEACHER_GUIDE: Record<Locale, TeacherGuideContent> = {
       title: 'Admin: Cases erstellen und freigeben',
       steps: [
         'Generieren: Branche, Land und Ziel-TP wählen — die KI erstellt einen vollständigen Entwurf inkl. Bewertungspaket.',
-        'Kuratieren: Klappe den Case auf. Der wichtigste Review-Gegenstand sind nicht nur die Texte, sondern Prüfkriterien, Signal-Keywords und Bewertungs-Anker — danach bewertet die KI später die Antworten.',
-        'Einzelne Teile kannst du mit einer Anweisung gezielt regenerieren lassen („mehr Zahlen, kürzer").',
+        'Kuratieren: Klappen Sie den Case auf. Der wichtigste Review-Gegenstand sind nicht nur die Texte, sondern Prüfkriterien, Signal-Keywords und Bewertungs-Anker — danach bewertet die KI später die Antworten.',
+        'Einzelne Teile können Sie mit einer Anweisung gezielt regenerieren lassen („mehr Zahlen, kürzer").',
         'Prüfen → Freigeben: Der Check blockiert Regelverstöße (z.B. Modellnamen im Text). Erst nach Freigabe sehen Studierende den Case.',
         'Änderungen an freigegebenen Cases setzen den Status zurück — erneute Freigabe nötig.',
       ],
     },
-    hint: 'Diese Anleitung findest du jederzeit im Reiter „Anleitung" oben. Die ?-Symbole an den Ansichten erklären jedes Feld.',
+    hint: 'Diese Anleitung finden Sie jederzeit im Reiter „Anleitung" oben. Die ?-Symbole an den Ansichten erklären jedes Feld.',
     dismissLabel: 'Verstanden',
   },
   en: {

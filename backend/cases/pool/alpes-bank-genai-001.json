@@ -64,7 +64,7 @@
       "question_id": "q1",
       "phase": 1,
       "bloom_level": 4,
-      "text": "Identifizieren Sie die zwei Herausforderungen, die für die zukünftige Entwicklung von Alpes Bank am kritischsten sind. Erläutern Sie für jede, worin sie konkret besteht und warum sie für das Geschäftsmodell relevant ist. Zeigen Sie bei mindestens einer Herausforderung, warum sie sich aus dem Zusammenspiel von externen Entwicklungen und internen Gegebenheiten ergibt.",
+      "text": "Identifiziere die zwei Herausforderungen, die für die zukünftige Entwicklung von Alpes Bank am kritischsten sind. Erläutere für jede, worin sie konkret besteht und warum sie für das Geschäftsmodell relevant ist. Zeige bei mindestens einer Herausforderung, warum sie sich aus dem Zusammenspiel von externen Entwicklungen und internen Gegebenheiten ergibt.",
       "max_points": 25,
       "rubric_reference": "tp1_rubric.json",
       "allowed_frameworks": [
@@ -141,7 +141,7 @@
       "question_id": "q2",
       "phase": 2,
       "bloom_level": 5,
-      "text": "Tamara muss entscheiden, welchen GenAI-Anwendungsfall sie priorisiert. Entwickeln Sie eine klare Empfehlung: Welchen der drei Anwendungsfälle sollte Alpes Bank zuerst umsetzen — und worauf soll der Wettbewerbsvorteil langfristig basieren? Benennen Sie konkret, welche internen Stärken diesen Vorteil tragen, warum er für Wettbewerber schwer zu imitieren ist, und welchen zentralen Zielkonflikt Ihre Empfehlung mit sich bringt.",
+      "text": "Tamara muss entscheiden, welchen GenAI-Anwendungsfall sie priorisiert. Entwickle eine klare Empfehlung: Welchen der drei Anwendungsfälle sollte Alpes Bank zuerst umsetzen — und worauf soll der Wettbewerbsvorteil langfristig basieren? Benenne konkret, welche internen Stärken diesen Vorteil tragen, warum er für Wettbewerber schwer zu imitieren ist, und welchen zentralen Zielkonflikt deine Empfehlung mit sich bringt.",
       "max_points": 24,
       "rubric_reference": "tp2_rubric.json",
       "allowed_frameworks": [
@@ -223,7 +223,7 @@
       "question_id": "q3",
       "phase": 3,
       "bloom_level": 4,
-      "text": "Tamara entscheidet sich, die KI-Entwicklung mit dem externen Partner AILabs durchzuführen, statt alles intern zu bauen. Treffen Sie eine begründete Make-or-Buy-Entscheidung für die Entwicklung des E-Mail-Assistenten: Welche Faktoren — etwa wie spezifisch die benötigte Leistung ist, wie häufig sie gebraucht wird, und wie unsicher die Qualitätsanforderungen sind — sprechen für oder gegen eine externe Lösung? Welches konkrete Risiko entsteht aus Ihrer Entscheidung, und welche Massnahme würden Sie ergreifen?",
+      "text": "Tamara entscheidet sich, die KI-Entwicklung mit dem externen Partner AILabs durchzuführen, statt alles intern zu bauen. Triff eine begründete Make-or-Buy-Entscheidung für die Entwicklung des E-Mail-Assistenten: Welche Faktoren — etwa wie spezifisch die benötigte Leistung ist, wie häufig sie gebraucht wird, und wie unsicher die Qualitätsanforderungen sind — sprechen für oder gegen eine externe Lösung? Welches konkrete Risiko entsteht aus deiner Entscheidung, und welche Massnahme würdest du ergreifen?",
       "max_points": 22,
       "rubric_reference": "tp3_rubric.json",
       "allowed_frameworks": [
@@ -299,7 +299,7 @@
       "question_id": "q4",
       "phase": 4,
       "bloom_level": 6,
-      "text": "Betrachten Sie Ihre Entscheidungen aus den vorigen Aufgaben als Ganzes. Welche strategische Stossrichtung sollte Alpes Bank in den nächsten 12–24 Monaten priorisieren — und welche Ihrer Entscheidungen halten Sie im Rückblick für die riskanteste? Begründen Sie, warum diese Entscheidung das grösste Risiko birgt, und zeigen Sie, welche Konsequenzen eine Revision dieser Entscheidung für die anderen Teile Ihrer Empfehlung hätte.",
+      "text": "Betrachte deine Entscheidungen aus den vorigen Aufgaben als Ganzes. Welche strategische Stossrichtung sollte Alpes Bank in den nächsten 12–24 Monaten priorisieren — und welche deiner Entscheidungen hältst du im Rückblick für die riskanteste? Begründe, warum diese Entscheidung das grösste Risiko birgt, und zeige, welche Konsequenzen eine Revision dieser Entscheidung für die anderen Teile deiner Empfehlung hätte.",
       "max_points": 30,
       "rubric_reference": "tp4_rubric.json",
       "allowed_frameworks": [

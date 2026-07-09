@@ -48,7 +48,7 @@ TP_CONFIGS: dict[int, dict] = {
         "max_slides": 3,
         "max_bullets_per_slide": 6,
         "individual_component": {
-            "question": "Was würden Sie an Ihrer eigenen Analyse konkret verändern – und warum?",
+            "question": "Was würdest du an deiner eigenen Analyse konkret verändern – und warum?",
             "points": 6,
             "time_minutes": 5,
         },
@@ -77,7 +77,7 @@ TP_CONFIGS: dict[int, dict] = {
         ],
         "rubric_reference": "tp2_rubric.json",
         "individual_component": {
-            "question": "Welche Entscheidung würden Sie anders treffen?",
+            "question": "Welche Entscheidung würdest du anders treffen?",
             "points": 8,
             "time_minutes": 5,
         },
