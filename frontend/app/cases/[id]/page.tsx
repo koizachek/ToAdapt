@@ -414,6 +414,16 @@ function hasSentenceStructure(text: string): boolean {
 // Einbettung über NotionIcon wie alle anderen Icons. Weitere Exhibits: kein Icon.
 const EXHIBIT_ICONS = ['calculator', 'chart-magnifier', 'warning']
 
+// Icon je Story-Abschnitt (nach section_id, sprachstabil über DE/EN). Gibt den
+// sonst reinen Fließtext-Überschriften visuelle Orientierung. Der erste
+// Abschnitt (Case-Einleitung) bekommt kein Icon, sondern Titel-Formatierung.
+const SECTION_ICONS: Record<string, string> = {
+  s2: 'hand-gesture',    // Der Auftrag: Generative AI beweisen
+  s3: 'watch-clock',     // Die Umsetzung: Zwischen Tempo und Kontrolle
+  s4: 'receipt-paper',   // Governance: Wer trägt die Verantwortung?
+  s5: 'target-arrow',    // Ein Jahr später: Wachstum und seine Grenzen
+}
+
 function parseExhibitTable(content: string): ParsedExhibitTable | null {
   const lines = content
     .split('\n')
@@ -1082,9 +1092,18 @@ export default function CasePage() {
           <section className="min-w-0">
             {tab === 'case' && (
               <div className="flex flex-col gap-10 pr-0 xl:pr-4">
-                {caseData.sections.map(section => (
+                {caseData.sections.map((section, sectionIndex) => (
                   <section key={section.section_id}>
-                    <h2 className="mb-3 text-base font-medium">{section.title}</h2>
+                    {sectionIndex === 0 ? (
+                      <h2 className="mb-3 font-display text-2xl leading-tight">{section.title}</h2>
+                    ) : (
+                      <h2 className="mb-3 flex items-center gap-3 text-base font-medium">
+                        {SECTION_ICONS[section.section_id] && (
+                          <NotionIcon name={SECTION_ICONS[section.section_id]} size={30} className="shrink-0" />
+                        )}
+                        {section.title}
+                      </h2>
+                    )}
                     <div className="flex flex-col gap-5 text-sm leading-8">
                       {splitParagraphs(section.content).map((paragraph, index) => (
                         <div key={`${section.section_id}-${index}`}>
@@ -1117,7 +1136,7 @@ export default function CasePage() {
                         >
                           <div className="mb-3 flex items-center gap-2.5">
                             {EXHIBIT_ICONS[exhibitIndex] && (
-                              <NotionIcon name={EXHIBIT_ICONS[exhibitIndex]} size={28} className="shrink-0" />
+                              <NotionIcon name={EXHIBIT_ICONS[exhibitIndex]} size={30} className="shrink-0" />
                             )}
                             <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
                               {exhibit.title}
