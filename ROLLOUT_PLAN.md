@@ -1,5 +1,9 @@
 # ToAdapt — Rollout-Plan (Stand 2026-07-08)
 
+> **Operativer Ablauf zum breiten Rollout: siehe ROLLOUT_CHECKLIST.md**
+> (gate-basierter Workflow W0–W6, Stand 2026-07-09). Dieses Dokument
+> bleibt die Hintergrund-Referenz für Phasen, Rationale und Historie.
+
 Ziel: Das Repo von der aktuellen Probeversion (Prolific-Experiment, einzelne Dutzend
 sequentielle Teilnehmer) zu einem sicher und stabil betreibbaren System für mehrere
 hundert gleichzeitige Studierende bringen.
