@@ -47,6 +47,7 @@ const LOGIN_TEXT = {
     privacyNote: 'Deine Angaben werden pseudonymisiert erfasst. Tutor:innen sehen nur Gruppen-Zusammenfassungen — keine Einzelprofile und keine Chat-Verläufe.',
     languageAria: 'Sprache wählen',
     aboutToggle: 'Über To:Adapt',
+    imprint: 'Impressum',
     aboutClose: 'Einklappen',
     aboutWhatTitle: 'Was ist To:Adapt?',
     aboutWhat: 'To:Adapt ist eine Lernumgebung zur Kompetenzentwicklung mit Business Cases. Du bearbeitest realistische Fälle eigenständig — ein KI-Lernbegleiter unterstützt dein Denken mit Rückfragen und Hinweisen, gibt aber bewusst keine Lösungen vor. Deine Abgaben erhalten automatisches, formatives Feedback. Tutor:innen sehen ausschließlich Zusammenfassungen deiner Übungsgruppe, niemals Einzelprofile oder Chat-Verläufe.',
@@ -85,6 +86,7 @@ const LOGIN_TEXT = {
     privacyNote: 'Your data is stored pseudonymously. Tutors only see group summaries — no individual profiles and no chat logs.',
     languageAria: 'Choose language',
     aboutToggle: 'About To:Adapt',
+    imprint: 'Legal notice',
     aboutClose: 'Collapse',
     aboutWhatTitle: 'What is To:Adapt?',
     aboutWhat: 'To:Adapt is a learning environment for competency development with business cases. You work through realistic cases on your own — an AI learning companion supports your thinking with questions and hints, but deliberately never gives away solutions. Your submissions receive automatic, formative feedback. Tutors only ever see summaries of your tutorial group, never individual profiles or chat logs.',
@@ -275,6 +277,16 @@ function LoginPageContent({
         <p className="mt-3 text-sm tracking-[0.2em] uppercase" style={{ color: 'var(--muted)' }}>
           {mode === 'student' ? text.taglineStudent : text.taglineTeacher}
         </p>
+        <button
+          type="button"
+          onClick={() => setShowAbout(true)}
+          aria-haspopup="dialog"
+          className="mx-auto mt-5 flex items-center gap-2.5 px-4 py-2 text-xs font-medium tracking-wide transition-colors hover:opacity-80"
+          style={{ color: 'var(--muted)' }}
+        >
+          <NotionIcon name="compass" size={26} />
+          {text.aboutToggle}
+        </button>
       </div>
 
       {!prolificPid && (
@@ -434,17 +446,16 @@ function LoginPageContent({
         </p>
       )}
 
-      {/* About: Trigger-Button — Inhalt öffnet als Modal (kein Scrollen nötig) */}
-      <button
-        type="button"
-        onClick={() => setShowAbout(true)}
-        aria-haspopup="dialog"
-        className="mt-8 mx-auto flex items-center gap-2.5 px-4 py-2 text-xs font-medium tracking-wide transition-colors hover:opacity-80"
+      {/* Impressum (Institutsseite) */}
+      <a
+        href="https://iwi.unisg.ch/en/the-institute/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-10 text-xs underline-offset-2 hover:underline"
         style={{ color: 'var(--muted)' }}
       >
-        <NotionIcon name="compass" size={26} />
-        {text.aboutToggle}
-      </button>
+        {text.imprint}
+      </a>
 
       {showAbout && (
         <div
