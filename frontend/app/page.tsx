@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowRight, BookOpen, ChevronDown, ChevronUp, LayoutDashboard, ShieldCheck } from 'lucide-react'
+import { ArrowRight, BookOpen, LayoutDashboard, ShieldCheck, X } from 'lucide-react'
 import NotionIcon from '@/components/NotionIcon'
 import { languageFromSearchParams, Locale } from '@/lib/i18n'
 import { useLanguage } from '@/lib/useLanguage'
@@ -127,6 +127,15 @@ function LoginPageContent({
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
+
+  useEffect(() => {
+    if (!showAbout) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowAbout(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showAbout])
 
   const resolvedParticipantId = participantIdInput.trim() || prolificPid.trim()
   const text = LOGIN_TEXT[language]
@@ -425,39 +434,63 @@ function LoginPageContent({
         </p>
       )}
 
-      {/* About-Section: Was ist To:Adapt + How-to (DE/EN) */}
-      <div className="mt-8 w-full max-w-xl">
-        <button
-          type="button"
-          onClick={() => setShowAbout(v => !v)}
-          aria-expanded={showAbout}
-          className="mx-auto flex items-center gap-2 px-4 py-2 text-xs font-medium tracking-wide transition-colors"
-          style={{ color: 'var(--muted)' }}
-        >
-          <NotionIcon name="compass" size={22} />
-          {showAbout ? text.aboutClose : text.aboutToggle}
-          {showAbout ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-        </button>
+      {/* About: Trigger-Button — Inhalt öffnet als Modal (kein Scrollen nötig) */}
+      <button
+        type="button"
+        onClick={() => setShowAbout(true)}
+        aria-haspopup="dialog"
+        className="mt-8 mx-auto flex items-center gap-2.5 px-4 py-2 text-xs font-medium tracking-wide transition-colors hover:opacity-80"
+        style={{ color: 'var(--muted)' }}
+      >
+        <NotionIcon name="compass" size={26} />
+        {text.aboutToggle}
+      </button>
 
-        {showAbout && (
+      {showAbout && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={text.aboutToggle}
+          className="fixed inset-0 z-40 flex items-center justify-center px-4 py-8"
+          style={{ background: 'rgba(30,22,15,0.45)' }}
+          onClick={() => setShowAbout(false)}
+        >
           <div
-            className="mt-3 flex flex-col gap-6 rounded-2xl p-7"
-            style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.15)' }}
+            className="flex max-h-[85vh] w-full max-w-xl flex-col gap-6 overflow-y-auto rounded-2xl p-8 shadow-lg"
+            style={{ background: 'var(--surface)', border: '1px solid rgba(53,40,30,0.2)' }}
+            onClick={event => event.stopPropagation()}
           >
-            <div>
-              <h2 className="mb-2 flex items-center gap-2.5 text-sm font-medium">
-                <NotionIcon name="idea" size={24} />
-                {text.aboutWhatTitle}
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="flex items-center gap-3 font-display text-2xl leading-tight">
+                <NotionIcon name="compass" size={34} />
+                To:Adapt
               </h2>
+              <button
+                type="button"
+                onClick={() => setShowAbout(false)}
+                aria-label={text.aboutClose}
+                className="shrink-0 p-1.5 transition-colors hover:opacity-70"
+                style={{ color: 'var(--muted)' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div>
+              <h3 className="mb-2 flex items-center gap-2.5 text-sm font-medium">
+                <NotionIcon name="idea" size={29} />
+                {text.aboutWhatTitle}
+              </h3>
               <p className="text-sm leading-6" style={{ color: 'var(--ink)' }}>
                 {text.aboutWhat}
               </p>
             </div>
+
             <div>
-              <h2 className="mb-3 flex items-center gap-2.5 text-sm font-medium">
-                <NotionIcon name="questions" size={24} />
+              <h3 className="mb-3 flex items-center gap-2.5 text-sm font-medium">
+                <NotionIcon name="questions" size={29} />
                 {text.aboutHowTitle}
-              </h2>
+              </h3>
               <ol className="flex flex-col gap-2">
                 {text.aboutSteps.map((step, i) => (
                   <li key={i} className="flex gap-3 text-sm leading-6">
@@ -470,8 +503,8 @@ function LoginPageContent({
               </ol>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </main>
   )
 }
