@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from backend.auth import require_api_key, require_research_key
 from backend.db.dashboard_store import dashboard_store
+from backend.db.group_upload_store import group_upload_store
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(
@@ -83,6 +84,19 @@ class DifficultyOverview(BaseModel):
     cohort_common_penalties: list[PenaltyCount]
 
 
+class GroupWorkItem(BaseModel):
+    """Bewertete Gruppenarbeit (Master-Upload) — Gruppenebene, keine Personen."""
+    upload_id: str
+    filename: str
+    target_tp: int
+    percentage: float
+    total_points: float
+    max_points: float
+    needs_human_review: bool = False
+    evaluation_status: str = "ok"
+    evaluated_at: str | None = None
+
+
 class GroupSummary(BaseModel):
     """Gruppen-Aggregat für Tutor:innen — enthält KEINE Einzelkennungen."""
     group_code: str
@@ -95,6 +109,10 @@ class GroupSummary(BaseModel):
     attention_high: int
     attention_medium: int
     attention_low: int
+    # Zweite Datenquelle: außerhalb der Plattform erstellte Gruppenarbeiten,
+    # per Master-Upload bewertet (gleiche TP-Rubrics).
+    group_work_count: int = 0
+    group_work_avg_pct: float | None = None
 
 
 class GroupObjective(BaseModel):
@@ -109,6 +127,7 @@ class GroupDetail(GroupSummary):
     weak_blooms: dict[int, int]              # Bloom-Stufe → Mitglieder unter Schwelle
     common_penalties: list[PenaltyCount]
     missing_canvas_blocks: list[PenaltyCount]
+    group_work: list[GroupWorkItem] = []
 
 
 class StudentRow(BaseModel):
@@ -399,9 +418,46 @@ def _results_by_group(results: list[dict]) -> dict[str, list[dict]]:
     return grouped
 
 
-def _group_detail(group_code: str, results: list[dict]) -> GroupDetail:
+def _group_uploads_by_group() -> dict[str, list[dict]]:
+    """Bewertete Gruppenarbeiten (Master-Upload) nach Gruppencode.
+
+    extraction_failed-Einträge bleiben draußen (keine belastbare Bewertung);
+    nicht zuordenbare Dokumente laufen unter UNGROUPED, bis der Master-Tutor
+    die Gruppe nachträgt.
+    """
+    grouped: dict[str, list[dict]] = defaultdict(list)
+    for record in group_upload_store.load_all():
+        if record.get("status") != "evaluated":
+            continue
+        code = str(record.get("group_code") or "").strip() or UNGROUPED
+        grouped[code].append(record)
+    return grouped
+
+
+def _group_work_items(uploads: list[dict]) -> list[GroupWorkItem]:
+    items = [
+        GroupWorkItem(
+            upload_id=str(u.get("upload_id", "")),
+            filename=str(u.get("filename", "")),
+            target_tp=int(u.get("target_tp", 0)),
+            percentage=float(u.get("percentage", 0.0)),
+            total_points=float(u.get("total_points", 0.0)),
+            max_points=float(u.get("max_points", 0.0)),
+            needs_human_review=bool(u.get("needs_human_review", False)),
+            evaluation_status=str(u.get("evaluation_status", "ok")),
+            evaluated_at=u.get("evaluated_at"),
+        )
+        for u in uploads
+    ]
+    items.sort(key=lambda i: (i.target_tp, i.evaluated_at or ""))
+    return items
+
+
+def _group_detail(group_code: str, results: list[dict], uploads: list[dict] | None = None) -> GroupDetail:
     """Aggregiert eine Gruppe über ihre (pseudonymen) Mitglieder — Einzel-
-    kennungen verlassen diese Funktion nicht."""
+    kennungen verlassen diese Funktion nicht. `uploads` sind die per
+    Master-Upload bewerteten Gruppenarbeiten derselben Gruppe."""
+    uploads = uploads or []
     by_member: dict[str, list[dict]] = defaultdict(list)
     for r in results:
         by_member[r["matrikelnummer"]].append(r)
@@ -450,30 +506,49 @@ def _group_detail(group_code: str, results: list[dict]) -> GroupDetail:
             for b in s.get("missing_canvas_blocks", []):
                 _add_phrase(missing_blocks, str(b))
 
+    group_work_pcts = [float(u.get("percentage", 0.0)) for u in uploads]
+
     return GroupDetail(
         group_code=group_code,
         members_active=len(by_member),
         submissions_count=len(results),
-        avg_percentage=round(sum(r["percentage"] for r in results) / len(results), 1),
+        avg_percentage=(
+            round(sum(r["percentage"] for r in results) / len(results), 1) if results else 0.0
+        ),
         needs_human_review_count=review_count,
         technical_fallback_count=fallback_count,
         paste_heavy_answers=_count_paste_heavy(results),
         attention_high=attention["high"],
         attention_medium=attention["medium"],
         attention_low=attention["low"],
+        group_work_count=len(uploads),
+        group_work_avg_pct=(
+            round(sum(group_work_pcts) / len(group_work_pcts), 1) if group_work_pcts else None
+        ),
         weak_objectives=weak_objectives,
         weak_blooms=dict(bloom_below),
         common_penalties=_top_phrases(penalties, limit=6),
         missing_canvas_blocks=_top_phrases(missing_blocks, limit=6),
+        group_work=_group_work_items(uploads),
     )
 
 
 @router.get("/groups", response_model=list[GroupSummary])
 async def list_groups():
-    """Gruppen-Übersicht für Tutor:innen (nur Aggregate, keine Personen)."""
+    """Gruppen-Übersicht für Tutor:innen (nur Aggregate, keine Personen).
+
+    Vereint beide Datenquellen: individuelle Submissions und per
+    Master-Upload bewertete Gruppenarbeiten — Gruppen, die bisher nur über
+    eine der beiden Quellen sichtbar sind, erscheinen trotzdem.
+    """
     grouped = _results_by_group(_load_all_results())
-    details = [_group_detail(code, results) for code, results in grouped.items()]
-    order = {code: i for i, code in enumerate(sorted(grouped))}
+    uploads_grouped = _group_uploads_by_group()
+    codes = set(grouped) | set(uploads_grouped)
+    details = [
+        _group_detail(code, grouped.get(code, []), uploads_grouped.get(code, []))
+        for code in codes
+    ]
+    order = {code: i for i, code in enumerate(sorted(codes))}
     details.sort(key=lambda d: (d.group_code == UNGROUPED, order.get(d.group_code, 0)))
     return [GroupSummary(**d.model_dump(include=set(GroupSummary.model_fields))) for d in details]
 
@@ -482,11 +557,16 @@ async def list_groups():
 async def group_detail(group_code: str):
     """Fehlerquellen-Zusammenfassung EINER Gruppe (keine Einzelprofile)."""
     grouped = _results_by_group(_load_all_results())
+    uploads_grouped = _group_uploads_by_group()
     normalized = group_code.strip().upper()
-    results = grouped.get(normalized) or grouped.get(group_code)
-    if not results:
+    code = (
+        normalized if (normalized in grouped or normalized in uploads_grouped) else group_code
+    )
+    results = grouped.get(code, [])
+    uploads = uploads_grouped.get(code, [])
+    if not results and not uploads:
         raise HTTPException(status_code=404, detail="Gruppe nicht gefunden")
-    return _group_detail(normalized if normalized in grouped else group_code, results)
+    return _group_detail(code, results, uploads)
 
 
 @router.get(

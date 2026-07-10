@@ -27,6 +27,14 @@ export function readTeacherMode() {
   return hasCookie('teacher_mode', 'true')
 }
 
+// UI-Hinweis für den Upload-Reiter (Master-Tutor). Sicherheitsrelevant ist
+// allein das signierte Master-Flag in der Server-Session — Middleware und
+// Teacher-Proxy setzen es durch.
+export function readTeacherMaster() {
+  if (typeof window === 'undefined') return false
+  return readTeacherMode() && hasCookie('teacher_master', 'true')
+}
+
 export function readStudentIdentity(): boolean {
   // Eine Studierenden-Identität gilt als etabliert, sobald der Login (oder die
   // Prolific-Ankunft) eine Kennung hinterlegt hat. Für Lehrkräfte wird keines
@@ -58,6 +66,7 @@ export function writeAppMode(mode: AppMode) {
 
   if (mode === 'student') {
     clearCookie('teacher_mode')
+    clearCookie('teacher_master')
   }
 
   sessionStorage.setItem(APP_MODE_STORAGE_KEY, mode)

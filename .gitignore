@@ -15,6 +15,7 @@ images/
 # Freitextantworten) — dürfen NICHT ins Repo.
 backend/db/submissions/*.json
 backend/db/runtime_submissions/
+backend/db/group_uploads/
 backend/db/dashboard_seed/
 data/submission_states.json
 data/experiment_events.json

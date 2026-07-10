@@ -46,19 +46,28 @@ function getSecret(): string {
   return secret
 }
 
-/** Erzeugt einen signierten Session-Token mit Tutor-Kennung + Ablaufzeitstempel. */
-export async function signTeacherSession(tutorId: string): Promise<string> {
-  const payload = JSON.stringify({ iat: Date.now(), tutor: tutorId })
+export interface TeacherSessionPayload {
+  tutor: string
+  /** true nur für den Master-Tutor (Login mit dem Master-Code, Env TEACHER_ARCHIVE_CODE). */
+  master: boolean
+}
+
+/** Erzeugt einen signierten Session-Token mit Tutor-Kennung, Master-Flag + Ablaufzeitstempel. */
+export async function signTeacherSession(tutorId: string, master = false): Promise<string> {
+  const payload = JSON.stringify({ iat: Date.now(), tutor: tutorId, master })
   const payloadB64 = toBase64Url(new TextEncoder().encode(payload))
   const sig = await hmac(payloadB64, getSecret())
   return `${payloadB64}.${sig}`
 }
 
 /**
- * Prüft Signatur und Ablauf; gibt bei Erfolg die Tutor-Kennung zurück,
- * sonst null (truthiness-kompatibel zum früheren boolean).
+ * Prüft Signatur und Ablauf; gibt bei Erfolg Tutor-Kennung + Master-Flag
+ * zurück, sonst null. Ältere Tokens ohne Master-Feld gelten als
+ * Nicht-Master (fail-closed für Master-Funktionen).
  */
-export async function verifyTeacherSession(token: string | undefined): Promise<string | null> {
+export async function verifyTeacherSessionPayload(
+  token: string | undefined,
+): Promise<TeacherSessionPayload | null> {
   if (!token) return null
   const parts = token.split('.')
   if (parts.length !== 2) return null
@@ -78,10 +87,19 @@ export async function verifyTeacherSession(token: string | undefined): Promise<s
     if (!Number.isFinite(iat)) return null
     if (Date.now() - iat > MAX_AGE_SECONDS * 1000) return null
     const tutor = typeof payload?.tutor === 'string' && payload.tutor ? payload.tutor : 'teacher'
-    return tutor
+    return { tutor, master: payload?.master === true }
   } catch {
     return null
   }
+}
+
+/**
+ * Prüft Signatur und Ablauf; gibt bei Erfolg die Tutor-Kennung zurück,
+ * sonst null (truthiness-kompatibel zum früheren boolean).
+ */
+export async function verifyTeacherSession(token: string | undefined): Promise<string | null> {
+  const payload = await verifyTeacherSessionPayload(token)
+  return payload ? payload.tutor : null
 }
 
 /**

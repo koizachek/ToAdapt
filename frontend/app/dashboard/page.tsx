@@ -28,6 +28,17 @@ interface Overview {
 }
 interface PenaltyCount { text: string; count: number }
 interface GroupObjective { tag: string; avg_pct: number; members_below: number; members_total: number }
+interface GroupWorkItem {
+  upload_id: string
+  filename: string
+  target_tp: number
+  percentage: number
+  total_points: number
+  max_points: number
+  needs_human_review: boolean
+  evaluation_status: string
+  evaluated_at: string | null
+}
 interface GroupSummary {
   group_code: string
   members_active: number
@@ -39,12 +50,15 @@ interface GroupSummary {
   attention_high: number
   attention_medium: number
   attention_low: number
+  group_work_count: number
+  group_work_avg_pct: number | null
 }
 interface GroupDetail extends GroupSummary {
   weak_objectives: GroupObjective[]
   weak_blooms: Record<number, number>
   common_penalties: PenaltyCount[]
   missing_canvas_blocks: PenaltyCount[]
+  group_work: GroupWorkItem[]
 }
 
 const BLOOM: Record<Locale, Record<number, string>> = {
@@ -91,6 +105,10 @@ const DASHBOARD_TEXT = {
     noData: 'Noch keine Daten.',
     noFindings: 'Keine auffälligen Schwierigkeiten.',
     ungrouped: 'Ohne Gruppenangabe',
+    groupWork: 'Gruppenarbeiten (Upload)',
+    groupWorkBadge: (n: number) => `${n} Gruppenarbeit(en)`,
+    groupWorkReview: 'Review',
+    groupWorkFallback: 'Fallback',
     helpKpis: 'Kennzahlen über alle aktiven Studierenden. „Review/Fallback": Antworten, bei denen die automatische Bewertung unsicher war (Review) oder technisch scheiterte (Fallback) — diese Antworten verdienen Ihren menschlichen Blick zuerst.',
     helpBloom: 'Durchschnittliche Leistung nach Denk-Niveau (Bloom-Taxonomie): Verstehen ist einfacher als Analysieren oder Synthese. Niedrige Werte auf hohen Stufen sind normal — auffällig sind Einbrüche auf niedrigen Stufen.',
     helpObjectives: 'Lernziele, bei denen die Kohorte im Schnitt am schwächsten abschneidet — gute Kandidaten für den Fokus Ihrer nächsten Präsenzphase.',
@@ -125,6 +143,10 @@ const DASHBOARD_TEXT = {
     noData: 'No data yet.',
     noFindings: 'No notable difficulties.',
     ungrouped: 'No group specified',
+    groupWork: 'Group assignments (upload)',
+    groupWorkBadge: (n: number) => `${n} group assignment(s)`,
+    groupWorkReview: 'Review',
+    groupWorkFallback: 'Fallback',
     helpKpis: 'Metrics across all active students. "Review/Fallback": answers where automatic scoring was uncertain (review) or failed technically (fallback) — these deserve your human eye first.',
     helpBloom: 'Average performance by thinking level (Bloom taxonomy): understanding is easier than analysis or synthesis. Low values on high levels are normal — drops on low levels are the anomaly.',
     helpObjectives: 'Learning objectives where the cohort is weakest on average — good candidates for the focus of your next in-person session.',
@@ -330,6 +352,12 @@ export default function DashboardPage() {
                           {g.attention_medium} {text.watch}
                         </span>
                       )}
+                      {g.group_work_count > 0 && (
+                        <span className="text-xs px-2 py-0.5" style={{ background: 'rgba(53,40,30,0.08)' }}>
+                          {text.groupWorkBadge(g.group_work_count)}
+                          {g.group_work_avg_pct != null && ` · Ø ${g.group_work_avg_pct.toFixed(0)}%`}
+                        </span>
+                      )}
                     </div>
                     <span className="text-sm font-medium shrink-0" style={{ color: g.avg_percentage >= 70 ? 'var(--accent)' : g.avg_percentage < 45 ? '#c0392b' : 'var(--ink)' }}>
                       Ø {g.avg_percentage.toFixed(0)}%
@@ -379,6 +407,20 @@ export default function DashboardPage() {
                         <p className="text-xs" style={{ color: 'var(--muted)' }}>
                           {text.missingBlocks}: {detail.missing_canvas_blocks.map(b => `${objectiveLabel(b.text)} (×${b.count})`).join(', ')}
                         </p>
+                      )}
+
+                      {detail.group_work.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium mb-1">{text.groupWork}</p>
+                          {detail.group_work.map(w => (
+                            <p key={w.upload_id} className="text-xs leading-5" style={{ color: 'var(--muted)' }}>
+                              TP{w.target_tp} — {w.filename}: {w.total_points.toFixed(1)}/{w.max_points.toFixed(0)} ({w.percentage.toFixed(0)}%)
+                              {w.evaluation_status === 'technical_fallback'
+                                ? <span style={{ color: '#c0392b' }}> · {text.groupWorkFallback}</span>
+                                : w.needs_human_review && <span style={{ color: '#ad3f2b' }}> · {text.groupWorkReview}</span>}
+                            </p>
+                          ))}
+                        </div>
                       )}
 
                       {detail.weak_objectives.every(o => o.members_below === 0)
