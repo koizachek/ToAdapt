@@ -422,10 +422,14 @@ class AgentOrchestrator:
 
         messages = history + [{"role": "user", "content": user_message}]
 
+        # cache_system: Agent-Prompt + Case (~3k Token) gehen bei jedem Turn
+        # identisch mit — der Anthropic-Prompt-Cache macht Folge-Turns im
+        # Input ~10x günstiger. Am Prompt-Inhalt ändert sich nichts.
         text = await self.client.complete(
             system=system,
             messages=messages,
             max_tokens=220 if agent_type == AgentType.CONCEPTUAL else 320,
+            cache_system=True,
         )
         text = _clean_response_text(text)
 
