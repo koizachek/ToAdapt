@@ -16,9 +16,13 @@ from __future__ import annotations
 import hashlib
 import hmac
 import os
+import re
 
 PSEUDONYM_SECRET_ENV = "PSEUDONYM_SECRET"
 PSEUDONYM_PREFIX = "anon-"
+
+GROUP_CODE_MAX_ENV = "GROUP_CODE_MAX"
+_GROUP_CODE_PATTERN = re.compile(r"^G([1-9]\d{0,3})$")
 
 
 def pseudonymization_enabled() -> bool:
@@ -51,3 +55,29 @@ def normalize_group_code(value: str | None) -> str:
     if raw.isdigit():
         return f"G{raw}"
     return raw
+
+
+def group_code_max() -> int:
+    """Höchste gültige Gruppennummer (Env GROUP_CODE_MAX); 0 = Validierung aus."""
+    raw = os.environ.get(GROUP_CODE_MAX_ENV, "").strip()
+    try:
+        return max(0, int(raw)) if raw else 0
+    except ValueError:
+        return 0
+
+
+def group_code_allowed(normalized: str) -> bool:
+    """Prüft einen (bereits normalisierten) Gruppencode gegen das Kurs-Schema.
+
+    Mit GROUP_CODE_MAX=360 sind genau G1–G360 gültig — Tippfehler wie 'G520'
+    oder Freitext ('TEAMA') werden beim Login abgefangen, statt später als
+    Phantom-Gruppen im Tutor-Dashboard und beim Matching der Gruppenarbeits-
+    Uploads aufzutauchen. Ohne gesetztes GROUP_CODE_MAX (Default, auch für
+    Prolific-Läufe) ist jede Selbstauskunft erlaubt. Ein leerer Code gilt
+    als erlaubt — ob eine Gruppe Pflicht ist, entscheidet der Login-Flow.
+    """
+    limit = group_code_max()
+    if limit <= 0 or not normalized:
+        return True
+    match = _GROUP_CODE_PATTERN.match(normalized)
+    return bool(match) and int(match.group(1)) <= limit

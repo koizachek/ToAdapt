@@ -33,6 +33,7 @@ const LOGIN_TEXT = {
     groupLabel: 'Gruppen-Nr. oder Gruppencode',
     groupPlaceholder: 'z.B. 12 oder G12',
     groupMissing: 'Bitte Gruppen-Nr. eingeben — dein Tutor-Team hat sie euch mitgeteilt.',
+    groupInvalid: (max: number) => `Diese Gruppen-Nr. gibt es nicht — gültig sind G1 bis G${max}. Bitte prüft die Nummer, die euer Tutor-Team mitgeteilt hat.`,
     studentAccessCode: 'Zugangscode (falls von der Lehrperson ausgegeben)',
     studentAccessError: 'Zugangscode fehlt oder ist nicht korrekt.',
     loginUnavailable: 'Anmeldung derzeit nicht möglich — bitte später erneut versuchen.',
@@ -72,6 +73,7 @@ const LOGIN_TEXT = {
     groupLabel: 'Group number or group code',
     groupPlaceholder: 'e.g. 12 or G12',
     groupMissing: 'Please enter your group number — your tutor team shared it with you.',
+    groupInvalid: (max: number) => `This group number does not exist — valid codes are G1 to G${max}. Please check the number your tutor team shared with you.`,
     studentAccessCode: 'Access code (if provided by your teacher)',
     studentAccessError: 'Access code is missing or incorrect.',
     loginUnavailable: 'Login is currently unavailable — please try again later.',
@@ -99,7 +101,7 @@ const LOGIN_TEXT = {
       'Submit and review your feedback — it shows strengths and open thinking steps, not a model solution.',
     ],
   },
-} satisfies Record<Locale, Record<string, string | string[]>>
+} satisfies Record<Locale, Record<string, string | string[] | ((max: number) => string)>>
 
 function LoginPageContent({
   prolificPid = '',
@@ -214,9 +216,32 @@ function LoginPageContent({
     } else {
       sessionStorage.removeItem('student_access_code')
     }
+    let normalizedGroup = groupCode
     try {
       const { apiFetch } = await import('@/lib/api')
-      await apiFetch('/auth/student/verify', { method: 'POST' })
+      // Verify prüft Zugangscode UND (falls konfiguriert, GROUP_CODE_MAX)
+      // den Gruppencode gegen das Kurs-Schema — Tippfehler fallen so schon
+      // beim Login auf statt als Phantom-Gruppe im Tutor-Dashboard.
+      const verify = await apiFetch<{
+        ok: boolean
+        required: boolean
+        group_code?: string
+        group_code_valid?: boolean
+        group_code_max?: number | null
+      }>('/auth/student/verify', {
+        method: 'POST',
+        body: JSON.stringify({ group_code: groupCode || null }),
+      })
+      if (verify.group_code_valid === false) {
+        setLoading(false)
+        setError(text.groupInvalid(verify.group_code_max ?? 0))
+        return
+      }
+      if (verify.group_code) {
+        // Normalisierte Schreibweise übernehmen ('12' → 'G12')
+        normalizedGroup = verify.group_code
+        sessionStorage.setItem('group_code', normalizedGroup)
+      }
     } catch (err) {
       setLoading(false)
       // Technischen Grund in die Browser-Konsole (Diagnose: falsche
@@ -235,7 +260,7 @@ function LoginPageContent({
       prolific_pid: isProlificArrival ? participantId : undefined,
       prolific_study_id: studyId || undefined,
       prolific_session_id: prolificSessionId || undefined,
-      metadata: { language, ...(groupCode ? { group_code: groupCode } : {}) },
+      metadata: { language, ...(normalizedGroup ? { group_code: normalizedGroup } : {}) },
     }))
 
     sessionStorage.setItem('matrikelnummer', participantId)
