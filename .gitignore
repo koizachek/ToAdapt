@@ -10,6 +10,7 @@ dev-docs/frontend/.next
 frontend/node_modules
 frontend/tsconfig.tsbuildinfo
 images/
+docs/
 
 # Laufzeit- und Forschungsdaten mit personenbezogenen Inhalten (Prolific-IDs,
 # Freitextantworten) — dürfen NICHT ins Repo.
