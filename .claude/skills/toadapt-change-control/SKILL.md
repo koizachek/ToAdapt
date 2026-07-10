@@ -53,7 +53,7 @@ Browser oder im Judge-Feedback bemerken KÖNNTE, ist es Klasse A (ggf. +B).
 ### Gate-Kommandos (copy-paste, vom Repo-Root)
 
 ```bash
-# Backend-Tests (90 Tests, Stand 2026-07-09; asyncio_mode=auto via pyproject.toml)
+# Backend-Tests (131 Tests, Stand 2026-07-11; asyncio_mode=auto via pyproject.toml)
 .venv/bin/python -m pytest tests/ -q
 
 # Nur Guardrail-Regression (Gate A)
@@ -288,7 +288,7 @@ Führe aus bzw. prüfe, in dieser Reihenfolge:
 - [ ] Änderung klassifiziert (A/B/C/D)? Strengstes zutreffendes Gate erfüllt?
 - [ ] `git status` + `git diff --stat` gelesen: keine echten Teilnehmerdaten,
       keine Secrets/`.env`, keine Dateien aus `~/ToAdapt_sensitive_data/`?
-- [ ] `.venv/bin/python -m pytest tests/ -q` → alles grün (90 Tests, Stand 2026-07-09)
+- [ ] `.venv/bin/python -m pytest tests/ -q` → alles grün (131 Tests, Stand 2026-07-11)
 - [ ] `.venv/bin/ruff check .` → sauber (E402-Ignores für `backend/main.py`
       und `backend/db/submission_store.py` sind beabsichtigt — `load_dotenv`
       muss dort vor den Imports laufen; nicht "aufräumen")
@@ -344,13 +344,23 @@ Update 2026-07-09 (HEAD 64b62f9): neue Unverhandelbare 2.6
 Zweistufigkeit (Golden-Case-JSON + BLOOM_CALIBRATION_ANCHORS) korrigiert,
 Wortlimit-Verweis auf question.min/max_words aktualisiert, Provenance-Tabelle
 um Research-Key/Pseudonymisierung ergänzt.
+Update 2026-07-11 (HEAD 324d937): Testbestand 90→131 (Master-Upload
+`tests/test_group_uploads.py`, LLM-Client `tests/test_llm_client.py`,
+Gruppencode-Validierung `tests/test_group_code_validation.py`,
+Lasttest-Tooling `tests/test_load_test_tools.py`). Neu zu beachten:
+Fallback-Modelle (OPENROUTER_FALLBACK_MODELS) sind eine MODELLWAHL für
+studierendensichtbare Chats → vor dem Scharfschalten Tutor-Eval-Vergleich
+(wie Klasse-A-Prompt-Regel, s. toadapt-tutor-response-evaluation);
+Lasttests NIE gegen Produktions-Mongo (find_dotenv-Falle — Vorfall
+2026-07-10, s. toadapt-failure-archaeology; Isolations-Overrides im
+Docstring von scripts/load_test.py).
 
 Drift-anfällige Fakten und ihr
 Re-Verifikations-Kommando (vom Repo-Root):
 
 | Fakt (Stand 2026-07-08) | Re-Verifikation |
 |---|---|
-| 90 Backend-Tests, alle grün (Stand 2026-07-09; vorher 48) | `.venv/bin/python -m pytest tests/ -q` |
+| 131 Backend-Tests, alle grün (Stand 2026-07-11; vorher 48→90) | `.venv/bin/python -m pytest tests/ -q` |
 | Approve-Gate: 422 + `force`-Override, geloggt | `grep -n "force\|422\|case_approved" backend/admin/routes.py` |
 | Reservierte Case-Namen im Validator | `grep -n "RESERVED_CASE_TERMS" backend/cases/validator.py` |
 | `require_api_key` fail-closed (503) | `grep -n "503\|SERVICE_UNAVAILABLE" backend/auth.py` |

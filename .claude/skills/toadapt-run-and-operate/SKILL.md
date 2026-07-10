@@ -296,6 +296,7 @@ liegt IMMER davor (prozesslokal).
 | Dashboard-Ergebnisse (evaluierte Scores; Dokumente tragen seit 2026-07-09 zusätzlich `group_code`, `answer_stats` (Tipp-/Paste-Telemetrie) und `feedback_requests`) | `dashboard_results` (`MONGODB_DASHBOARD_COLLECTION`) | Dateien `backend/db/submissions/*.json` | `backend/db/dashboard_store.py` |
 | Forschungs-Events (jeder Chat-Turn, jede Submission) | `experiment_events` (`MONGODB_COLLECTION`) | **KEINER — Events werden stillschweigend verworfen** | `backend/db/experiment_logger.py` |
 | Cases | `cases` (fest) | Dateien `backend/cases/pool/*.json` (kuratierte Cases sind zusätzlich im Repo/Image) | `backend/cases/manager.py` |
+| Gruppenarbeits-Uploads (seit 2026-07-10: Bewertungsergebnisse des Master-Uploads — Dateiname, Gruppencode, Scores; die PDFs selbst werden NIE gespeichert) | `group_uploads` (`MONGODB_GROUP_UPLOADS_COLLECTION`) | Dateien `backend/db/group_uploads/*.json` | `backend/db/group_upload_store.py` |
 
 Datenbank-Name: `MONGODB_DATABASE` (Default `toadapt`).
 
@@ -446,6 +447,16 @@ Regeln:
 ---
 
 ## Provenance und Wartung
+
+Update 2026-07-11 (HEAD `324d937`): Neue Datenablage `group_uploads`
+(Master-Upload für Gruppenarbeiten; Upload-Reiter erscheint nur beim Login
+mit dem Master-Code `TEACHER_ARCHIVE_CODE`). Neue Betriebs-Skripte:
+`scripts/load_test.py` (Lasttest für Rollout-Gate W1, Markdown-Protokoll
+mit p95-Gates) + `scripts/llm_stub.py` (OpenRouter-Imitat für kostenlose
+Last-/Smoke-Tests). ACHTUNG beim "isolierten" Backend-Start: load_dotenv
+findet die Repo-.env über den MODULPFAD — für Tests Mongo-Variablen explizit
+überschreiben (MONGODB_MAS_NAME='' … oder MONGODB_DATABASE=toadapt_staging);
+realer Vorfall 2026-07-10, s. toadapt-failure-archaeology.
 
 Erstellt: 2026-07-08. Alle curl-Antworten in §2 wurden an diesem Tag gegen
 einen lokal gestarteten Server verifiziert; Deploy-Zustand (Railway/Vercel

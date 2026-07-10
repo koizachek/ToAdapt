@@ -106,7 +106,7 @@ JSON-Zeilen mit dem Event-Namen im Feld `"event"`; lokal Console-Format.
 
 | Event | Level | Felder / Interpretation |
 |---|---|---|
-| `llm_call_completed` | info | `model`, `prompt_tokens`, `completion_tokens`, `total_tokens` — pro OpenRouter-Call, **egal ob Agent-Chat, Judge-Evaluation oder Case-Generierung** (gemeinsamer Client). Für Kostenkontrolle über einen Zeitraum: `total_tokens` aufsummieren und mit den OpenRouter-Preisen des Modells multiplizieren |
+| `llm_call_completed` | info | `model`, `prompt_tokens`, `completion_tokens`, `total_tokens` — pro OpenRouter-Call, **egal ob Agent-Chat, Judge-Evaluation, Gruppenarbeits-Judge oder Case-Generierung** (gemeinsamer Client). Seit 2026-07-10 zusätzlich: `served_model` + `fallback_used` (OpenRouter-Fallback-Routing hat übernommen?) und `cached_tokens` (Prompt-Cache-Treffer; > 0 ab dem 2. Chat-Turn = Caching wirkt). Für Kostenkontrolle: `total_tokens` aufsummieren × Modellpreis; gecachte Anteile kosten nur ~10 % Input |
 
 ### Chat & Guardrails (`backend/agents/orchestrator.py`, `backend/api/routes.py`, `backend/evaluator/formative_feedback.py`)
 
@@ -128,6 +128,17 @@ JSON-Zeilen mit dem Event-Namen im Feld `"event"`; lokal Console-Format.
 | `style_contains_emoji` | Emoji (Unicode-Kategorie So) in der Antwort |
 | `direct_recommendation_or_template` | Empfehlungs-/Textbaustein-Muster (`RECOMMENDATION_PATTERNS` + Regexe) |
 | `case_speculation_outside_context` | Agent spekuliert über Fakten außerhalb des Case-Materials (`CASE_SPECULATION_PATTERNS`) |
+
+### Gruppenarbeits-Upload (`backend/group_uploads/`, seit 2026-07-10)
+
+| Event | Level | Felder / Bedeutung |
+|---|---|---|
+| `group_upload_batch_processed` | info | `batch_id`, `target_tp`, `total`, `evaluated`, `unassigned`, `failed` — ein Master-Upload (ZIP) wurde verarbeitet; `unassigned` = Deckblatt ohne erkennbaren Gruppenindikator (Review-Liste im Upload-Reiter), `failed` = PDF nicht lesbar |
+| `group_upload_extraction_failed` | warning | `filename`, `error` — PDF ohne extrahierbaren Text (Scan ohne OCR?) |
+| `group_evaluation_json_parse_failed` / `group_evaluation_json_repair_failed` | warning/error | Judge-JSON der Gruppenarbeit invalide; nach Repair-Fehlschlag → `technical_fallback` (0 Punkte, Review-Flag) |
+| `group_evaluation_llm_failed` | error | `upload_id`, `error` — Transportfehler (Timeout/429); NUR dieses Dokument fällt auf `technical_fallback`, der Batch läuft weiter |
+| `group_upload_group_assigned` | info | `upload_id`, `group_code` — manuelle Nachzuordnung im Review |
+| `group_upload_store_save_failed` / `_load_failed` | warning | Mongo-Fehler des Upload-Stores (Datei-Fallback greift) |
 
 ### Evaluator / Judge (`backend/evaluator/rubric_evaluator.py`, `backend/api/routes.py`)
 
@@ -373,6 +384,13 @@ Working Tree derzeit nicht, dann liefert es leere Listen).
 ---
 
 ## Provenance und Wartung
+
+Update 2026-07-11 (HEAD `324d937`): `llm_call_completed` um
+`served_model`/`fallback_used`/`cached_tokens` erweitert; neues Event-Kapitel
+Gruppenarbeits-Upload (`group_upload_*`, `group_evaluation_*`). Neu für
+Smoke-/Lasttests: `scripts/llm_stub.py` (imitiert OpenRouter lokal, Antworten
+bestehen Guardrail + Evaluator-Pipeline) und `scripts/load_test.py`
+(W1-Gate-Protokoll; Mongo-Isolations-Warnung im Docstring beachten).
 
 Erstellt: 2026-07-08 gegen Commit-Stand `141bb63` (main, HEAD nach dem
 filter-repo-Rewrite vom 2026-07-08). Alle Pfade,

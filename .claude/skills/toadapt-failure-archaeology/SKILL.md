@@ -79,6 +79,7 @@ existiert.** Sie dokumentieren die verworfene Gruppen-Echtzeit-Architektur
 | 9 | Teacher-Alignment / q4-Schwäche | 2026-05-31 → offen | **offen** → Campaign-Skill |
 | 10 | PII-Vorfall + History-Rewrite | bis 2026-07-08 | umgangen; **Restrisiko offen** |
 | 11 | Duplizierte Juni-Historie (Rebase-Unfall) | 2026-06-18 / 2026-07-08 | gelöst; Branch-Cleanup offen |
+| 12 | Lasttest traf Produktions-Mongo (find_dotenv-Falle) | 2026-07-10 | behoben (Daten bereinigt), dokumentiert |
 
 ---
 
@@ -329,6 +330,33 @@ existiert.** Sie dokumentieren die verworfene Gruppen-Echtzeit-Architektur
 
 ---
 
+## 12. Lasttest gegen die Produktions-Mongo (die find_dotenv-Falle, 2026-07-10)
+
+- **Symptom:** Ein "isoliert" gestarteter Lasttest-Probelauf (Backend aus
+  fremdem Arbeitsverzeichnis, LLM auf Stub, keine Mongo-Variablen gesetzt)
+  zeigte 26-s-Latenzen und Timeouts schon bei 60 simulierten Studierenden —
+  und schrieb dabei 643 Testdatensätze in die ECHTE Atlas-Datenbank.
+- **Root Cause:** `load_dotenv()` in `backend/main.py` sucht die `.env` per
+  `find_dotenv` vom **Modulpfad** aus, nicht vom Arbeitsverzeichnis — ein
+  Start außerhalb des Repos lädt trotzdem die Repo-.env mit den
+  MAS-Credentials. Explizit gesetzte Env-Variablen gewinnen zwar
+  (LLM-Stub griff), aber die NICHT gesetzten Mongo-Variablen kamen aus der
+  .env. Die Latenz war der zweite Lerneffekt: synchrone pymongo-Writes pro
+  Request über eine Transatlantik-Strecke sättigen den Default-Threadpool
+  (`asyncio.to_thread`) — Backend und Atlas MÜSSEN in derselben Region
+  liegen, sonst misst ein Lasttest nur das Netz.
+- **Bereinigung:** Gleiche Session, chirurgisch per eindeutig synthetischer
+  Kennungen (`lasttest-NNNN`/`probe`, Matrikel `00-NNN-000`): 64 sessions,
+  43 submission_states, 43 dashboard_results, 491 experiment_events,
+  2 group_uploads gelöscht; Restbestände verifiziert (17 dashboard_results,
+  1.466 events unangetastet). Wiederholungslauf mit Mongo aus: alle
+  W1-Gates PASS (Chat p95 1,6 s statt 56 s).
+- **Beleg:** Commit `324d937` (Warnung + Env-Overrides im Docstring von
+  `scripts/load_test.py`); ROLLOUT_CHECKLIST.md W1.
+- **Status:** Behoben/dokumentiert. Regel daraus: Vor jedem Test-Start mit
+  echtem Backend-Code IMMER `mongo_connection_mode` im Startup-Log prüfen —
+  `mas_credentials` heißt: du redest mit der Produktion.
+
 ## Churn-Hotspot-Tabelle (Stand: 2026-07-08)
 
 Erzeugt mit:
@@ -361,6 +389,9 @@ verdienen besondere Sorgfalt und Tests (`toadapt-validation-and-qa`).
 | `141bb63` | 2026-07-08 | CI-pytest scheiterte, weil das `backend`-Paket im Repo-Root liegt → `PYTHONPATH=.` in `.github/workflows/ci.yml` |
 
 ## Provenance und Wartung
+
+Update 2026-07-11: Eintrag 12 (Lasttest gegen Produktions-Mongo /
+find_dotenv-Falle, 2026-07-10) ergänzt.
 
 Erstellt: 2026-07-08, gegen den damaligen Stand von `main` (92 Commits,
 HEAD `141bb63`) verifiziert. Alle Kommandos vom Repo-Root

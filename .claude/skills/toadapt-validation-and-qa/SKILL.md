@@ -90,7 +90,7 @@ Für vollständige Start-Anleitung (Env-Variablen, Frontend-Kopplung, Mongo):
 
 ---
 
-## 2. Test-Landkarte (Stand: 2026-07-09, 90 Tests)
+## 2. Test-Landkarte (Stand: 2026-07-11, 131 Tests)
 
 Alle Tests liegen flach in `tests/` (kein `conftest.py`, kein `__init__.py`).
 Konfiguration in `pyproject.toml`: `asyncio_mode = "auto"` (async-Tests
@@ -114,6 +114,10 @@ brauchen keinen Decorator), `testpaths = ["tests"]`.
 | `tests/test_compare_teacher_rubric_scores.py` | 1 | Forschungs-Skript: Lehrer-Workbook ist kanonischer Scope, rubric-only-Zeilen by design ausgeschlossen |
 | `tests/test_import_prolific_runs.py` | 1 | Forschungs-Skript: Rohdaten-Import + SHA-256-Manifest, ignoriert `.DS_Store` |
 | `tests/test_publish_dashboard_scores.py` | 1 | Forschungs-Skript: publiziert nur `status=="evaluated"` mit Scores, zählt Fallbacks/Review-Flags |
+| `tests/test_group_uploads.py` (NEU 2026-07-10) | 14 | Master-Upload Gruppenarbeiten: ZIP-/PDF-Extraktion pur (minimales synthetisches PDF, Deckblatt-Parsing `Gruppe 12`→`G12`, Cover-only-Matching), fail-closed Auth (503/401), Upload-Flow mit gemocktem LLM (Zuordnung, TP-Punkteskala), `technical_fallback` bei Parse- UND Transportfehlern, unlesbares PDF → Report statt Crash, PATCH-Gruppenzuordnung, Dashboard-Merge beider Datenquellen (Gruppen ohne Individual-Submissions bleiben sichtbar, keine Einzelkennungen) |
+| `tests/test_llm_client.py` (NEU 2026-07-10) | 9 | LLM-Client: Prompt-Caching-Verpackung (`cache_control`-Block, byte-identischer Inhalt), `LLM_PROMPT_CACHING`-Off-Switch, `OPENROUTER_FALLBACK_MODELS`-Parsing, `models`-Routing-Liste in `extra_body`, leere Antwort → RuntimeError — via Stub statt echtem LLM |
+| `tests/test_group_code_validation.py` (NEU 2026-07-11) | 9 | `GROUP_CODE_MAX`: Grenzen (G1/G360 ok, G0/G361/Freitext nicht), leer/ungültig = Validierung aus, `/auth/student/verify`-Feedback (normalisiert + valid-Flag, ohne Body abwärtskompatibel), 422 bei Session-/Submission-Erstellung |
+| `tests/test_load_test_tools.py` (NEU 2026-07-10) | 6 | Lasttest-Tooling: Stub-Chat-Antwort besteht `guardrail_check` (TP1–4), Stub-Judge-JSON besteht `parse_evaluation_payload`, Perzentil-/Status-Aggregation, GATE-W1-Auswertung im Report |
 
 ### Was NICHT abgedeckt ist (ehrlich)
 
@@ -372,7 +376,7 @@ Wissenswert:
 
 ### Test-Baseline
 
-- **90 Tests grün ist die Basis (Stand 2026-07-09; vorher 48) — nie
+- **131 Tests grün ist die Basis (Stand 2026-07-11; vorher 48→90) — nie
   unterschreiten.**
   Tests dürfen nur ersetzt/entfernt werden, wenn das getestete Feature selbst
   entfernt wird (dann: `toadapt-change-control`). Neue Features ohne neuen
@@ -432,6 +436,12 @@ Projekt-Doktrin — siehe `toadapt-change-control`.
 ---
 
 ## Provenance und Wartung
+
+Update 2026-07-11 (HEAD `324d937`): Test-Baseline 90 → 131; Landkarte um
+test_group_uploads (14), test_llm_client (9), test_group_code_validation (9),
+test_load_test_tools (6) ergänzt. Neues Muster darin: LLM-Stub-Antworten
+werden gegen die ECHTEN Pfade getestet (guardrail_check,
+parse_evaluation_payload), damit Lasttests reale Verarbeitung messen.
 
 Erstellt: 2026-07-08. Alle Fakten am 2026-07-08 gegen das Repo verifiziert
 (48/48 Tests lokal grün, ruff sauber, PYTHONPATH-Falle reproduziert).

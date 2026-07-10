@@ -369,7 +369,15 @@ So hängt Tool und Kurs zusammen (Klärung der Ownerin, Stand 2026-07-09):
    Pflichtfeld außer bei Prolific-URL-Ankunft; normalisiert `'12'→'G12'`
    via `backend/anonymize.py::normalize_group_code`); Session und
    Submission tragen den `group_code`. Die Gruppenabgabe (Slides/Memo/
-   Decision Log/Strategy-on-a-Page, s. §2) entsteht AUSSERHALB des Tools.
+   Decision Log/Strategy-on-a-Page, s. §2) entsteht AUSSERHALB des Tools —
+   seit 2026-07-10 kann der Master-Tutor sie aber als ZIP hochladen
+   (`/upload`-Reiter): jedes PDF wird per Deckblatt-Indikator ("Gruppe 12")
+   seiner Gruppe zugeordnet und vom Judge gegen die TP-Rubric des gewählten
+   Touchpoints bewertet (`backend/group_uploads/`, Punkteskala des Golden
+   Case: 25/24/22/30). Die Ergebnisse erscheinen als ZWEITE Datenquelle in
+   den Gruppen-Aggregaten (`group_work_count`, `group_work_avg_pct`,
+   `group_work`-Liste im GroupDetail) — weiterhin Gruppenebene, keine
+   Einzelkennungen; die Bewertung ist formativ-informierend, kein Grading.
 3. Der Tutor (ÜGL) **assessed die GRUPPE in der Präsenzphase** —
    "assessed" heißt: beurteilt formativ, benotet NICHT.
 4. Das Tool liefert dem Tutor **NUR Gruppen-Aggregate**:
@@ -454,6 +462,11 @@ erwähnt werden, nie als Inhalt.
 | SGMM | St.Galler Management-Modell — erlaubtes Denkwerkzeug in `allowed_frameworks` (Umwelt-Organisation-Spannungsfeld); als Name in Case-Texten unkritisch, taucht aber studierendensichtbar im Tool nicht auf. |
 
 ## Provenance und Wartung
+
+Update 2026-07-11: Assessment-Modell um den Master-Upload der
+Gruppenarbeiten ergänzt (zweite Datenquelle in den Gruppen-Aggregaten,
+Commit `6350dca`); Gruppencode-Selbstauskunft wird seit `935e1ed` optional
+gegen das Kurs-Schema validiert (GROUP_CODE_MAX, 422 bei Tippfehlern).
 
 Erstellt: 2026-07-08 gegen den damaligen Stand von main (HEAD `141bb63`,
 nach dem filter-repo-Rewrite vom 2026-07-08).

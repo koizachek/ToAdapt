@@ -65,6 +65,8 @@ NICHT das Anthropic-SDK, egal was ältere Doku sagt.
 | `LLM_TIMEOUT_SECONDS` | Timeout pro LLM-Call | `60` | nein | Zu klein → Evaluator-Fehlschläge (technical_fallback); zu groß → hängende Requests unter Last. |
 | `LLM_MAX_RETRIES` | SDK-Retries (429/5xx, exponentielles Backoff) | `2` | nein | Zu hoch → Kostenmultiplikator bei Ausfällen. |
 | `LLM_MAX_CONCURRENCY` | Globales Semaphor pro Event-Loop | `16` | nein | Zu hoch → OpenRouter-Rate-Limits; zu niedrig → Warteschlangen unter Peak-Last. |
+| `OPENROUTER_FALLBACK_MODELS` (seit 2026-07-10) | Kommagetrennte Fallback-Modelle fürs native OpenRouter-Model-Routing (`models`-Liste); bei Ausfall/Drosselung des primären Modells antwortet automatisch das nächste (`backend/llm.py::fallback_models`) | leer = kein Fallback | empfohlen (nach Validierung) | Der Fallback spricht im Störungsfall studierendensichtbar → Kandidat (gleiche Preisklasse) VOR dem Setzen per Tutor-Eval-Vergleich prüfen. Log zeigt `served_model`/`fallback_used`. |
+| `LLM_PROMPT_CACHING` (seit 2026-07-10) | Prompt-Caching für den Chat-System-Prompt (Anthropic `cache_control` via OpenRouter; Agent-Prompt + Case ~3k Token → Folge-Turns ~10 % Input-Preis; `backend/llm.py::build_request_messages`) | `1` (an) | nein | `0` nur zum Debuggen — Abschalten verdreifacht grob die Chat-Input-Kosten. Wirkung im Log: `cached_tokens` in `llm_call_completed`. |
 
 ### Auth & Zugriff
 
@@ -98,6 +100,7 @@ Host eine URI gebaut.
 | `MONGODB_SUBMISSIONS_COLLECTION` | Submission-States | `submission_states` | nein | — |
 | `MONGODB_SESSIONS_COLLECTION` | Chat-Sessions | `sessions` | nein | — |
 | `MONGODB_DASHBOARD_COLLECTION` | Dashboard-Ergebnisse | `dashboard_results` | nein | — |
+| `MONGODB_GROUP_UPLOADS_COLLECTION` (seit 2026-07-10) | Bewertete Gruppenarbeits-Uploads des Master-Tutors (`backend/db/group_upload_store.py`) | `group_uploads` | nein | — |
 
 ### Betrieb / Observability
 
@@ -359,6 +362,17 @@ Ziel: Ein neuer Wert soll per Env steuerbar sein statt hartkodiert.
 ---
 
 ## Provenance und Wartung
+
+Update 2026-07-11 (HEAD `324d937`): +OPENROUTER_FALLBACK_MODELS,
++LLM_PROMPT_CACHING (LLM-Client), +MONGODB_GROUP_UPLOADS_COLLECTION
+(Master-Upload-Store), +GROUP_CODE_MAX (Gruppencode-Validierung, s. Auth-
+Tabelle); Frontend: TEACHER_ARCHIVE_CODE ist seit 2026-07-10 zugleich
+MASTER-LOGIN-Code (setzt das signierte Master-Flag im Teacher-Cookie —
+Upload-Reiter, /upload-Middleware, /group-uploads-Proxy-Gate; vorher nur
+Archiv-Bestätigung). Neue Magic Numbers (backend/group_uploads/):
+MAX_ZIP_ENTRIES=200, MAX_PDF_BYTES=25MB, MAX_TOTAL_BYTES=300MB,
+MAX_TEXT_CHARS=24000, MAX_UPLOAD_BYTES=100MB (ZIP roh),
+GROUP_TP_MAX_POINTS={1:25, 2:24, 3:22, 4:30} (Skala des Golden Case).
 
 Erstellt: 2026-07-08, verifiziert gegen den damaligen `main`-Stand
 (HEAD `141bb63`, nach dem filter-repo-Rewrite vom 2026-07-08).

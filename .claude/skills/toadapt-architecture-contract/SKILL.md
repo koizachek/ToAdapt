@@ -52,7 +52,7 @@ IST-Zustand. Bei Widerspruch gilt diese Skill bzw. der Code.
 
 ---
 
-## 1. Ist-Architektur (Stand: 2026-07-09)
+## 1. Ist-Architektur (Stand: 2026-07-11)
 
 ```
   Browser (Studierende + Lehrkraft)
@@ -81,7 +81,7 @@ IST-Zustand. Bei Widerspruch gilt diese Skill bzw. der Code.
                                    ┌────────────────┤  Default-Modell: │
                                    │ MongoDB Atlas  │  anthropic/      │
                                    │ (OPTIONAL!)    │  claude-sonnet-  │
-                                   │ 5 Collections  │  4.5             │
+                                   │ 6 Collections  │  4.5             │
                                    └────────────────┘└──────────────────┘
                                    Fallback ohne Mongo:
                                    JSON-Dateien im Container-FS
@@ -98,8 +98,8 @@ Agent-Antwort ist ein einzelner HTTP-POST-Roundtrip.
 | # | Pfad | Mechanismus | Quelle | Verhalten ohne Config |
 |---|---|---|---|---|
 | 1 | Studenten-Flow (`/sessions`, `/submissions`, `/auth/student/verify`, `/tp`, `…/coverage`, `…/feedback`) | Header `X-Student-Access-Code`, Vergleich per `hmac.compare_digest` gegen Env `STUDENT_ACCESS_CODE`; Frontend hält den Code in `sessionStorage` | `backend/auth.py` (`require_student_access`, Router-Dependency in `backend/api/routes.py:44`), `frontend/lib/api.ts` | **OFFEN** (Dev-/Prolific-Modus); Startup loggt Warnung `student_flow_open` |
-| 2 | Teacher-Browser-Session (`/admin/*`- und `/dashboard/*`-SEITEN) | Signiertes httpOnly-Cookie `teacher_session` (HMAC-SHA256 via Web Crypto, 12 h Ablauf, Secret `TEACHER_SESSION_SECRET`); das Cookie trägt die **Tutor-Kennung**. Login: POST `/teacher-login` prüft Einzelcodes aus `TEACHER_ACCESS_CODES` (Frontend-Env, JSON kennung→code, `resolveTutorByCode`; Generator `scripts/generate_tutor_codes.py`), Legacy-`TEACHER_ACCESS_CODE` bleibt Fallback (Kennung "teacher") — **fail-closed** (kein Code konfiguriert = kein Zugang); `frontend/middleware.ts` schützt `/admin/:path*` + `/dashboard/:path*` | `frontend/lib/teacherAuth.ts`, `frontend/app/teacher-login/route.ts` | Login unmöglich (fail-closed) |
-| 3 | Backend-API-Key (alle `/dashboard/*`-Endpoints, schreibende `/admin`-Routen, `/health/diagnostics`) | Header `X-API-Key` = Env `TOADAPT_API_KEY`, `hmac.compare_digest`; **fail-closed: 503 wenn kein Key konfiguriert** | `backend/auth.py` (`require_api_key`), `backend/dashboard/routes.py:19` (Router-weit), `backend/admin/routes.py` (pro Route) | 503 auf allen geschützten Routen |
+| 2 | Teacher-Browser-Session (`/admin/*`- und `/dashboard/*`-SEITEN) | Signiertes httpOnly-Cookie `teacher_session` (HMAC-SHA256 via Web Crypto, 12 h Ablauf, Secret `TEACHER_SESSION_SECRET`); das Cookie trägt die **Tutor-Kennung + Master-Flag** (seit 2026-07-10: Login mit dem Master-Code `TEACHER_ARCHIVE_CODE` setzt `master:true`; nur dann zeigt die Nav den Upload-Reiter, schützt die Middleware `/upload` und lässt der Proxy `/group-uploads`-Pfade durch — sonst 403). Login: POST `/teacher-login` prüft Einzelcodes aus `TEACHER_ACCESS_CODES` (Frontend-Env, JSON kennung→code, `resolveTutorByCode`; Generator `scripts/generate_tutor_codes.py`), Legacy-`TEACHER_ACCESS_CODE` bleibt Fallback (Kennung "teacher") — **fail-closed** (kein Code konfiguriert = kein Zugang); `frontend/middleware.ts` schützt `/admin/:path*` + `/dashboard/:path*` + `/guide/:path*` + `/upload/:path*` (Master-only) | `frontend/lib/teacherAuth.ts`, `frontend/app/teacher-login/route.ts` | Login unmöglich (fail-closed) |
+| 3 | Backend-API-Key (alle `/dashboard/*`- und `/group-uploads`-Endpoints, schreibende `/admin`-Routen, `/health/diagnostics`) | Header `X-API-Key` = Env `TOADAPT_API_KEY`, `hmac.compare_digest`; **fail-closed: 503 wenn kein Key konfiguriert** | `backend/auth.py` (`require_api_key`), `backend/dashboard/routes.py:19` (Router-weit), `backend/admin/routes.py` (pro Route) | 503 auf allen geschützten Routen |
 | 4 | Forschungs-Key (Einzelpersonen-Endpoints `/dashboard/students`, `/dashboard/student/{m}`, `/dashboard/difficulties`) | Header `X-Research-Key` = Env `RESEARCH_API_KEY`, **zusätzlich** zum `X-API-Key` (Route-Dependency `require_research_key`); fail-closed 503 ohne Key, 401 bei falschem Key. BEWUSST ein anderer Key als `TOADAPT_API_KEY`: der Teacher-Proxy kennt nur `TOADAPT_API_KEY` → Tutor:innen bekommen auf Einzelprofilen 401, **das ist gewollt** | `backend/auth.py` (`require_research_key`), `backend/dashboard/routes.py` | 503 auf den Forschungs-Routen |
 
 Pfad 2 und 3 sind verkettet: Der Browser spricht NIE direkt mit den
@@ -151,7 +151,7 @@ approve, reject, retire) verlangen den API-Key.
 
 ### D3: Mongo primär, Datei-Fallback, App bootet ohne beides
 
-- **Was:** 5 Persistenz-Pfade, alle nach demselben Muster: Mongo-Verbindung
+- **Was:** 6 Persistenz-Pfade, alle nach demselben Muster: Mongo-Verbindung
   mit `serverSelectionTimeoutMS=2000`; nach einem Verbindungsfehler 30 s
   Backoff, in dem sofort der Fallback greift (`backend/db/mongo.py`,
   eigenständige Kopien der Logik in `submission_store.py` und
@@ -164,6 +164,7 @@ approve, reject, retire) verlangen den API-Key.
 | Dashboard-Ergebnisse | `backend/db/dashboard_store.py` | `dashboard_results` | JSON in `backend/db/submissions/` (write-through) |
 | Case-Pool | `backend/cases/manager.py` | `cases` | JSON in `backend/cases/pool/` (write-through; Mongo gewinnt bei gleicher case_id) |
 | Forschungs-Events | `backend/db/experiment_logger.py` | `experiment_events` | **keiner** — Events werden ohne Mongo verworfen (nur Warn-Log) |
+| Gruppenarbeits-Uploads (seit 2026-07-10) | `backend/db/group_upload_store.py` | `group_uploads` | JSON in `backend/db/group_uploads/` (write-through); die PDFs selbst werden NIE persistiert — nur Bewertungsergebnisse |
 
 - **Warum:** Das Railway-Dateisystem ist ephemer — bei jedem Redeploy weg.
   Mongo ist die einzige überlebende Quelle in Produktion; die Dateiablage
@@ -209,15 +210,27 @@ approve, reject, retire) verlangen den API-Key.
   fehlende Env-Variable. Der `X-API-Key` darf niemals in Client-Code,
   `NEXT_PUBLIC_*`-Variablen oder Browser-Requests auftauchen.
 
-### D6: Ein geteilter LLM-Client mit Semaphore/Retry/Timeout
+### D6: Ein geteilter LLM-Client mit Semaphore/Retry/Timeout/Caching/Fallback
 
 - **Was:** `backend/llm.py` — ein `AsyncOpenAI`-Client pro API-Key
   (Connection-Reuse), `timeout=LLM_TIMEOUT_SECONDS` (Default 60),
   `max_retries=LLM_MAX_RETRIES` (Default 2, SDK-Backoff bei 429/5xx),
   globale `asyncio.Semaphore` pro Event-Loop mit `LLM_MAX_CONCURRENCY`
   (Default 16), Token-Verbrauch wird pro Call geloggt
-  (`llm_call_completed`). Provider ist **OpenRouter** über das OpenAI-SDK —
-  NICHT das Anthropic-SDK (die README-Zeile "Anthropic API" ist falsch).
+  (`llm_call_completed`, seit 2026-07-10 inkl. `served_model`,
+  `fallback_used`, `cached_tokens`). Provider ist **OpenRouter** über das
+  OpenAI-SDK — NICHT das Anthropic-SDK (die README-Zeile "Anthropic API"
+  ist falsch). Seit 2026-07-10 (Commit `5b9ecf2`) zusätzlich:
+  (a) **Prompt-Caching** — `complete(..., cache_system=True)` verpackt den
+  System-Prompt als Content-Block mit `cache_control: ephemeral`
+  (byte-identischer Inhalt); genutzt vom Chat-Pfad (Agent-Prompt + Case
+  ~3k Token → Folge-Turns ~10 % Input-Preis). Default an, Off-Switch
+  `LLM_PROMPT_CACHING=0`. (b) **Fallback-Routing** —
+  `OPENROUTER_FALLBACK_MODELS` (kommagetrennt) geht als `models`-Liste ins
+  native OpenRouter-Model-Routing; bei Ausfall/Drosselung des primären
+  Modells beantwortet automatisch das nächste Modell den Request. Bewusst
+  ohne Default: Der Kandidat spricht im Störungsfall studierendensichtbar
+  → vor dem Scharfschalten Tutor-Eval-Vergleich (Owner-Regel).
 - **Warum:** Client-pro-Request und ungebremste Parallelität hatten unter
   Last keine Chance (Event-Loop-Blocking-Historie mit dem früheren
   Anthropic-SDK, Wechsel zu OpenRouter in Commit `1fb727e`).
@@ -324,7 +337,18 @@ neue Endpoints /tp + coverage/feedback + /dashboard/groups; neue Invarianten
 6–8 (Gruppen-Aggregate für Tutor:innen, Pseudonymisierung am Eingang,
 embedded-first Rubric); Schwachstellen "kein Gruppenkonzept",
 "target_tp hartkodiert", "Glossar/Canvas-Hardcodes" als BEHOBEN markiert;
-Zeilenangaben nachgezogen. Alle Zeilenangaben sind
+Zeilenangaben nachgezogen.
+Update 2026-07-11 (HEAD `324d937`): 6. Store (Gruppenarbeits-Uploads,
+Commit `6350dca` — Master-Upload ZIP→Judge nach TP-Rubrics, Mongo-Collection
+`group_uploads`, PDFs werden nie persistiert); Teacher-Cookie um Master-Flag
+erweitert (TEACHER_ARCHIVE_CODE ist zugleich Master-Login-Code; Proxy gated
+`/group-uploads`, Middleware `/upload`); D6 um Prompt-Caching
+(`cache_system`, LLM_PROMPT_CACHING) und Fallback-Routing
+(OPENROUTER_FALLBACK_MODELS) erweitert (Commit `5b9ecf2`);
+Gruppencode-Validierung GROUP_CODE_MAX am Eingang (Commit `935e1ed`,
+ergänzt Invariante 7-Umfeld: 422 statt Phantom-Gruppen);
+Lasttest-Tooling `scripts/load_test.py` + `scripts/llm_stub.py`
+(Commit `324d937`). Alle Zeilenangaben sind
 zirka-Werte und drift-anfällig. Re-Verifikation pro Fakt (vom Repo-Root):
 
 | Fakt | Re-Verifikations-Kommando |
@@ -344,4 +368,8 @@ zirka-Werte und drift-anfällig. Re-Verifikation pro Fakt (vom Repo-Root):
 | Rubric embedded-first | `grep -n "_embedded_rubric\|lru_cache" backend/evaluator/rubric_loader.py` |
 | Judge-Fallback intakt | `grep -n "technical_fallback" backend/evaluator/rubric_evaluator.py` |
 | WEB_CONCURRENCY-Warnung | `grep -n "WEB_CONCURRENCY" railway.toml` |
-| Commit-Belege existieren | `git log --oneline --all \| grep -E "e2cc925\|8df4cfd\|1fb727e"` |
+| Gruppenarbeits-Upload: Router fail-closed, PDFs nur in-memory | `grep -n "require_api_key\|extract_pdf_text" backend/group_uploads/routes.py` |
+| Master-Flag im Teacher-Cookie + Proxy-Gate | `grep -n "master" frontend/lib/teacherAuth.ts "frontend/app/api/teacher/[...path]/route.ts"` |
+| Prompt-Caching + Fallback-Routing im LLM-Client | `grep -n "cache_system\|fallback_models\|LLM_PROMPT_CACHING" backend/llm.py` |
+| Gruppencode-Validierung (GROUP_CODE_MAX) | `grep -n "group_code_allowed\|GROUP_CODE_MAX" backend/anonymize.py backend/api/routes.py` |
+| Commit-Belege existieren | `git log --oneline --all \| grep -E "e2cc925\|8df4cfd\|1fb727e\|6350dca\|5b9ecf2\|935e1ed"` |

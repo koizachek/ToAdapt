@@ -244,6 +244,13 @@ Alle fünf grün? Umgebung steht. Weiter mit `toadapt-run-and-operate`
 
 ## Provenance und Wartung
 
+Update 2026-07-11 (HEAD `324d937`): requirements.txt um `pypdf` (PDF-Text-
+extraktion Master-Upload) und `python-multipart` (FastAPI-Multipart für den
+ZIP-Upload) erweitert — bei `ModuleNotFoundError: pypdf/multipart` das venv
+mit `pip install -r requirements.txt` auffrischen. Lokal (nicht in
+requirements.txt, nur Doku-Werkzeuge): python-docx + matplotlib für das
+DSB-Dokument.
+
 Erstellt: 2026-07-08. Jede Zeile gegen das Repo verifiziert (Tests, uvicorn-Boot,
 curl, tsc, eslint am 2026-07-08 real ausgeführt).
 
