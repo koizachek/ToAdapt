@@ -59,7 +59,8 @@ Bei Widerspruch zwischen Doku und Code gewinnt der Code.**
 | `CLAUDE.md` | **FOSSIL** (gitignored, nur lokal) | Lehrdesign-Abschnitte (Constructive Alignment, Anti-Pattern-Design, Guardrail-Regeln 1–10) — die gelten weiter | Architektur, Verzeichnisstruktur, Datenmodelle, "Geklärte Design-Entscheidungen" — beschreibt ein NIE fertig gebautes Gruppen-System |
 | `TODO.md` | **FOSSIL** (seit 2026-07-09 committet, Commit `d11ca96` — vorher untracked) | Historisches Security-Review-Transkript; Verständnis, warum Commit `8b21fc1` was härtete | Als aktuelle TODO-Liste — die Punkte sind großteils behoben (Reststand: ROLLOUT_PLAN.md "Noch offen aus dem Security-Review") |
 | `dev-docs/phase1/*.md` | **FOSSIL** | Historische Bau-Journale (datiert 2026-04-07) der toten Gruppen-Architektur | Als Ist-Doku für Backend-Skeleton/Agenten/Orchestrator |
-| `docs/` | Forschungsreports | Teacher-Alignment-Ergebnisse (derzeit genau eine Datei, s. Abschnitt 2) | — |
+| `docs/` | Forschungsreports | Teacher-Alignment-Ergebnisse (derzeit genau eine getrackte Datei, s. Abschnitt 2). `docs/tutoren_executive_summary.md` (Executive Summary für Tutor:innen, 2026-07-17) existiert nur **lokal** — kurz getrackt (`7cf7bff`), am selben Tag wieder aus dem Tracking genommen (`23e8693`, gitignore `docs/tutoren_*`) | Auf einem frischen Clone als vorhanden voraussetzen |
+| Datenschutzantrags-Dokumente (`datenschutz_teil1_lehrbetrieb_20260717.docx`, `datenschutz_teil2_forschung_20260717.docx`, `datenschutz_datentypologie_datenfluesse_20260711.docx`) | **Nur lokal** (gitignored seit `ae2a558`, 2026-07-17) | Quelle der Löschfristen im Löschkonzept (Teil 1 Abschnitt 7, Teil 2 Abschnitt 5 → `backend/config/retention.py`) | Committen (bleiben bewusst außerhalb des Repos) |
 | `data/prolific_runs/README.md` | gültig | Ablage-Konvention für lokale (gitignorte) Forschungsdaten: `raw/<batch>/`, `manifests/`, `derived/` | — |
 | `.claude/skills/*/SKILL.md` | gültig | Diese Skill-Library — BEHOBEN (2026-07-09): committet (`26eedc4` mit 15 Skills, `d11ca96` ergänzt `toadapt-knowledge-tracing` und `toadapt-tutor-response-evaluation` → 17 Skills) | — |
 
@@ -291,6 +292,12 @@ Prinzipien:
 
 Erstellt: 2026-07-08. Alle Pfade, Zeilennummern und Behauptungen am
 2026-07-08 gegen das Repo verifiziert.
+
+Update 2026-07-17 (HEAD ae2a558): `docs/tutoren_executive_summary.md` und
+die drei Datenschutzantrags-.docx sind lokal-only (gitignore-Einträge
+`7cf7bff`→`23e8693` bzw. `ae2a558`); ACHTUNG: `.gitignore` enthält seit
+`ae2a558` auch `tests/` — bestehende Testdateien bleiben getrackt, neue
+brauchen `git add -f` (Details: `toadapt-validation-and-qa`).
 
 Update 2026-07-09 (HEAD 64b62f9): ROLLOUT_CHECKLIST.md als massgebliches
 operatives Dokument (Gate-Workflow W0–W6) in die Hierarchie aufgenommen,

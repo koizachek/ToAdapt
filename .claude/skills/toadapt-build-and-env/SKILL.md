@@ -99,7 +99,11 @@ Hinweise zur `.env`:
 .venv/bin/python -m pytest tests/ -q
 ```
 
-Erwartet (Stand: 2026-07-09): `90 passed` in ~20 Sekunden.
+Erwartet (Stand: 2026-07-17): `153 passed` in ~2 Sekunden. (Bis 2026-07-17
+dauerte die Suite ~20 s — das waren echte Atlas-Verbindungsversuche über die
+Root-`.env`; seither isoliert `tests/conftest.py` die MONGODB_*-Env autouse.
+Dauert die Suite wieder >10 s oder tauchen 2-Sekunden-Hänger auf, ist die
+Isolation vermutlich kaputt → `toadapt-validation-and-qa`.)
 
 **cwd-Falle:** Das `backend`-Paket liegt im Repo-Root und wird über das
 Arbeitsverzeichnis importierbar. Startest du pytest aus `tests/` (oder irgendwo
@@ -219,7 +223,7 @@ Führe die Sequenz vom Repo-Root aus; jede Zeile nennt den erwarteten Output
 ```bash
 # 1) Backend-Tests
 .venv/bin/python -m pytest tests/ -q
-# → "90 passed"
+# → "153 passed" (Stand 2026-07-17)
 
 # 2) Backend bootet
 .venv/bin/python -m uvicorn backend.main:app --port 8000
@@ -244,6 +248,12 @@ Alle fünf grün? Umgebung steht. Weiter mit `toadapt-run-and-operate`
 
 ## Provenance und Wartung
 
+Update 2026-07-17 (HEAD `ae2a558`): Testanzahl 90→131→153 (pytest real
+ausgeführt); `tests/conftest.py` isoliert die MONGODB_*-Env autouse (Suite
+~2 s statt ~20 s); neue optionale Env-Variablen
+`RETENTION_FORMATIVE_EXPIRE_AT`/`RETENTION_RESEARCH_EXPIRE_AT` und
+`MONGODB_REVOKED_SESSIONS_COLLECTION` (Katalog: `toadapt-config-and-flags`).
+
 Update 2026-07-11 (HEAD `324d937`): requirements.txt um `pypdf` (PDF-Text-
 extraktion Master-Upload) und `python-multipart` (FastAPI-Multipart für den
 ZIP-Upload) erweitert — bei `ModuleNotFoundError: pypdf/multipart` das venv
@@ -264,7 +274,7 @@ Drift-anfällige Fakten und ihr Re-Verifikations-Kommando:
 
 | Fakt | Re-Verifikation |
 |---|---|
-| "90 passed" | `.venv/bin/python -m pytest tests/ -q` |
+| "153 passed" in ~2 s | `.venv/bin/python -m pytest tests/ -q` |
 | Version "0.2.0" in /health | `grep -n '"version"\|version=' backend/main.py \| head` |
 | requirements.txt-Inhalt (kein pytest, pymongo drin) | `cat requirements.txt` |
 | CI: Python 3.11, Node 22, PYTHONPATH=. | `grep -nE 'python-version|node-version|PYTHONPATH' .github/workflows/ci.yml` |

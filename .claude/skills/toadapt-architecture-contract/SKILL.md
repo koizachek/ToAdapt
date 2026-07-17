@@ -52,7 +52,7 @@ IST-Zustand. Bei Widerspruch gilt diese Skill bzw. der Code.
 
 ---
 
-## 1. Ist-Architektur (Stand: 2026-07-11)
+## 1. Ist-Architektur (Stand: 2026-07-17)
 
 ```
   Browser (Studierende + Lehrkraft)
@@ -98,7 +98,7 @@ Agent-Antwort ist ein einzelner HTTP-POST-Roundtrip.
 | # | Pfad | Mechanismus | Quelle | Verhalten ohne Config |
 |---|---|---|---|---|
 | 1 | Studenten-Flow (`/sessions`, `/submissions`, `/auth/student/verify`, `/tp`, `…/coverage`, `…/feedback`) | Header `X-Student-Access-Code`, Vergleich per `hmac.compare_digest` gegen Env `STUDENT_ACCESS_CODE`; Frontend hält den Code in `sessionStorage` | `backend/auth.py` (`require_student_access`, Router-Dependency in `backend/api/routes.py:44`), `frontend/lib/api.ts` | **OFFEN** (Dev-/Prolific-Modus); Startup loggt Warnung `student_flow_open` |
-| 2 | Teacher-Browser-Session (`/admin/*`- und `/dashboard/*`-SEITEN) | Signiertes httpOnly-Cookie `teacher_session` (HMAC-SHA256 via Web Crypto, 12 h Ablauf, Secret `TEACHER_SESSION_SECRET`); das Cookie trägt die **Tutor-Kennung + Master-Flag** (seit 2026-07-10: Login mit dem Master-Code `TEACHER_ARCHIVE_CODE` setzt `master:true`; nur dann zeigt die Nav den Upload-Reiter, schützt die Middleware `/upload` und lässt der Proxy `/group-uploads`-Pfade durch — sonst 403). Login: POST `/teacher-login` prüft Einzelcodes aus `TEACHER_ACCESS_CODES` (Frontend-Env, JSON kennung→code, `resolveTutorByCode`; Generator `scripts/generate_tutor_codes.py`), Legacy-`TEACHER_ACCESS_CODE` bleibt Fallback (Kennung "teacher") — **fail-closed** (kein Code konfiguriert = kein Zugang); `frontend/middleware.ts` schützt `/admin/:path*` + `/dashboard/:path*` + `/guide/:path*` + `/upload/:path*` (Master-only) | `frontend/lib/teacherAuth.ts`, `frontend/app/teacher-login/route.ts` | Login unmöglich (fail-closed) |
+| 2 | Teacher-Browser-Session (`/admin/*`- und `/dashboard/*`-SEITEN) | Signiertes httpOnly-Cookie `teacher_session` (HMAC-SHA256 via Web Crypto, 12 h Ablauf, Secret `TEACHER_SESSION_SECRET`); das Cookie trägt die **Tutor-Kennung + Master-Flag** (seit 2026-07-10: Login mit dem Master-Code `TEACHER_ARCHIVE_CODE` setzt `master:true`; nur dann zeigt die Nav den Upload-Reiter, schützt die Middleware `/upload` und lässt der Proxy `/group-uploads`-Pfade durch — sonst 403). Login: POST `/teacher-login` prüft Einzelcodes aus `TEACHER_ACCESS_CODES` (Frontend-Env, JSON kennung→code, `resolveTutorByCode`; Generator `scripts/generate_tutor_codes.py`), Legacy-`TEACHER_ACCESS_CODE` bleibt Fallback (Kennung "teacher") — **fail-closed** (kein Code konfiguriert = kein Zugang); `frontend/middleware.ts` schützt `/admin/:path*` + `/dashboard/:path*` + `/guide/:path*` + `/upload/:path*` (Master-only). **Seit 2026-07-17 (`142a907`) serverseitig widerrufbar:** Das Cookie trägt zusätzlich eine **jti**; der Logout (`/teacher-logout` → Backend `POST /auth/teacher-session/revoke`) setzt sie auf die Sperrliste (Mongo-Collection `revoked_teacher_sessions`, TTL 24 h; **fail-open bei Mongo-Ausfall — bewusst, damit ein Logout nie scheitert**). Der Proxy sendet die jti als Header `X-Teacher-Session` mit; Dashboard-, Admin- und Group-Uploads-Router weisen widerrufene Sessions über die Dependency `reject_revoked_teacher_session` mit 401 ab. Alt-Cookies ohne jti bleiben bis zum 12-h-Ablauf gültig (Anlass: geteilte ÜGL-Laptops — kopierter Token blieb sonst nach Logout gültig). Brute-Force-Bremse: Login 10 Versuche/60 s pro IP, Revoke 30/60 s (`frontend/lib/loginRateLimit.ts`, In-Memory **pro Serverless-Instanz** — gleiche bewusste Einschränkung wie `backend/ratelimit.py`) | `frontend/lib/teacherAuth.ts`, `frontend/app/teacher-login/route.ts`, `frontend/app/teacher-logout/route.ts`, `backend/api/teacher_session.py`, `backend/db/revoked_sessions_store.py`, `backend/auth.py` (`reject_revoked_teacher_session`) | Login unmöglich (fail-closed) |
 | 3 | Backend-API-Key (alle `/dashboard/*`- und `/group-uploads`-Endpoints, schreibende `/admin`-Routen, `/health/diagnostics`) | Header `X-API-Key` = Env `TOADAPT_API_KEY`, `hmac.compare_digest`; **fail-closed: 503 wenn kein Key konfiguriert** | `backend/auth.py` (`require_api_key`), `backend/dashboard/routes.py:19` (Router-weit), `backend/admin/routes.py` (pro Route) | 503 auf allen geschützten Routen |
 | 4 | Forschungs-Key (Einzelpersonen-Endpoints `/dashboard/students`, `/dashboard/student/{m}`, `/dashboard/difficulties`) | Header `X-Research-Key` = Env `RESEARCH_API_KEY`, **zusätzlich** zum `X-API-Key` (Route-Dependency `require_research_key`); fail-closed 503 ohne Key, 401 bei falschem Key. BEWUSST ein anderer Key als `TOADAPT_API_KEY`: der Teacher-Proxy kennt nur `TOADAPT_API_KEY` → Tutor:innen bekommen auf Einzelprofilen 401, **das ist gewollt** | `backend/auth.py` (`require_research_key`), `backend/dashboard/routes.py` | 503 auf den Forschungs-Routen |
 
@@ -165,6 +165,13 @@ approve, reject, retire) verlangen den API-Key.
 | Case-Pool | `backend/cases/manager.py` | `cases` | JSON in `backend/cases/pool/` (write-through; Mongo gewinnt bei gleicher case_id) |
 | Forschungs-Events | `backend/db/experiment_logger.py` | `experiment_events` | **keiner** — Events werden ohne Mongo verworfen (nur Warn-Log) |
 | Gruppenarbeits-Uploads (seit 2026-07-10) | `backend/db/group_upload_store.py` | `group_uploads` | JSON in `backend/db/group_uploads/` (write-through); die PDFs selbst werden NIE persistiert — nur Bewertungsergebnisse |
+| Widerrufene Teacher-Sessions (seit 2026-07-17) | `backend/db/revoked_sessions_store.py` | `revoked_teacher_sessions` (TTL 24 h) | In-Memory-Dict pro Prozess (Dev/Single-Worker); Lookup-Fehler sind **fail-open** — der Widerruf ist Härtung on top der 12-h-Ablauffrist, Dashboards bleiben verfügbar |
+
+Seit 2026-07-17 (Commit `a38495e`) setzen alle Mongo-Schreibpfade der Stores
+zusätzlich das TTL-Feld `expire_at` (Löschkonzept aus dem Datenschutzantrag:
+formative Daten Semesterende + 4 Wochen, Forschungslog max. 24 Monate;
+`backend/config/retention.py`). Lese-Projektionen blenden `expire_at` aus.
+TTL-Indizes + Backfill: `scripts/ensure_mongo_indexes.py` (erst `--dry-run`).
 
 - **Warum:** Das Railway-Dateisystem ist ephemer — bei jedem Redeploy weg.
   Mongo ist die einzige überlebende Quelle in Produktion; die Dateiablage
@@ -348,7 +355,18 @@ erweitert (TEACHER_ARCHIVE_CODE ist zugleich Master-Login-Code; Proxy gated
 Gruppencode-Validierung GROUP_CODE_MAX am Eingang (Commit `935e1ed`,
 ergänzt Invariante 7-Umfeld: 422 statt Phantom-Gruppen);
 Lasttest-Tooling `scripts/load_test.py` + `scripts/llm_stub.py`
-(Commit `324d937`). Alle Zeilenangaben sind
+(Commit `324d937`).
+Update 2026-07-17 (HEAD `ae2a558`): Teacher-Sessions serverseitig
+widerrufbar (jti-Sperrliste `revoked_teacher_sessions`, Header
+`X-Teacher-Session`, Dependency `reject_revoked_teacher_session`,
+fail-open bei Mongo-Ausfall; Login-Rate-Limit 10/60 s pro IP — Commits
+`8ae2594`/`142a907`); Löschkonzept aus dem Datenschutzantrag: alle
+Mongo-Schreibpfade setzen `expire_at`, MongoDB-TTL-Indizes löschen
+formative Daten zum Termin Semesterende + 4 Wochen und das Forschungslog
+nach max. 24 Monaten (`backend/config/retention.py`,
+`scripts/ensure_mongo_indexes.py`, Commit `a38495e`; Env-Details:
+`toadapt-config-and-flags`); Lese-Projektionen blenden `expire_at` aus.
+Alle Zeilenangaben sind
 zirka-Werte und drift-anfällig. Re-Verifikation pro Fakt (vom Repo-Root):
 
 | Fakt | Re-Verifikations-Kommando |
@@ -372,4 +390,6 @@ zirka-Werte und drift-anfällig. Re-Verifikation pro Fakt (vom Repo-Root):
 | Master-Flag im Teacher-Cookie + Proxy-Gate | `grep -n "master" frontend/lib/teacherAuth.ts "frontend/app/api/teacher/[...path]/route.ts"` |
 | Prompt-Caching + Fallback-Routing im LLM-Client | `grep -n "cache_system\|fallback_models\|LLM_PROMPT_CACHING" backend/llm.py` |
 | Gruppencode-Validierung (GROUP_CODE_MAX) | `grep -n "group_code_allowed\|GROUP_CODE_MAX" backend/anonymize.py backend/api/routes.py` |
-| Commit-Belege existieren | `git log --oneline --all \| grep -E "e2cc925\|8df4cfd\|1fb727e\|6350dca\|5b9ecf2\|935e1ed"` |
+| jti-Sperrliste aktiv (Dependency auf 3 Routern) | `grep -rn "reject_revoked_teacher_session" backend/auth.py backend/dashboard/routes.py backend/admin/routes.py backend/group_uploads/routes.py` |
+| Stores setzen expire_at (Löschkonzept) | `grep -rn "retention.TTL_FIELD\|expire_at" backend/db/*.py \| wc -l` (0 = Löschkonzept ausgebaut) |
+| Commit-Belege existieren | `git log --oneline --all \| grep -E "e2cc925\|8df4cfd\|1fb727e\|6350dca\|5b9ecf2\|935e1ed\|142a907\|a38495e"` |

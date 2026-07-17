@@ -11,7 +11,7 @@ description: >
   schreiben willst (TestClient, Mongo-Env wegräumen, LLM mocken, Stores auf
   tmp_path patchen); (c) den Judge/Evaluator/Prompts geändert hast und wissen
   musst, welcher Nachweis akzeptiert wird; (d) Tests fehlschlagen (z. B.
-  ModuleNotFoundError backend, 2-Sekunden-Hänger, 90-Tests-Baseline verletzt);
+  ModuleNotFoundError backend, Test schreibt in die Produktions-Mongo, Tests-Baseline verletzt);
   (e) den Golden Case oder eine Rubric-JSON anfassen willst; (f) fragst
   "reicht dieser Beweis?" oder "welcher Test deckt X ab?". Keywords: pytest,
   ruff, CI, ci.yml, TestClient, monkeypatch, Golden Case, Rubric, Alignment,
@@ -72,7 +72,7 @@ ruff check .
 
 # Backend-Tests — IMMER via `python -m pytest` (siehe PYTHONPATH-Falle, §7)
 .venv/bin/python -m pytest tests/ -q
-# Erwartung (Stand 2026-07-09): "90 passed"
+# Erwartung (Stand 2026-07-17): "153 passed" in ~2 s
 
 # Frontend
 cd frontend && npm run lint && npx tsc --noEmit && npm run build
@@ -90,11 +90,18 @@ Für vollständige Start-Anleitung (Env-Variablen, Frontend-Kopplung, Mongo):
 
 ---
 
-## 2. Test-Landkarte (Stand: 2026-07-11, 131 Tests)
+## 2. Test-Landkarte (Stand: 2026-07-17, 153 Tests)
 
-Alle Tests liegen flach in `tests/` (kein `conftest.py`, kein `__init__.py`).
+Alle Tests liegen flach in `tests/` (kein `__init__.py`; seit 2026-07-17
+gibt es `tests/conftest.py` — Mongo-Isolation, s. Abschnitt 4 Muster A).
 Konfiguration in `pyproject.toml`: `asyncio_mode = "auto"` (async-Tests
 brauchen keinen Decorator), `testpaths = ["tests"]`.
+
+**ACHTUNG (seit 2026-07-17, Commit `ae2a558`):** `.gitignore` enthält
+`tests/` — die 24 bestehenden Dateien bleiben getrackt, aber **jede NEUE
+Testdatei wird stillschweigend nicht committet** und braucht `git add -f
+tests/test_<neu>.py`. Sonst läuft die CI-Baseline lokal und remote
+auseinander.
 
 | Datei | # | Deckt ab |
 |---|---:|---|
@@ -118,6 +125,8 @@ brauchen keinen Decorator), `testpaths = ["tests"]`.
 | `tests/test_llm_client.py` (NEU 2026-07-10) | 9 | LLM-Client: Prompt-Caching-Verpackung (`cache_control`-Block, byte-identischer Inhalt), `LLM_PROMPT_CACHING`-Off-Switch, `OPENROUTER_FALLBACK_MODELS`-Parsing, `models`-Routing-Liste in `extra_body`, leere Antwort → RuntimeError — via Stub statt echtem LLM |
 | `tests/test_group_code_validation.py` (NEU 2026-07-11) | 9 | `GROUP_CODE_MAX`: Grenzen (G1/G360 ok, G0/G361/Freitext nicht), leer/ungültig = Validierung aus, `/auth/student/verify`-Feedback (normalisiert + valid-Flag, ohne Body abwärtskompatibel), 422 bei Session-/Submission-Erstellung |
 | `tests/test_load_test_tools.py` (NEU 2026-07-10) | 6 | Lasttest-Tooling: Stub-Chat-Antwort besteht `guardrail_check` (TP1–4), Stub-Judge-JSON besteht `parse_evaluation_payload`, Perzentil-/Status-Aggregation, GATE-W1-Auswertung im Report |
+| `tests/test_retention_ttl.py` (NEU 2026-07-17) | 15 | Löschkonzept: `backend/config/retention.py` (Defaults 2027-01-31/2028-12-31, `RETENTION_*_EXPIRE_AT`-Env-Override, `retention_env_invalid` bei kaputtem Datum), alle Mongo-Schreibpfade setzen `expire_at` (sessions, submission_states, dashboard_results, group_uploads, experiment_events), Lese-Projektionen blenden `expire_at` aus, `scripts/ensure_mongo_indexes.py` (TTL-Index-Definitionen, Backfill, `--dry-run`) |
+| `tests/test_teacher_session_revocation.py` (NEU 2026-07-17) | 7 | jti-Sperrliste: `reject_revoked_teacher_session` (401 bei widerrufener jti, Durchlass ohne `X-Teacher-Session`-Header und bei unbekannter jti), `POST /auth/teacher-session/revoke`, fail-open bei Mongo-Ausfall (Logout scheitert nie), Dependency auf Dashboard-/Admin-/Group-Uploads-Routern |
 
 ### Was NICHT abgedeckt ist (ehrlich)
 
@@ -365,8 +374,10 @@ Wissenswert:
   installiert sie explizit dazu. Neue Test-Dependencies müssen in die
   CI-Install-Zeile, nicht in requirements.txt.
 - **Die PYTHONPATH-Falle:** `tests/` hat kein `__init__.py` und es gibt kein
-  `conftest.py` im Root — ein nacktes `pytest tests/ -q` findet das Package
-  `backend` NICHT (8 Collection-Errors, lokal am 2026-07-08 reproduziert).
+  `conftest.py` im Repo-**Root** (das `tests/conftest.py` von 2026-07-17
+  ändert daran nichts — es scheitert dann selbst am `import backend`) — ein
+  nacktes `pytest tests/ -q` findet das Package `backend` NICHT
+  (`ModuleNotFoundError`, re-verifiziert 2026-07-17).
   Zwei funktionierende Varianten: `python -m pytest tests/ -q` vom Repo-Root
   (fügt CWD zu sys.path hinzu) oder `PYTHONPATH=. pytest tests/ -q` (so
   macht es CI). Wenn CI-pytest scheitert, lokal aber läuft: zuerst prüfen,
@@ -385,7 +396,7 @@ Wissenswert:
 
 ### Test-Baseline
 
-- **131 Tests grün ist die Basis (Stand 2026-07-11; vorher 48→90) — nie
+- **153 Tests grün ist die Basis (Stand 2026-07-17; vorher 48→90→131) — nie
   unterschreiten.**
   Tests dürfen nur ersetzt/entfernt werden, wenn das getestete Feature selbst
   entfernt wird (dann: `toadapt-change-control`). Neue Features ohne neuen
@@ -446,6 +457,13 @@ Projekt-Doktrin — siehe `toadapt-change-control`.
 
 ## Provenance und Wartung
 
+Update 2026-07-17 (HEAD `ae2a558`): Test-Baseline 131 → 153; Landkarte um
+test_retention_ttl (15) und test_teacher_session_revocation (7) ergänzt;
+`tests/conftest.py` existiert jetzt (autouse Mongo-Isolation — Anlass:
+lokale pytest-Läufe schrieben real in die Produktions-Mongo, 48
+Test-Dokumente; Suite dadurch ~2 s statt ~20 s); NEU: `tests/` ist
+gitignored → neue Testdateien brauchen `git add -f`.
+
 Update 2026-07-11 (HEAD `324d937`): Test-Baseline 90 → 131; Landkarte um
 test_group_uploads (14), test_llm_client (9), test_group_code_validation (9),
 test_load_test_tools (6) ergänzt. Neues Muster darin: LLM-Stub-Antworten
@@ -471,7 +489,8 @@ Re-Verifikation drift-anfälliger Fakten (je ein Kommando, vom Repo-Root):
 
 | Fakt | Kommando |
 |---|---|
-| Testanzahl (Baseline 90) | `.venv/bin/python -m pytest tests/ -q \| tail -1` |
+| Testanzahl (Baseline 153) | `.venv/bin/python -m pytest tests/ -q \| tail -1` |
+| Neue Testdateien getrackt (tests/ ist gitignored) | `git status --short tests/` leer UND `git ls-files tests/ \| wc -l` = Datei-Anzahl `ls tests/*.py \| wc -l` |
 | Test-Dateiliste | `ls tests/test_*.py` |
 | CI-Schritte + PYTHONPATH-Env | `cat .github/workflows/ci.yml` |
 | Golden Case einziger Pool-Inhalt | `ls backend/cases/pool/` |

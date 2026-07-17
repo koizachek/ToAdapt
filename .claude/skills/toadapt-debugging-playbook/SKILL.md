@@ -78,6 +78,9 @@ ist — notfalls Railway-Web-UI → Deployments → Logs).
 | C | 422 "Unbekannter Gruppencode" beim Login/Session-Anlegen (seit 2026-07-11) | `GROUP_CODE_MAX` gesetzt und Code außerhalb G1–Gn (Tippfehler-Schutz) | `.env`/Railway: `GROUP_CODE_MAX` prüfen; leer = Validierung aus (Prolific) | GEWOLLT |
 | B | Test/Skript schreibt in die ECHTE Mongo, obwohl "isoliert" gestartet | `load_dotenv` findet die Repo-.env über den MODULPFAD, nicht das cwd | Startup-Log: `mongo_connection_mode=mas_credentials` = Produktion! | Mongo-Variablen explizit überschreiben (s. Docstring `scripts/load_test.py`; Vorfall: toadapt-failure-archaeology Nr. 12) |
 | C | Teacher-Seiten werfen nach Stunden auf Login zurück | Teacher-Cookie läuft nach 12h ab (by design) | Cookie-Alter prüfen; erneut einloggen | Abschnitt C |
+| C | 401 "Sitzung wurde abgemeldet — bitte neu einloggen" auf Teacher-Endpoints (seit 2026-07-17) | Session-jti steht auf der Sperrliste (Logout auf einem anderen Gerät/Tab; Sperrliste `revoked_teacher_sessions`, 24 h) | Detail-Text unterscheidet vom Key-401; erneut einloggen erzeugt neue jti | GEWOLLT (Commit `142a907`) |
+| C | 429 beim Teacher-Login (seit 2026-07-17) | Login-Brute-Force-Bremse: 10 Versuche/60 s pro IP, **pro Serverless-Instanz** (`frontend/lib/loginRateLimit.ts`); Revoke-Endpoint 30/60 s | 60 s warten, erneut versuchen | GEWOLLT |
+| B | Mongo-Dokumente verschwinden, obwohl Verbindung ok (seit TTL-Indizes aktiv) | **Gewollte TTL-Löschung** (Löschkonzept: `expire_at`, formativ 2027-01-31 / Forschungslog 2028-12-31, Defaults HS 2026) | Fehlen NUR Dokumente mit `expire_at` in der Vergangenheit? `RETENTION_*_EXPIRE_AT` + Indizes prüfen (`scripts/ensure_mongo_indexes.py --dry-run`) | GEWOLLT (Commit `a38495e`) |
 | D | Client bekommt 429 | Eigener In-Process-Rate-Limiter (pro Worker!) ODER Denkanstoß-Limit (2 pro Frage) | Detail-Text: "Zu viele Anfragen" + `Retry-After` = Limiter; "Denkanstoß-Limit für diese Frage erreicht" = Feedback-Kontingent | Abschnitt D |
 | D | Chat gibt 503 "Assistent nicht erreichbar" | OpenRouter-Fehler (auch deren 429) nach SDK-Retries | Log `chat_error` mit `type=` prüfen | Abschnitt D |
 | E | Chat: 404 "Session nicht gefunden" mitten im Gespräch | `WEB_CONCURRENCY > 1` ohne funktionierendes Mongo (Sessions nur im Worker-RAM) | Diagnostics: `mongo_logging_enabled` + Railway-Var `WEB_CONCURRENCY` prüfen | Abschnitt E |
@@ -177,6 +180,7 @@ Fehlbedienung.
 | Research-Key (`backend/auth.py::require_research_key`) | `X-Research-Key` = `RESEARCH_API_KEY` | ZUSÄTZLICH zum API-Key: `/dashboard/students`, `/dashboard/student/{m}`, `/dashboard/difficulties` (Einzelpersonen-Daten) | **503** "Forschungs-Zugang nicht konfiguriert" (fail-closed) | **401** "Ungültiger oder fehlender Forschungs-Key" |
 | Studenten-Code (`require_student_access`) | `X-Student-Access-Code` = `STUDENT_ACCESS_CODE` | ALLE Studenten-Routen (`/sessions`, `/submissions`, …) | Flow ist **offen** (Dev-/Prolific-Modus; Startup-Log warnt mit `student_flow_open`) | **401** "Ungültiger oder fehlender Zugangscode" |
 | Teacher-Cookie (`frontend/lib/teacherAuth.ts`) | Signiertes httpOnly-Cookie, HMAC-SHA256 mit `TEACHER_SESSION_SECRET` | Teacher-Frontend-Seiten | Login unmöglich | Redirect zum Login; Cookie läuft nach **12 h** ab (`MAX_AGE_SECONDS = 12 * 60 * 60`) |
+| jti-Sperrliste (`backend/auth.py::reject_revoked_teacher_session`, seit 2026-07-17) | Proxy-Header `X-Teacher-Session` (jti aus dem Cookie) gegen Collection `revoked_teacher_sessions` | Dashboard-/Admin-/Group-Uploads-Router (nur Requests MIT dem Header; Skripte mit reinem API-Key sind nicht betroffen) | Kein Effekt (fail-open — Härtung on top der 12-h-Frist) | **401** "Sitzung wurde abgemeldet — bitte neu einloggen" (nach Logout; erneuter Login erzeugt neue jti) |
 
 **Merksatz: 503 auf einer geschützten Route heißt "Server-Env kaputt"
 (Key fehlt serverseitig), 401 heißt "Client schickt den falschen Wert".**
@@ -490,6 +494,9 @@ Re-Verifikation drift-anfälliger Fakten:
 | Mongo-Timeout 2s / Backoff 30s | `grep -n "serverSelectionTimeoutMS\|< 30" backend/db/mongo.py` |
 | 503-fail-closed / 401-Texte | `grep -n "503\|401\|HTTPException" backend/auth.py` |
 | Teacher-Cookie 12h | `grep -n "MAX_AGE_SECONDS" frontend/lib/teacherAuth.ts` |
+| jti-Sperrliste (401-Text, fail-open) | `grep -n "abgemeldet\|fail-open\|is_revoked" backend/auth.py backend/db/revoked_sessions_store.py` |
+| Login-Rate-Limit 10/60s pro IP | `grep -n "MAX_ATTEMPTS\|WINDOW_MS" frontend/lib/loginRateLimit.ts` |
+| TTL-Löschkonzept (expire_at, Termine) | `grep -n "EXPIRE_AT" backend/config/retention.py .env.example` |
 | Guardrail-Prüfreihenfolge | `sed -n '113,133p' backend/agents/orchestrator.py` |
 | TP4 ohne forbidden_framework_names | `grep -n "forbidden_framework_names" backend/config/tp_configs.py` |
 | Judge-Fallback-Kette | `grep -n "evaluation_json_parse_failed\|evaluation_json_repair_failed\|technical_fallback" backend/evaluator/rubric_evaluator.py` |

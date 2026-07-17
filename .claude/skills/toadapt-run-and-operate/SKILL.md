@@ -280,6 +280,19 @@ Mongo-Verbindung laufende Chats mit `404 Session nicht gefunden` zerschießt
    und setzen (server-only, niemals `NEXT_PUBLIC_*`; CSV der Codes nach
    `~/ToAdapt_sensitive_data/`, Legacy-`TEACHER_ACCESS_CODE` entfernen).
    Danach Teacher-Login-Smoke (§2.5) gegen die Prod-Domain fahren.
+7. **TTL-Indizes fürs Löschkonzept anlegen** (seit 2026-07-17, Commit
+   `a38495e` — Datenschutzantrags-Zusage): Löschtermine prüfen
+   (`RETENTION_FORMATIVE_EXPIRE_AT`/`RETENTION_RESEARCH_EXPIRE_AT`,
+   Defaults HS 2026: 2027-01-31 formativ / 2028-12-31 Forschungslog),
+   dann
+   ```bash
+   python scripts/ensure_mongo_indexes.py --dry-run   # erst prüfen!
+   python scripts/ensure_mongo_indexes.py
+   ```
+   **ACHTUNG:** Nach dem Lauf löscht der MongoDB-TTL-Monitor abgelaufene
+   Dokumente unwiderruflich. Das Skript legt zugleich die
+   Lookup-Indizes aus ROLLOUT_CHECKLIST W1 an und trägt `expire_at` bei
+   Bestandsdokumenten nach (Backfill).
 
 ---
 
@@ -297,8 +310,17 @@ liegt IMMER davor (prozesslokal).
 | Forschungs-Events (jeder Chat-Turn, jede Submission) | `experiment_events` (`MONGODB_COLLECTION`) | **KEINER — Events werden stillschweigend verworfen** | `backend/db/experiment_logger.py` |
 | Cases | `cases` (fest) | Dateien `backend/cases/pool/*.json` (kuratierte Cases sind zusätzlich im Repo/Image) | `backend/cases/manager.py` |
 | Gruppenarbeits-Uploads (seit 2026-07-10: Bewertungsergebnisse des Master-Uploads — Dateiname, Gruppencode, Scores; die PDFs selbst werden NIE gespeichert) | `group_uploads` (`MONGODB_GROUP_UPLOADS_COLLECTION`) | Dateien `backend/db/group_uploads/*.json` | `backend/db/group_upload_store.py` |
+| Widerrufene Teacher-Sessions (seit 2026-07-17: jti-Sperrliste des Teacher-Logouts, Einträge verfallen nach 24 h) | `revoked_teacher_sessions` (`MONGODB_REVOKED_SESSIONS_COLLECTION`) | In-Memory pro Prozess; Lookup fail-open (Dashboards bleiben verfügbar) | `backend/db/revoked_sessions_store.py` |
 
 Datenbank-Name: `MONGODB_DATABASE` (Default `toadapt`).
+
+**Löschkonzept (seit 2026-07-17, Commit `a38495e`):** Alle Schreibpfade
+setzen das TTL-Feld `expire_at` (`backend/config/retention.py`); MongoDB
+löscht formative Daten (sessions, submission_states, dashboard_results,
+group_uploads) zum Termin Semesterende + 4 Wochen und `experiment_events`
+nach längstens 24 Monaten — **sobald die TTL-Indizes angelegt sind**
+(Checkliste §4 Schritt 7). „Daten verschwinden aus Mongo" kann seither
+also auch gewollte TTL-Löschung sein.
 
 **Konsequenzen:**
 
@@ -328,11 +350,15 @@ Zweck: Judge-Scores gegen Blind-Bewertungen einer Lehrkraft alignen
 6) publish_dashboard_scores  Evaluierte Scores in den Dashboard-Store publizieren
 ```
 
-Daneben liegen in `scripts/` zwei weitere Skripte, die NICHT zu dieser
+Daneben liegen in `scripts/` weitere Skripte, die NICHT zu dieser
 Pipeline gehören: `generate_tutor_codes.py` (Betrieb: Tutor-Einzelcodes für
-`TEACHER_ACCESS_CODES`, siehe §2.5/§4/§7) und `evaluate_tutor_responses.py`
+`TEACHER_ACCESS_CODES`, siehe §2.5/§4/§7), `evaluate_tutor_responses.py`
 (pädagogische Tutor-Antwort-Evaluation → Skill
-`toadapt-tutor-response-evaluation`).
+`toadapt-tutor-response-evaluation`), `ensure_mongo_indexes.py`
+(TTL-/Lookup-Indizes + Backfill, §4 Schritt 7 — destruktiv, erst
+`--dry-run`) und `cleanup_test_artifacts_20260717.py` (einmaliges
+Aufräumskript für die Test-Artefakte des Mongo-Lecks vom 2026-07-17;
+Default Dry-Run, Löschung nur mit `--delete`).
 
 ### 6.1 Import
 
@@ -463,6 +489,13 @@ einen lokal gestarteten Server verifiziert; Deploy-Zustand (Railway/Vercel
 "scharf geschaltet"?) ist volatil — maßgeblich ist der Gate-Workflow in
 `ROLLOUT_CHECKLIST.md` (W0–W6; Hintergrund: `ROLLOUT_PLAN.md`).
 
+Update 2026-07-17 (HEAD ae2a558): Löschkonzept dokumentiert (Checkliste
+§4 Schritt 7: scripts/ensure_mongo_indexes.py, RETENTION_*-Termine,
+TTL-Feld expire_at in §5; Commit a38495e); neue Collection
+revoked_teacher_sessions (jti-Sperrliste des Teacher-Logouts, Commit
+142a907) in §5; scripts-Inventar um ensure_mongo_indexes.py und
+cleanup_test_artifacts_20260717.py ergänzt.
+
 Update 2026-07-09 (HEAD 64b62f9): Scharfschalten-Checkliste um
 PSEUDONYM_SECRET + RESEARCH_API_KEY (Railway) und TEACHER_ACCESS_CODES
 (Vercel, Generator scripts/generate_tutor_codes.py) ergänzt; Verweis auf
@@ -487,3 +520,4 @@ Re-Verifikation pro drift-anfälligem Fakt:
 - Env-Katalog aktuell?: `git log -1 --format=%ci -- .env.example` (und mit `toadapt-config-and-flags` abgleichen)
 - Vercel-/Rollout-Status: `grep -n "^## W\|Vercel\|Railway" ROLLOUT_CHECKLIST.md`
 - Teacher-Auth-Flow: `ls frontend/app/teacher-login frontend/app/api/teacher; grep -n MAX_AGE frontend/lib/teacherAuth.ts`
+- TTL-/Retention-Pfad: `grep -n "RETENTION_\|expire_at" backend/config/retention.py .env.example` und `PYTHONPATH=. .venv/bin/python scripts/ensure_mongo_indexes.py --help`

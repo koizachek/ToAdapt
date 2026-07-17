@@ -2,7 +2,7 @@
 name: toadapt-failure-archaeology
 description: >
   Chronik aller geschlagenen Schlachten im ToAdapt-Repo (2026-04-06 bis
-  2026-07-08): Symptom → Root Cause → Beleg-Commit → Status. Lade diese Skill,
+  2026-07-17): Symptom → Root Cause → Beleg-Commit → Status. Lade diese Skill,
   wenn du (a) verstehen willst, WARUM der Code so aussieht wie er aussieht
   (toter websocket_url, BUILD_MARKER, doppelte Commits, load_dotenv vor den
   Imports), (b) eine Änderung planst, die eine alte Wunde berühren könnte
@@ -80,6 +80,7 @@ existiert.** Sie dokumentieren die verworfene Gruppen-Echtzeit-Architektur
 | 10 | PII-Vorfall + History-Rewrite | bis 2026-07-08 | umgangen; **Restrisiko offen** |
 | 11 | Duplizierte Juni-Historie (Rebase-Unfall) | 2026-06-18 / 2026-07-08 | gelöst; Branch-Cleanup offen |
 | 12 | Lasttest traf Produktions-Mongo (find_dotenv-Falle) | 2026-07-10 | behoben (Daten bereinigt), dokumentiert |
+| 13 | pytest traf Produktions-Mongo (Wiederholung von Nr. 12) | 2026-07-17 | behoben (`tests/conftest.py` autouse; Daten bereinigt) |
 
 ---
 
@@ -357,6 +358,28 @@ existiert.** Sie dokumentieren die verworfene Gruppen-Echtzeit-Architektur
   echtem Backend-Code IMMER `mongo_connection_mode` im Startup-Log prüfen —
   `mas_credentials` heißt: du redest mit der Produktion.
 
+## 13. pytest gegen die Produktions-Mongo (2026-07-17)
+
+- **Symptom:** Lokale pytest-Läufe schrieben real in Atlas: 14
+  submission_states, 2 sessions, 32 experiment_events. Nebenbefund: die
+  notorischen 2-Sekunden-Hänger der Suite (~20 s Gesamtlaufzeit) waren
+  echte Atlas-Verbindungsversuche.
+- **Root Cause:** Gleicher Mechanismus wie Nr. 12 — die Store-Module laden
+  die Root-`.env` (mit Produktions-Credentials) beim **Import**; Tests, die
+  die Mongo-Env nicht selbst wegräumten, trafen die echte DB. CI war nie
+  betroffen (keine Mongo-Secrets in Actions) — das Leck existierte nur lokal.
+- **Fix:** `tests/conftest.py` (Commit `e64fa30`) räumt die MONGODB_*-Env
+  **autouse pro Test** weg und neutralisiert die beim Import initialisierten
+  Singletons (experiment_logger, submission_store, mongo._client).
+  Nebeneffekt: Suite ~2 s statt ~20 s.
+- **Bereinigung:** `scripts/cleanup_test_artifacts_20260717.py`
+  (Zeitfenster-basiert 08:30–09:15Z, Default Dry-Run, Löschung nur mit
+  `--delete`).
+- **Status:** Behoben. Regel daraus (verschärft Nr. 12): Der Import eines
+  Store-Moduls genügt bereits, um Produktions-Credentials zu laden — jede
+  neue Test-/Skript-Infrastruktur muss die Isolation von `tests/conftest.py`
+  erben oder explizit nachbauen. `conftest.py` nie entfernen.
+
 ## Churn-Hotspot-Tabelle (Stand: 2026-07-08)
 
 Erzeugt mit:
@@ -389,6 +412,10 @@ verdienen besondere Sorgfalt und Tests (`toadapt-validation-and-qa`).
 | `141bb63` | 2026-07-08 | CI-pytest scheiterte, weil das `backend`-Paket im Repo-Root liegt → `PYTHONPATH=.` in `.github/workflows/ci.yml` |
 
 ## Provenance und Wartung
+
+Update 2026-07-17: Eintrag 13 (pytest gegen Produktions-Mongo,
+Wiederholung des Musters aus Nr. 12; Fix `tests/conftest.py`,
+Commit `e64fa30`) ergänzt.
 
 Update 2026-07-11: Eintrag 12 (Lasttest gegen Produktions-Mongo /
 find_dotenv-Falle, 2026-07-10) ergänzt.

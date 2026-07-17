@@ -162,6 +162,8 @@ Datei-Fallback / prozesslokalen Cache aus (still, kein Nutzerfehler):
 | `session_store_save_failed` / `session_store_load_failed` | `db/session_store.py` |
 | `submission_store_save_failed` / `_load_failed` / `_file_load_failed` / `_connection_failed` | `db/submission_store.py` (Datei-Fallback: `backend/db/runtime_submissions/`) |
 | `dashboard_store_save_failed` / `dashboard_store_load_failed` | `db/dashboard_store.py` (Datei-Fallback: `backend/db/submissions/`) |
+| `teacher_session_revocation_not_persisted` / `_save_failed` / `_lookup_failed` (seit 2026-07-17) | `db/revoked_sessions_store.py` — jti-Sperrliste des Teacher-Logouts; Lookup ist **fail-open** (Widerruf greift dann nur im In-Memory-Fallback des jeweiligen Prozesses) |
+| `retention_env_invalid` (seit 2026-07-17) | `backend/config/retention.py` — `RETENTION_*_EXPIRE_AT` ist kein parsebares ISO-Datum; es gilt still der Default (formativ 2027-01-31, Forschungslog 2028-12-31) |
 
 ### Case-Verwaltung (`backend/cases/manager.py`, `generator.py`, `backend/admin/routes.py`)
 
@@ -384,6 +386,14 @@ Working Tree derzeit nicht, dann liefert es leere Listen).
 ---
 
 ## Provenance und Wartung
+
+Update 2026-07-17 (HEAD `ae2a558`): neue Persistenz-Events
+`teacher_session_revocation_not_persisted`/`_save_failed`/`_lookup_failed`
+(jti-Sperrliste, Commit `142a907`) und `retention_env_invalid`
+(Löschkonzept, Commit `a38495e`); Achtung bei experiment_events-Auswertungen:
+Dokumente tragen jetzt `expire_at` und werden nach dem Löschtermin
+(Default 2028-12-31) vom TTL-Monitor entfernt — Langzeit-Analysen vorher
+exportieren.
 
 Update 2026-07-11 (HEAD `324d937`): `llm_call_completed` um
 `served_model`/`fallback_used`/`cached_tokens` erweitert; neues Event-Kapitel

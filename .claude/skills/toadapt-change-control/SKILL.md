@@ -53,7 +53,7 @@ Browser oder im Judge-Feedback bemerken KÖNNTE, ist es Klasse A (ggf. +B).
 ### Gate-Kommandos (copy-paste, vom Repo-Root)
 
 ```bash
-# Backend-Tests (131 Tests, Stand 2026-07-11; asyncio_mode=auto via pyproject.toml)
+# Backend-Tests (153 Tests, Stand 2026-07-17; asyncio_mode=auto via pyproject.toml)
 .venv/bin/python -m pytest tests/ -q
 
 # Nur Guardrail-Regression (Gate A)
@@ -288,7 +288,10 @@ Führe aus bzw. prüfe, in dieser Reihenfolge:
 - [ ] Änderung klassifiziert (A/B/C/D)? Strengstes zutreffendes Gate erfüllt?
 - [ ] `git status` + `git diff --stat` gelesen: keine echten Teilnehmerdaten,
       keine Secrets/`.env`, keine Dateien aus `~/ToAdapt_sensitive_data/`?
-- [ ] `.venv/bin/python -m pytest tests/ -q` → alles grün (131 Tests, Stand 2026-07-11)
+- [ ] `.venv/bin/python -m pytest tests/ -q` → alles grün (153 Tests, Stand 2026-07-17)
+- [ ] Neue Testdatei dabei? `tests/` ist gitignored (seit `ae2a558`) —
+      `git add -f tests/test_<neu>.py`, sonst fehlt sie im Commit und die
+      CI-Baseline driftet
 - [ ] `.venv/bin/ruff check .` → sauber (E402-Ignores für `backend/main.py`
       und `backend/db/submission_store.py` sind beabsichtigt — `load_dotenv`
       muss dort vor den Imports laufen; nicht "aufräumen")
@@ -354,13 +357,26 @@ studierendensichtbare Chats → vor dem Scharfschalten Tutor-Eval-Vergleich
 Lasttests NIE gegen Produktions-Mongo (find_dotenv-Falle — Vorfall
 2026-07-10, s. toadapt-failure-archaeology; Isolations-Overrides im
 Docstring von scripts/load_test.py).
+Update 2026-07-17 (HEAD ae2a558): Testbestand 131→153 (Löschkonzept
+`tests/test_retention_ttl.py`, jti-Sperrliste
+`tests/test_teacher_session_revocation.py`). Neu zu beachten:
+(1) `tests/` ist gitignored — neue Testdateien nur mit `git add -f`
+(Checkliste Abschnitt 4); (2) lokale pytest-Läufe schrieben am 2026-07-17
+real in die Produktions-Mongo (Wiederholung des find_dotenv-Musters) —
+seither erzwingt `tests/conftest.py` die Isolation autouse, NICHT entfernen;
+(3) `scripts/ensure_mongo_indexes.py` ist Klasse D mit destruktiver Wirkung
+(TTL-Monitor löscht abgelaufene Dokumente unwiderruflich) — wie beim
+Retry-Skript gilt: zuerst `--dry-run`; (4) das Löschkonzept
+(`expire_at`/TTL, Klasse C) ist eine Datenschutzantrags-Zusage — Termine
+nur im Einklang mit dem Antrag ändern (RETENTION_*_EXPIRE_AT, Details:
+toadapt-config-and-flags).
 
 Drift-anfällige Fakten und ihr
 Re-Verifikations-Kommando (vom Repo-Root):
 
 | Fakt (Stand 2026-07-08) | Re-Verifikation |
 |---|---|
-| 131 Backend-Tests, alle grün (Stand 2026-07-11; vorher 48→90) | `.venv/bin/python -m pytest tests/ -q` |
+| 153 Backend-Tests, alle grün (Stand 2026-07-17; vorher 48→90→131) | `.venv/bin/python -m pytest tests/ -q` |
 | Approve-Gate: 422 + `force`-Override, geloggt | `grep -n "force\|422\|case_approved" backend/admin/routes.py` |
 | Reservierte Case-Namen im Validator | `grep -n "RESERVED_CASE_TERMS" backend/cases/validator.py` |
 | `require_api_key` fail-closed (503) | `grep -n "503\|SERVICE_UNAVAILABLE" backend/auth.py` |
