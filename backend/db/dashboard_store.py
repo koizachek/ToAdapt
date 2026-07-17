@@ -15,6 +15,7 @@ from typing import Any
 
 import structlog
 
+from backend.config import retention
 from backend.db import mongo
 
 logger = structlog.get_logger(__name__)
@@ -37,10 +38,14 @@ class DashboardStore:
         collection = mongo.get_collection(self.collection_name)
         if collection is None:
             return
+        doc = json.loads(json.dumps(result, default=str))
+        # Nach dem JSON-Roundtrip setzen: der TTL-Index braucht ein echtes
+        # BSON-Datum, kein String.
+        doc[retention.TTL_FIELD] = retention.formative_expire_at()
         try:
             collection.replace_one(
                 {"submission_id": submission_id},
-                json.loads(json.dumps(result, default=str)),
+                doc,
                 upsert=True,
             )
         except Exception as exc:  # pragma: no cover - external service failure
@@ -50,7 +55,7 @@ class DashboardStore:
         collection = mongo.get_collection(self.collection_name)
         if collection is not None:
             try:
-                docs = list(collection.find({}, {"_id": 0}))
+                docs = list(collection.find({}, {"_id": 0, retention.TTL_FIELD: 0}))
                 if docs:
                     return docs
             except Exception as exc:  # pragma: no cover - external service failure

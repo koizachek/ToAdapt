@@ -12,6 +12,9 @@ from urllib.parse import quote_plus
 import structlog
 from dotenv import load_dotenv
 
+# Liest Env erst zur Laufzeit — Import vor load_dotenv ist unkritisch.
+from backend.config import retention
+
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 try:
@@ -129,6 +132,7 @@ class MongoExperimentLogger:
             collection.insert_one({
                 "event_type": event_type,
                 "created_at": datetime.now(timezone.utc),
+                retention.TTL_FIELD: retention.research_expire_at(),
                 "payload": payload,
             })
         except Exception as exc:  # pragma: no cover - external service failure

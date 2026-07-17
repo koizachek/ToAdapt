@@ -18,6 +18,7 @@ try:
 except Exception:  # pragma: no cover - optional dependency at runtime
     MongoClient = None
 
+from backend.config import retention
 from backend.models.submission import Submission
 
 logger = structlog.get_logger(__name__)
@@ -93,7 +94,7 @@ class SubmissionStore:
         try:
             collection.replace_one(
                 {"submission_id": submission.submission_id},
-                payload,
+                {**payload, retention.TTL_FIELD: retention.formative_expire_at()},
                 upsert=True,
             )
         except Exception as exc:  # pragma: no cover - external service failure
@@ -103,7 +104,7 @@ class SubmissionStore:
         collection = self._get_collection()
         if collection is not None:
             try:
-                doc = collection.find_one({"submission_id": submission_id}, {"_id": 0})
+                doc = collection.find_one({"submission_id": submission_id}, {"_id": 0, retention.TTL_FIELD: 0})
                 if doc:
                     return Submission.model_validate(doc)
             except Exception as exc:  # pragma: no cover - external service failure

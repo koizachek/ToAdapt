@@ -101,6 +101,8 @@ Host eine URI gebaut.
 | `MONGODB_SESSIONS_COLLECTION` | Chat-Sessions | `sessions` | nein | — |
 | `MONGODB_DASHBOARD_COLLECTION` | Dashboard-Ergebnisse | `dashboard_results` | nein | — |
 | `MONGODB_GROUP_UPLOADS_COLLECTION` (seit 2026-07-10) | Bewertete Gruppenarbeits-Uploads des Master-Tutors (`backend/db/group_upload_store.py`) | `group_uploads` | nein | — |
+| `RETENTION_FORMATIVE_EXPIRE_AT` (seit 2026-07-17) | Fester Löschtermin (ISO-Datum) der formativen Lehrbetriebs-Daten (sessions, submission_states, dashboard_results, group_uploads) — Stores schreiben ihn als `expire_at`, MongoDB löscht per TTL-Index (`backend/config/retention.py`; Indizes: `scripts/ensure_mongo_indexes.py`) | `2027-01-31` (Semesterende HS 2026 + 4 Wochen, Datenschutzantrag Teil 1 §7) | nein | Termin in der Vergangenheit ⇒ TTL-Monitor löscht SOFORT alle Daten; bei neuem Kursdurchlauf nachziehen. |
+| `RETENTION_RESEARCH_EXPIRE_AT` (seit 2026-07-17) | Fester Löschtermin des Forschungslogs `experiment_events` (Datenschutzantrag Teil 2 §5: längstens 24 Monate nach Semesterende) | `2028-12-31` | nein | wie oben — Vergangenheitstermin löscht das komplette Forschungslog. |
 
 ### Betrieb / Observability
 
@@ -362,6 +364,11 @@ Ziel: Ein neuer Wert soll per Env steuerbar sein statt hartkodiert.
 ---
 
 ## Provenance und Wartung
+
+Update 2026-07-17: +RETENTION_FORMATIVE_EXPIRE_AT, +RETENTION_RESEARCH_EXPIRE_AT
+(Löschkonzept des Datenschutzantrags; `backend/config/retention.py` setzt
+`expire_at` in allen Mongo-Schreibpfaden, `scripts/ensure_mongo_indexes.py`
+legt TTL- und W1-Lookup-Indizes an + Backfill).
 
 Update 2026-07-11 (HEAD `324d937`): +OPENROUTER_FALLBACK_MODELS,
 +LLM_PROMPT_CACHING (LLM-Client), +MONGODB_GROUP_UPLOADS_COLLECTION

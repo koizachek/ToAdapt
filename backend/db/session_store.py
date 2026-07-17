@@ -12,6 +12,7 @@ import os
 
 import structlog
 
+from backend.config import retention
 from backend.db import mongo
 from backend.models.session import Session
 
@@ -26,10 +27,12 @@ class SessionStore:
         collection = mongo.get_collection(self.collection_name)
         if collection is None:
             return
+        doc = session.model_dump(mode="json", exclude_none=True)
+        doc[retention.TTL_FIELD] = retention.formative_expire_at()
         try:
             collection.replace_one(
                 {"session_id": session.session_id},
-                session.model_dump(mode="json", exclude_none=True),
+                doc,
                 upsert=True,
             )
         except Exception as exc:  # pragma: no cover - external service failure
@@ -40,7 +43,7 @@ class SessionStore:
         if collection is None:
             return None
         try:
-            doc = collection.find_one({"session_id": session_id}, {"_id": 0})
+            doc = collection.find_one({"session_id": session_id}, {"_id": 0, retention.TTL_FIELD: 0})
             if doc:
                 return Session.model_validate(doc)
         except Exception as exc:  # pragma: no cover - external service failure
