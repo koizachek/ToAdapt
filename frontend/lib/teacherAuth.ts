@@ -50,11 +50,13 @@ export interface TeacherSessionPayload {
   tutor: string
   /** true nur für den Master-Tutor (Login mit dem Master-Code, Env TEACHER_ARCHIVE_CODE). */
   master: boolean
+  /** Session-ID für den serverseitigen Widerruf beim Logout; fehlt bei Alt-Tokens. */
+  jti?: string
 }
 
-/** Erzeugt einen signierten Session-Token mit Tutor-Kennung, Master-Flag + Ablaufzeitstempel. */
+/** Erzeugt einen signierten Session-Token mit Tutor-Kennung, Master-Flag, Session-ID + Ablaufzeitstempel. */
 export async function signTeacherSession(tutorId: string, master = false): Promise<string> {
-  const payload = JSON.stringify({ iat: Date.now(), tutor: tutorId, master })
+  const payload = JSON.stringify({ iat: Date.now(), tutor: tutorId, master, jti: crypto.randomUUID() })
   const payloadB64 = toBase64Url(new TextEncoder().encode(payload))
   const sig = await hmac(payloadB64, getSecret())
   return `${payloadB64}.${sig}`
@@ -87,7 +89,8 @@ export async function verifyTeacherSessionPayload(
     if (!Number.isFinite(iat)) return null
     if (Date.now() - iat > MAX_AGE_SECONDS * 1000) return null
     const tutor = typeof payload?.tutor === 'string' && payload.tutor ? payload.tutor : 'teacher'
-    return { tutor, master: payload?.master === true }
+    const jti = typeof payload?.jti === 'string' && payload.jti ? payload.jti : undefined
+    return { tutor, master: payload?.master === true, jti }
   } catch {
     return null
   }

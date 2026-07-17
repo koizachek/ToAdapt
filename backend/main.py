@@ -46,6 +46,7 @@ if _sentry_dsn:
 from backend.anonymize import pseudonymization_enabled
 from backend.auth import require_api_key, student_access_required
 from backend.api.routes import router as session_router
+from backend.api.teacher_session import router as teacher_session_router
 from backend.admin.routes import router as admin_router
 from backend.dashboard.routes import router as dashboard_router
 from backend.group_uploads.routes import router as group_uploads_router
@@ -120,6 +121,7 @@ app.add_middleware(
 )
 
 app.include_router(session_router)
+app.include_router(teacher_session_router)
 app.include_router(admin_router)
 app.include_router(dashboard_router)
 app.include_router(group_uploads_router)

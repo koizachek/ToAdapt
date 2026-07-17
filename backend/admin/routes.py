@@ -6,7 +6,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from backend.auth import require_api_key
+from backend.auth import reject_revoked_teacher_session, require_api_key
 from backend.cases.generator import CaseGenerator
 from backend.cases.manager import case_manager
 from backend.cases.validator import CaseValidationReport, validate_case
@@ -25,7 +25,13 @@ from backend.models.case import (
 )
 
 logger = structlog.get_logger(__name__)
-router = APIRouter(prefix="/admin", tags=["admin"])
+# Widerrufene Teacher-Sessions abweisen (Header kommt nur vom Teacher-Proxy;
+# Requests ohne Header — Studierenden-Frontend, Skripte — sind unberührt).
+router = APIRouter(
+    prefix="/admin",
+    tags=["admin"],
+    dependencies=[Depends(reject_revoked_teacher_session)],
+)
 
 
 # ---------------------------------------------------------------------------

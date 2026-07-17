@@ -38,6 +38,12 @@ async function proxy(request: NextRequest, path: string[]): Promise<NextResponse
     'X-API-Key': apiKey,
     'Content-Type': request.headers.get('content-type') ?? 'application/json',
   }
+  // Session-ID der verifizierten Teacher-Session mitschicken: Das Backend
+  // weist Sessions ab, die per Logout widerrufen wurden (401) — so ist ein
+  // kopierter Token nach dem Abmelden wirklich tot, nicht erst nach 12 h.
+  if (session.jti) {
+    headers['X-Teacher-Session'] = session.jti
+  }
 
   const init: RequestInit = { method: request.method, headers }
   if (request.method !== 'GET' && request.method !== 'HEAD') {

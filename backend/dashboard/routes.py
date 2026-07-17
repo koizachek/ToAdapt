@@ -9,7 +9,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from backend.auth import require_api_key, require_research_key
+from backend.auth import reject_revoked_teacher_session, require_api_key, require_research_key
 from backend.db.dashboard_store import dashboard_store
 from backend.db.group_upload_store import group_upload_store
 
@@ -17,7 +17,7 @@ logger = structlog.get_logger(__name__)
 router = APIRouter(
     prefix="/dashboard",
     tags=["dashboard"],
-    dependencies=[Depends(require_api_key)],
+    dependencies=[Depends(require_api_key), Depends(reject_revoked_teacher_session)],
 )
 
 SEED_SUBMISSIONS_PATH = (

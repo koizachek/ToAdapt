@@ -370,6 +370,16 @@ Update 2026-07-17: +RETENTION_FORMATIVE_EXPIRE_AT, +RETENTION_RESEARCH_EXPIRE_AT
 `expire_at` in allen Mongo-Schreibpfaden, `scripts/ensure_mongo_indexes.py`
 legt TTL- und W1-Lookup-Indizes an + Backfill).
 
+Update 2026-07-17 (2): +MONGODB_REVOKED_SESSIONS_COLLECTION (Default
+`revoked_teacher_sessions`, `backend/db/revoked_sessions_store.py`) —
+Sperrliste für per Logout widerrufene Teacher-Sessions (jti im signierten
+Cookie; Proxy schickt Header X-Teacher-Session, Backend-Dependency
+`reject_revoked_teacher_session` auf dashboard/admin/group-uploads-Routern
+weist widerrufene Sessions mit 401 ab; TTL 24 h, fail-open bei Mongo-Ausfall).
+Neue Magic Numbers: Teacher-Login-Rate-Limit 10 Versuche/60 s pro IP
+(`frontend/lib/loginRateLimit.ts`, pro Serverless-Instanz), Revoke-Endpoint
+30/60 s (`backend/api/teacher_session.py`).
+
 Update 2026-07-11 (HEAD `324d937`): +OPENROUTER_FALLBACK_MODELS,
 +LLM_PROMPT_CACHING (LLM-Client), +MONGODB_GROUP_UPLOADS_COLLECTION
 (Master-Upload-Store), +GROUP_CODE_MAX (Gruppencode-Validierung, s. Auth-

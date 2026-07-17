@@ -80,6 +80,32 @@ async def require_student_access(
         )
 
 
+TEACHER_JTI_HEADER = "X-Teacher-Session"
+
+
+async def reject_revoked_teacher_session(
+    x_teacher_session: str | None = Header(default=None, alias=TEACHER_JTI_HEADER),
+) -> None:
+    """Weist Requests mit einer per Logout widerrufenen Teacher-Session ab.
+
+    Der Teacher-Proxy des Frontends schickt die jti der signierten (und dort
+    bereits verifizierten) Session als X-Teacher-Session mit; nach einem
+    Logout steht sie auf der Sperrliste → 401. Requests OHNE den Header
+    (Forschende/Skripte direkt mit API-Key, Alt-Sessions ohne jti) sind
+    bewusst nicht betroffen — deren Auth ist der Key selbst.
+    """
+    jti = (x_teacher_session or "").strip()
+    if not jti:
+        return
+    from backend.db.revoked_sessions_store import revoked_session_store
+
+    if revoked_session_store.is_revoked(jti):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sitzung wurde abgemeldet — bitte neu einloggen",
+        )
+
+
 def _configured_key() -> str:
     return os.environ.get(API_KEY_ENV, "").strip()
 

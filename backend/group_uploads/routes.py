@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 from backend.anonymize import normalize_group_code
-from backend.auth import require_api_key
+from backend.auth import reject_revoked_teacher_session, require_api_key
 from backend.db.group_upload_store import group_upload_store
 from backend.group_uploads.evaluator import GROUP_TP_MAX_POINTS, GroupWorkEvaluator
 from backend.group_uploads.extraction import (
@@ -38,7 +38,7 @@ logger = structlog.get_logger(__name__)
 router = APIRouter(
     prefix="/group-uploads",
     tags=["group-uploads"],
-    dependencies=[Depends(require_api_key)],
+    dependencies=[Depends(require_api_key), Depends(reject_revoked_teacher_session)],
 )
 
 MAX_UPLOAD_BYTES = 100 * 1024 * 1024  # ZIP-Rohgröße (komprimiert)

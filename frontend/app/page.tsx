@@ -13,6 +13,7 @@ interface LoginPageContentProps {
   prolificSessionId?: string
   initialMode?: AppMode
   teacherLoginError?: boolean
+  teacherRateLimited?: boolean
   initialLanguage?: Locale | null
 }
 
@@ -44,6 +45,7 @@ const LOGIN_TEXT = {
     accessCode: 'Zugangscode',
     accessPlaceholder: 'Code eingeben',
     accessError: 'Code nicht korrekt.',
+    rateLimitError: 'Zu viele Versuche — bitte eine Minute warten.',
     openTeacher: 'Lehrkräftebereich öffnen',
     privacyNote: 'Deine Angaben werden pseudonymisiert erfasst. Tutor:innen sehen nur Gruppen-Zusammenfassungen — keine Einzelprofile und keine Chat-Verläufe.',
     languageAria: 'Sprache wählen',
@@ -84,6 +86,7 @@ const LOGIN_TEXT = {
     accessCode: 'Access code',
     accessPlaceholder: 'Enter code',
     accessError: 'Incorrect code.',
+    rateLimitError: 'Too many attempts — please wait a minute.',
     openTeacher: 'Open teacher area',
     privacyNote: 'Your data is stored pseudonymously. Tutors only see group summaries — no individual profiles and no chat logs.',
     languageAria: 'Choose language',
@@ -109,6 +112,7 @@ function LoginPageContent({
   prolificSessionId = '',
   initialMode = 'student',
   teacherLoginError = false,
+  teacherRateLimited = false,
   initialLanguage = null,
 }: LoginPageContentProps) {
   const router = useRouter()
@@ -445,7 +449,11 @@ function LoginPageContent({
                 onFocus={event => { event.currentTarget.style.borderColor = 'var(--accent)' }}
                 onBlur={event => { event.currentTarget.style.borderColor = 'rgba(53,40,30,0.25)' }}
               />
-              {teacherLoginError && <p className="mt-2 text-xs" style={{ color: '#c0392b' }}>{text.accessError}</p>}
+              {(teacherLoginError || teacherRateLimited) && (
+                <p className="mt-2 text-xs" style={{ color: '#c0392b' }}>
+                  {teacherRateLimited ? text.rateLimitError : text.accessError}
+                </p>
+              )}
             </div>
 
             <button
@@ -558,6 +566,7 @@ function LoginPageInner() {
       prolificSessionId={searchParams.get('SESSION_ID') ?? searchParams.get('session_id') ?? ''}
       initialMode={searchParams.get('mode') === 'teacher' ? 'teacher' : 'student'}
       teacherLoginError={searchParams.get('teacher_error') === '1'}
+      teacherRateLimited={searchParams.get('teacher_error') === 'rate'}
       initialLanguage={languageFromSearchParams(new URLSearchParams(searchParams.toString()))}
     />
   )

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { loginRateLimited } from '@/lib/loginRateLimit'
 import { resolveTutorByCode, signTeacherSession, verifyArchiveCode, TEACHER_COOKIE, TEACHER_COOKIE_MAX_AGE } from '@/lib/teacherAuth'
 
 export async function POST(request: NextRequest) {
@@ -6,6 +7,12 @@ export async function POST(request: NextRequest) {
   const code = String(formData.get('teacher_code') ?? '').trim()
   const language = String(formData.get('language') ?? '').trim()
   const languageParam = language === 'en' ? '&language=en' : ''
+
+  // Brute-Force-Bremse gegen Code-Raten (10 Versuche/Minute pro IP).
+  const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  if (loginRateLimited(clientIp)) {
+    return NextResponse.redirect(new URL(`/?mode=teacher&teacher_error=rate${languageParam}`, request.url), 303)
+  }
 
   // Master-Login: Der Master-Code (Env TEACHER_ARCHIVE_CODE, z.B. "000")
   // ist zugleich ein Login-Code — nur er schaltet die Master-Funktionen
