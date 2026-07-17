@@ -222,12 +222,21 @@ LLM-Calls, keine echten Teilnehmerdaten — immer synthetische Daten.
 
 ### Muster A: API-Test mit TestClient + sauberer Env
 
-**Die wichtigste Regel: MONGODB_\*-Variablen IMMER wegräumen.** Die Stores
-verbinden sich sonst real (`backend/db/mongo.py` baut die URI aus
-`MONGODB_URI` ODER `MONGODB_MAS_NAME`+`MONGODB_MAS_KEY`+`MONGODB_HOST`/
-`_CLUSTER_HOST`/`_CLUSTER`; `MongoClient(..., serverSelectionTimeoutMS=2000)`)
-— Folge: 2-Sekunden-Stall pro Zugriff oder, schlimmer, Schreiben in eine
-echte Datenbank, falls lokal eine `.env` geladen wurde.
+**Seit 2026-07-17 zentral erledigt: `tests/conftest.py` räumt die
+MONGODB_\*-Env pro Test autouse weg und neutralisiert die beim Import
+initialisierten Singletons (experiment_logger, submission_store,
+mongo._client).** Anlass: Zwei lokale pytest-Läufe hatten über die Root-.env
+real in die Produktions-Collections geschrieben (48 Test-Dokumente; Cleanup:
+`scripts/cleanup_test_artifacts_20260717.py`) — gleicher Mechanismus wie die
+find_dotenv-Falle beim Lasttest (2026-07-10). Nebeneffekt des Fixes: Suite
+läuft in ~2 s statt ~20 s (die 2-Sekunden-Stalls waren echte
+Atlas-Verbindungsversuche). Einzelne Tests müssen die Env also nicht mehr
+selbst wegräumen; das explizite Muster unten bleibt korrekt und schadet nicht.
+
+Hintergrund, warum das nötig war: Die Stores verbinden sich sonst real
+(`backend/db/mongo.py` baut die URI aus `MONGODB_URI` ODER
+`MONGODB_MAS_NAME`+`MONGODB_MAS_KEY`+`MONGODB_HOST`/`_CLUSTER_HOST`/
+`_CLUSTER`; `MongoClient(..., serverSelectionTimeoutMS=2000)`).
 
 ```python
 import pytest
