@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useState } from 'react'
-import { GraduationCap, UserRoundCog } from 'lucide-react'
+import { GraduationCap, LogOut, UserRoundCog } from 'lucide-react'
 import {
   AppMode,
   readStoredAppMode,
@@ -35,18 +35,21 @@ const NAV_TEXT: Record<Locale, {
   studentMode: string
   teacherMode: string
   languageAria: string
+  logout: string
 }> = {
   de: {
     modeAria: 'Modus wählen',
     studentMode: 'Studierende',
     teacherMode: 'Lehrkräfte',
     languageAria: 'Sprache wählen',
+    logout: 'Abmelden',
   },
   en: {
     modeAria: 'Choose mode',
     studentMode: 'Students',
     teacherMode: 'Teachers',
     languageAria: 'Choose language',
+    logout: 'Log out',
   },
 }
 
@@ -184,6 +187,21 @@ export default function Nav() {
             {l.label}
           </Link>
         ))}
+
+        {hasTeacherAccess && (
+          // Form-POST statt fetch: Der Server löscht das httpOnly-Session-Cookie
+          // und leitet auf die Login-Seite um — funktioniert auch ohne JS.
+          <form method="post" action="/teacher-logout">
+            <input type="hidden" name="language" value={language} />
+            <button
+              type="submit"
+              className="flex items-center gap-2 text-sm font-medium tracking-wide transition-colors duration-150 text-[var(--ink)] hover:text-[var(--accent)]"
+            >
+              <LogOut size={13} />
+              {text.logout}
+            </button>
+          </form>
+        )}
 
         <div
           className="flex items-center gap-1 p-1"
