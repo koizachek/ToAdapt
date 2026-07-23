@@ -1330,7 +1330,6 @@ export default function CasePage() {
                         <div className="ml-8 mt-3">
                           {(() => {
                             const hint = hints[question.question_id] ?? { remaining: HINTS_PER_QUESTION, loading: false }
-                            const hintUsable = hint.remaining > 0 && answerText.trim().length > 0
                             return (
                               <>
                                 <div className="flex items-center gap-3 text-xs">
@@ -1338,12 +1337,12 @@ export default function CasePage() {
                                     type="button"
                                     onClick={() => requestHint(question.question_id)}
                                     disabled={hint.loading || hint.remaining <= 0 || !answerText.trim()}
-                                    className="rounded-full px-3 py-1.5 font-medium transition-all"
+                                    className="rounded-full px-3 py-1.5 font-medium transition-all disabled:cursor-not-allowed"
                                     style={{
                                       border: '1px solid var(--accent)',
                                       background: 'var(--accent)',
                                       color: 'var(--white)',
-                                      opacity: hint.loading || !hintUsable ? 0.55 : 1,
+                                      opacity: hint.loading ? 0.6 : 1,
                                     }}
                                   >
                                     <NotionIcon name="idea" size={18} className="mr-1.5 [filter:brightness(0)_invert(1)]" />
