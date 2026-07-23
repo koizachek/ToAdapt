@@ -2,10 +2,14 @@
 
 @layer base {
   :root {
-    --bg:       #E4E2DC;
+    /* Seitenhintergrund: war #E4E2DC, 10% Richtung Weiß aufgehellt. */
+    --bg:       #E7E5E0;
     --ink:      #1a1a1a;
     --line:     #35281E;
     --accent:   #15633D;
+    /* Grüner Fließtext (Exhibit-Links, Glossar-Vokabular): --accent mit
+       10% mehr Sättigung, damit er im Text kräftiger wirkt. */
+    --accent-text: #11673D;
     --white:    #FAFAF8;
     /* Sekundärtext: war #74716C (beige-auf-beige schlecht lesbar),
        35% dunkler für ausreichenden Kontrast auf --bg und --surface. */

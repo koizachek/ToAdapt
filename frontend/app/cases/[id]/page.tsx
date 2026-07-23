@@ -610,7 +610,7 @@ function linkifyExhibits(text: string, keyPrefix: string) {
           key={`${keyPrefix}-ex-${i}`}
           href={`#exhibit-${match[1]}`}
           className="font-medium underline decoration-dotted underline-offset-2"
-          style={{ color: 'var(--accent)' }}
+          style={{ color: 'var(--accent-text)' }}
         >
           {seg}
         </a>
@@ -690,7 +690,7 @@ function GlossaryChip({
         className="mx-0.5 inline-flex items-center rounded-[4px] px-1.5 py-0.5 text-left text-[0.95em] font-medium transition-colors"
         style={active
           ? { background: 'var(--accent)', color: 'var(--white)' }
-          : { background: 'rgba(21,99,61,0.14)', color: 'var(--accent)' }}
+          : { background: 'rgba(17,103,61,0.14)', color: 'var(--accent-text)' }}
         aria-label={text.discussTermAria(term.term)}
       >
         {term.term}
@@ -723,7 +723,7 @@ function GlossaryChip({
           onMouseDown={e => e.preventDefault()}
           onClick={() => onDiscuss(term)}
           className="pointer-events-auto mt-1 inline-flex items-center gap-2 text-xs font-medium tracking-wide"
-          style={{ color: 'var(--accent)' }}
+          style={{ color: 'var(--accent-text)' }}
         >
           <BookOpenText size={14} />
           {text.discussWithAgent}
