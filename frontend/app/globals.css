@@ -7,8 +7,13 @@
     --line:     #35281E;
     --accent:   #15633D;
     --white:    #FAFAF8;
-    --muted:    #74716C;
+    /* Sekundärtext: war #74716C (beige-auf-beige schlecht lesbar),
+       35% dunkler für ausreichenden Kontrast auf --bg und --surface. */
+    --muted:    #4B4946;
     --surface:  #F0EEE8;
+    /* Eingabefelder: 20% heller als die bisherige Feld-Aufhellung (~#F4F3EF),
+       damit sie sich sichtbar vom Beige (--bg/--surface) absetzen. */
+    --field:    #F7F6F2;
     /* Solide Linienfarbe für dünne Trenner/Rahmen: die früher als hellbeige
        gerenderte Linie (rgb 203,199,192), 25% dunkler und deckend — gleiche
        1px-Stärke, nur dunkler, auf Weiß wie auf Beige gut sichtbar. */
@@ -31,6 +36,13 @@
   }
 
   a { color: inherit; text-decoration: none; }
+
+  /* Placeholder-Texte waren beige-auf-beige (Preflight: currentColor @ 50%) —
+     deckend auf --muted setzen, damit sie lesbar sind. */
+  ::placeholder {
+    color: var(--muted);
+    opacity: 1;
+  }
 }
 
 @layer utilities {

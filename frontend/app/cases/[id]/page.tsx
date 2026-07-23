@@ -1257,8 +1257,9 @@ export default function CasePage() {
                           }}
                           rows={6}
                           placeholder={text.answerPlaceholder(requirement.minWords, requirement.maxWords)}
-                          className="ml-8 w-full resize-none rounded-2xl bg-transparent px-4 py-3 text-sm outline-none transition-all"
+                          className="ml-8 w-full resize-none rounded-2xl px-4 py-3 text-sm outline-none transition-all"
                           style={{
+                            background: 'var(--field)',
                             border: `1px solid ${answerText.trim().length > 0 && !isWithinRange ? 'rgba(173,63,43,0.45)' : 'var(--hairline)'}`,
                             color: 'var(--ink)',
                           }}
@@ -1329,6 +1330,7 @@ export default function CasePage() {
                         <div className="ml-8 mt-3">
                           {(() => {
                             const hint = hints[question.question_id] ?? { remaining: HINTS_PER_QUESTION, loading: false }
+                            const hintUsable = hint.remaining > 0 && answerText.trim().length > 0
                             return (
                               <>
                                 <div className="flex items-center gap-3 text-xs">
@@ -1338,12 +1340,13 @@ export default function CasePage() {
                                     disabled={hint.loading || hint.remaining <= 0 || !answerText.trim()}
                                     className="rounded-full px-3 py-1.5 font-medium transition-all"
                                     style={{
-                                      border: '1px solid rgba(53,40,30,0.25)',
-                                      color: hint.remaining > 0 && answerText.trim() ? 'var(--ink)' : 'var(--muted)',
+                                      border: hintUsable ? '1px solid var(--accent)' : '1px solid rgba(53,40,30,0.25)',
+                                      background: hintUsable ? 'var(--accent)' : 'transparent',
+                                      color: hintUsable ? 'var(--white)' : 'var(--muted)',
                                       opacity: hint.loading ? 0.6 : 1,
                                     }}
                                   >
-                                    <NotionIcon name="idea" size={18} className="mr-1.5" />
+                                    <NotionIcon name="idea" size={18} className={hintUsable ? 'mr-1.5 [filter:brightness(0)_invert(1)]' : 'mr-1.5'} />
                                     {hint.loading ? text.hintLoading : text.hintButton}
                                   </button>
                                   <span style={{ color: 'var(--muted)' }}>{text.hintRemaining(hint.remaining)}</span>

@@ -371,8 +371,8 @@ function LoginPageContent({
                   onChange={e => { setParticipantIdInput(e.target.value); setError('') }}
                   placeholder="deine-id"
                   autoFocus
-                  className="w-full px-4 py-3 text-sm bg-transparent outline-none transition-all"
-                  style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
+                  className="w-full px-4 py-3 text-sm outline-none transition-all"
+                  style={{ background: 'var(--field)', border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
                   onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'}
                   onBlur={e => e.currentTarget.style.borderColor = 'rgba(53,40,30,0.25)'}
                 />
@@ -392,8 +392,8 @@ function LoginPageContent({
                     value={groupCodeInput}
                     onChange={e => { setGroupCodeInput(e.target.value); setError('') }}
                     placeholder={text.groupPlaceholder}
-                    className="w-full px-4 py-3 text-sm bg-transparent outline-none transition-all"
-                    style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
+                    className="w-full px-4 py-3 text-sm outline-none transition-all"
+                    style={{ background: 'var(--field)', border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
                     onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'}
                     onBlur={e => e.currentTarget.style.borderColor = 'rgba(53,40,30,0.25)'}
                   />
@@ -409,8 +409,8 @@ function LoginPageContent({
                   value={accessCodeInput}
                   onChange={e => { setAccessCodeInput(e.target.value); setError('') }}
                   placeholder={text.accessPlaceholder}
-                  className="w-full px-4 py-3 text-sm bg-transparent outline-none transition-all"
-                  style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
+                  className="w-full px-4 py-3 text-sm outline-none transition-all"
+                  style={{ background: 'var(--field)', border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
                   onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'}
                   onBlur={e => e.currentTarget.style.borderColor = 'rgba(53,40,30,0.25)'}
                 />
@@ -444,8 +444,8 @@ function LoginPageContent({
                 inputMode="numeric"
                 name="teacher_code"
                 placeholder={text.accessPlaceholder}
-                className="w-full px-4 py-3 text-sm bg-transparent outline-none transition-all"
-                style={{ border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
+                className="w-full px-4 py-3 text-sm outline-none transition-all"
+                style={{ background: 'var(--field)', border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
                 onFocus={event => { event.currentTarget.style.borderColor = 'var(--accent)' }}
                 onBlur={event => { event.currentTarget.style.borderColor = 'rgba(53,40,30,0.25)' }}
               />
