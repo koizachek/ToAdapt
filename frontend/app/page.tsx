@@ -276,7 +276,7 @@ function LoginPageContent({
     <main className="min-h-screen flex flex-col items-center justify-center px-6">
       <div
         className="fixed right-6 top-6 flex items-center gap-1 p-1"
-        style={{ border: '1px solid var(--hairline)', background: 'rgba(250,250,248,0.45)' }}
+        style={{ border: '1px solid var(--hairline)', background: 'var(--field)' }}
         aria-label={text.languageAria}
       >
         {(['de', 'en'] as Locale[]).map(option => {
@@ -324,7 +324,7 @@ function LoginPageContent({
       {!prolificPid && (
         <div
           className="mb-8 flex w-full max-w-sm items-center gap-1 p-1"
-          style={{ border: '1px solid var(--hairline)', background: 'rgba(250,250,248,0.45)' }}
+          style={{ border: '1px solid var(--hairline)', background: 'var(--field)' }}
           aria-label={text.modeAria}
         >
           {[

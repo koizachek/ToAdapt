@@ -43,6 +43,15 @@
     color: var(--muted);
     opacity: 1;
   }
+
+  /* Feldhelligkeit ist eine globale Entscheidung: alle Formularfelder
+     (auch Tutoren-/Admin-Ansicht) heben sich per --field vom Beige ab.
+     Checkbox/Radio ausgenommen (rendern über accent-color). */
+  input:not([type='checkbox']):not([type='radio']),
+  textarea,
+  select {
+    background-color: var(--field);
+  }
 }
 
 @layer utilities {

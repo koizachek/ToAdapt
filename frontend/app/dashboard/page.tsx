@@ -316,7 +316,7 @@ export default function DashboardPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={text.searchPlaceholder}
-              className="px-3 py-1.5 text-sm bg-transparent outline-none"
+              className="px-3 py-1.5 text-sm outline-none"
               style={{ border: '1px solid var(--hairline)', color: 'var(--ink)', width: '220px' }}
             />
           </div>

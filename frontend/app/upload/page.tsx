@@ -211,7 +211,7 @@ export default function UploadPage() {
                   value={assignDrafts[record.upload_id] ?? ''}
                   onChange={e => setAssignDrafts(current => ({ ...current, [record.upload_id]: e.target.value }))}
                   placeholder={text.groupPlaceholder}
-                  className="px-2 py-1 text-xs bg-transparent outline-none w-24"
+                  className="px-2 py-1 text-xs outline-none w-24"
                   style={{ border: '1px solid var(--hairline)', color: 'var(--ink)' }}
                 />
                 <button

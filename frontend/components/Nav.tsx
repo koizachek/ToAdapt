@@ -144,7 +144,7 @@ export default function Nav() {
         {!roleLocked && (
           <div
             className="flex items-center gap-1 p-1"
-            style={{ border: '1px solid var(--hairline)', background: 'rgba(250,250,248,0.45)' }}
+            style={{ border: '1px solid var(--hairline)', background: 'var(--field)' }}
             aria-label={text.modeAria}
           >
             {[
@@ -205,7 +205,7 @@ export default function Nav() {
 
         <div
           className="flex items-center gap-1 p-1"
-          style={{ border: '1px solid var(--hairline)', background: 'rgba(250,250,248,0.45)' }}
+          style={{ border: '1px solid var(--hairline)', background: 'var(--field)' }}
           aria-label={text.languageAria}
         >
           {(['de', 'en'] as Locale[]).map(option => {

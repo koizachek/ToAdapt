@@ -385,7 +385,7 @@ export default function AdminPage() {
           value={regenInstructions[key] ?? ''}
           onChange={e => setRegenInstructions(p => ({ ...p, [key]: e.target.value }))}
           placeholder={text.regenInstruction}
-          className="flex-1 px-3 py-1.5 text-xs bg-transparent outline-none"
+          className="flex-1 px-3 py-1.5 text-xs outline-none"
           style={INPUT_STYLE}
         />
         <button
@@ -441,7 +441,7 @@ export default function AdminPage() {
                 <select
                   value={form[f.key]}
                   onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                  className="w-full px-3 py-2.5 text-sm bg-transparent outline-none"
+                  className="w-full px-3 py-2.5 text-sm outline-none"
                   style={INPUT_STYLE}
                 >
                   {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -453,7 +453,7 @@ export default function AdminPage() {
               <select
                 value={form.target_tp}
                 onChange={e => setForm(p => ({ ...p, target_tp: Number(e.target.value) }))}
-                className="w-full px-3 py-2.5 text-sm bg-transparent outline-none"
+                className="w-full px-3 py-2.5 text-sm outline-none"
                 style={INPUT_STYLE}
               >
                 {TP_OPTIONS[language].map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -480,7 +480,7 @@ export default function AdminPage() {
             value={reviewer}
             onChange={e => setReviewer(e.target.value)}
             placeholder={text.reviewerPlaceholder}
-            className="px-3 py-1.5 text-sm bg-transparent outline-none"
+            className="px-3 py-1.5 text-sm outline-none"
             style={{ ...INPUT_STYLE, width: '180px' }}
           />
         </div>
@@ -554,7 +554,7 @@ export default function AdminPage() {
                       <input
                         value={draft.title}
                         onChange={e => updateDraft({ title: e.target.value })}
-                        className="w-full px-3 py-2 text-sm bg-transparent outline-none"
+                        className="w-full px-3 py-2 text-sm outline-none"
                         style={INPUT_STYLE}
                       />
                     </div>
@@ -565,7 +565,7 @@ export default function AdminPage() {
                         value={draft.tagline}
                         onChange={e => updateDraft({ tagline: e.target.value })}
                         rows={2}
-                        className="w-full px-3 py-2 text-sm bg-transparent outline-none resize-y"
+                        className="w-full px-3 py-2 text-sm outline-none resize-y"
                         style={INPUT_STYLE}
                       />
                       {regenControl('tagline', null)}
@@ -578,14 +578,14 @@ export default function AdminPage() {
                           <input
                             value={s.title}
                             onChange={e => updateDraft({ sections: draft.sections.map((x, xi) => xi === si ? { ...x, title: e.target.value } : x) })}
-                            className="w-full px-3 py-1.5 text-xs font-medium bg-transparent outline-none mb-1"
+                            className="w-full px-3 py-1.5 text-xs font-medium outline-none mb-1"
                             style={INPUT_STYLE}
                           />
                           <textarea
                             value={s.content}
                             onChange={e => updateDraft({ sections: draft.sections.map((x, xi) => xi === si ? { ...x, content: e.target.value } : x) })}
                             rows={5}
-                            className="w-full px-3 py-2 text-xs leading-5 bg-transparent outline-none resize-y"
+                            className="w-full px-3 py-2 text-xs leading-5 outline-none resize-y"
                             style={INPUT_STYLE}
                           />
                           {regenControl('section', s.section_id)}
@@ -600,14 +600,14 @@ export default function AdminPage() {
                           <input
                             value={ex.title}
                             onChange={e => updateDraft({ exhibits: draft.exhibits.map((x, i2) => i2 === xi ? { ...x, title: e.target.value } : x) })}
-                            className="w-full px-3 py-1.5 text-xs font-medium bg-transparent outline-none mb-1"
+                            className="w-full px-3 py-1.5 text-xs font-medium outline-none mb-1"
                             style={INPUT_STYLE}
                           />
                           <textarea
                             value={ex.content}
                             onChange={e => updateDraft({ exhibits: draft.exhibits.map((x, i2) => i2 === xi ? { ...x, content: e.target.value } : x) })}
                             rows={4}
-                            className="w-full px-3 py-2 text-xs leading-5 font-mono bg-transparent outline-none resize-y"
+                            className="w-full px-3 py-2 text-xs leading-5 font-mono outline-none resize-y"
                             style={INPUT_STYLE}
                           />
                           {regenControl('exhibit', ex.exhibit_id)}
@@ -623,7 +623,7 @@ export default function AdminPage() {
                             value={q.text}
                             onChange={e => updateDraft({ questions: draft.questions.map((x, i2) => i2 === qi ? { ...x, text: e.target.value } : x) })}
                             rows={3}
-                            className="w-full px-3 py-2 text-xs leading-5 bg-transparent outline-none resize-y"
+                            className="w-full px-3 py-2 text-xs leading-5 outline-none resize-y"
                             style={INPUT_STYLE}
                           />
                           <div className="flex items-center gap-3 mt-1 text-xs" style={{ color: 'var(--muted)' }}>
@@ -633,7 +633,7 @@ export default function AdminPage() {
                                 type="number" min={1} max={30}
                                 value={q.max_points}
                                 onChange={e => updateDraft({ questions: draft.questions.map((x, i2) => i2 === qi ? { ...x, max_points: Number(e.target.value) } : x) })}
-                                className="w-16 px-2 py-1 bg-transparent outline-none"
+                                className="w-16 px-2 py-1 outline-none"
                                 style={INPUT_STYLE}
                               />
                             </label>
@@ -647,7 +647,7 @@ export default function AdminPage() {
                               value={(q.evaluation_focus ?? []).join('\n')}
                               onChange={e => updateDraft({ questions: draft.questions.map((x, i2) => i2 === qi ? { ...x, evaluation_focus: e.target.value.split('\n').filter(l => l.trim()) } : x) })}
                               rows={3}
-                              className="w-full px-3 py-2 text-xs leading-5 bg-transparent outline-none resize-y"
+                              className="w-full px-3 py-2 text-xs leading-5 outline-none resize-y"
                               style={INPUT_STYLE}
                             />
 
@@ -665,7 +665,7 @@ export default function AdminPage() {
                                     ...x,
                                     required_canvas_blocks: x.required_canvas_blocks.map((y, yi) => yi === bi ? { ...y, accepted_keywords: e.target.value.split(',').map(k => k.trim()).filter(Boolean) } : y),
                                   } : x) })}
-                                  className="w-full px-3 py-1.5 text-xs bg-transparent outline-none"
+                                  className="w-full px-3 py-1.5 text-xs outline-none"
                                   style={INPUT_STYLE}
                                 />
                                 <input
@@ -675,7 +675,7 @@ export default function AdminPage() {
                                     ...x,
                                     required_canvas_blocks: x.required_canvas_blocks.map((y, yi) => yi === bi ? { ...y, expectation: e.target.value } : y),
                                   } : x) })}
-                                  className="w-full px-3 py-1.5 text-xs bg-transparent outline-none"
+                                  className="w-full px-3 py-1.5 text-xs outline-none"
                                   style={INPUT_STYLE}
                                 />
                               </div>
@@ -686,7 +686,7 @@ export default function AdminPage() {
                               value={(q.calibration_notes ?? []).join('\n')}
                               onChange={e => updateDraft({ questions: draft.questions.map((x, i2) => i2 === qi ? { ...x, calibration_notes: e.target.value.split('\n').filter(l => l.trim()) } : x) })}
                               rows={2}
-                              className="w-full px-3 py-2 text-xs leading-5 bg-transparent outline-none resize-y"
+                              className="w-full px-3 py-2 text-xs leading-5 outline-none resize-y"
                               style={INPUT_STYLE}
                             />
                           </div>
@@ -706,7 +706,7 @@ export default function AdminPage() {
                               value={g[field]}
                               placeholder={label}
                               onChange={e => updateDraft({ glossary: draft.glossary.map((x, xi) => xi === gi ? { ...x, [field]: e.target.value } : x) })}
-                              className="w-full px-3 py-1.5 text-xs bg-transparent outline-none"
+                              className="w-full px-3 py-1.5 text-xs outline-none"
                               style={INPUT_STYLE}
                             />
                           ))}
@@ -729,7 +729,7 @@ export default function AdminPage() {
                         value={draft.agent_guidance?.case_summary ?? ''}
                         onChange={e => updateDraft({ agent_guidance: { key_tensions: [], common_mistakes: [], ...(draft.agent_guidance ?? {}), case_summary: e.target.value } })}
                         rows={2}
-                        className="w-full px-3 py-2 text-xs leading-5 bg-transparent outline-none resize-y mb-2"
+                        className="w-full px-3 py-2 text-xs leading-5 outline-none resize-y mb-2"
                         style={INPUT_STYLE}
                       />
                       <label className="block text-xs mb-1 font-medium" style={{ color: 'var(--line)' }}>{text.guidanceTensions}</label>
@@ -737,7 +737,7 @@ export default function AdminPage() {
                         value={(draft.agent_guidance?.key_tensions ?? []).join('\n')}
                         onChange={e => updateDraft({ agent_guidance: { case_summary: '', common_mistakes: [], ...(draft.agent_guidance ?? {}), key_tensions: e.target.value.split('\n').filter(l => l.trim()) } })}
                         rows={3}
-                        className="w-full px-3 py-2 text-xs leading-5 bg-transparent outline-none resize-y mb-2"
+                        className="w-full px-3 py-2 text-xs leading-5 outline-none resize-y mb-2"
                         style={INPUT_STYLE}
                       />
                       <label className="block text-xs mb-1 font-medium" style={{ color: 'var(--line)' }}>{text.guidanceMistakes}</label>
@@ -745,7 +745,7 @@ export default function AdminPage() {
                         value={(draft.agent_guidance?.common_mistakes ?? []).join('\n')}
                         onChange={e => updateDraft({ agent_guidance: { case_summary: '', key_tensions: [], ...(draft.agent_guidance ?? {}), common_mistakes: e.target.value.split('\n').filter(l => l.trim()) } })}
                         rows={3}
-                        className="w-full px-3 py-2 text-xs leading-5 bg-transparent outline-none resize-y"
+                        className="w-full px-3 py-2 text-xs leading-5 outline-none resize-y"
                         style={INPUT_STYLE}
                       />
                     </div>

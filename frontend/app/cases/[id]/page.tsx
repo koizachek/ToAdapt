@@ -573,7 +573,7 @@ function BusinessModelCanvasGuide({ language, blocks }: { language: Locale; bloc
           <div
             key={block.key}
             className="rounded-2xl px-4 py-4"
-            style={{ background: 'rgba(250,250,248,0.72)', border: '1px solid var(--hairline)' }}
+            style={{ background: 'var(--field)', border: '1px solid var(--hairline)' }}
           >
             <p className="mb-2 text-xs font-semibold tracking-[0.08em] uppercase" style={{ color: 'var(--accent)' }}>
               {block.label}
@@ -1410,7 +1410,7 @@ export default function CasePage() {
             {isTeacherMode ? (
               <div
                 className="rounded-[28px] border p-6"
-                style={{ background: 'rgba(250,250,248,0.7)', borderColor: 'var(--hairline)' }}
+                style={{ background: 'var(--field)', borderColor: 'var(--hairline)' }}
               >
                 <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--muted)' }}>
                   {text.preview}
@@ -1452,7 +1452,7 @@ export default function CasePage() {
             <div
               className="overflow-hidden rounded-[28px] border"
               style={{
-                background: 'rgba(250,250,248,0.7)',
+                background: 'var(--field)',
                 borderColor: 'var(--hairline)',
                 backdropFilter: 'blur(10px)',
               }}
@@ -1531,7 +1531,7 @@ export default function CasePage() {
                         }
                       }}
                       placeholder={text.askAgent}
-                      className="min-w-0 flex-1 bg-transparent px-4 py-3 text-sm outline-none"
+                      className="min-w-0 flex-1 px-4 py-3 text-sm outline-none"
                       style={{ color: 'var(--ink)' }}
                     />
                     <button
