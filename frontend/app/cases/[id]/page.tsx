@@ -1165,7 +1165,7 @@ export default function CasePage() {
                           key={exhibit.exhibit_id}
                           id={`exhibit-${exhibitIndex + 1}`}
                           className="scroll-mt-28 rounded-2xl p-5"
-                          style={{ border: '1px solid var(--hairline)', background: 'rgba(250,250,248,0.45)' }}
+                          style={{ border: '1px solid var(--hairline)', background: 'var(--field)' }}
                         >
                           <div className="mb-3 flex items-center gap-2.5">
                             {EXHIBIT_ICONS[exhibitIndex] && (
@@ -1340,13 +1340,13 @@ export default function CasePage() {
                                     disabled={hint.loading || hint.remaining <= 0 || !answerText.trim()}
                                     className="rounded-full px-3 py-1.5 font-medium transition-all"
                                     style={{
-                                      border: hintUsable ? '1px solid var(--accent)' : '1px solid rgba(53,40,30,0.25)',
-                                      background: hintUsable ? 'var(--accent)' : 'transparent',
-                                      color: hintUsable ? 'var(--white)' : 'var(--muted)',
-                                      opacity: hint.loading ? 0.6 : 1,
+                                      border: '1px solid var(--accent)',
+                                      background: 'var(--accent)',
+                                      color: 'var(--white)',
+                                      opacity: hint.loading || !hintUsable ? 0.55 : 1,
                                     }}
                                   >
-                                    <NotionIcon name="idea" size={18} className={hintUsable ? 'mr-1.5 [filter:brightness(0)_invert(1)]' : 'mr-1.5'} />
+                                    <NotionIcon name="idea" size={18} className="mr-1.5 [filter:brightness(0)_invert(1)]" />
                                     {hint.loading ? text.hintLoading : text.hintButton}
                                   </button>
                                   <span style={{ color: 'var(--muted)' }}>{text.hintRemaining(hint.remaining)}</span>
