@@ -144,6 +144,8 @@ const TEXT = {
     feedbackOne: 'Feedback',
     feedbackLocked: (from: string) => `Feedback an die Stammgruppen ab ${from} — erst nach dem Termin.`,
     feedbackHelp: 'Das Feedback ist das zweite KI-Produkt: je Baustein was trägt, was bleibt dünn, nächster Schritt, dazu ein Ausblick auf den nächsten Touchpoint und die Klausur. Es wird erst nach dem Termin freigegeben, damit der Dialog im Touchpoint die Echtheitsprüfung bleibt. Sie geben es Ihren Stammgruppen weiter, zum Beispiel über Canvas.',
+    downloadAllUegs: (n: number) => `Alle ${n} Übungsgruppen als ZIP (ein Briefing-Dokument je Übungsgruppe)`,
+    feedbackAllUegs: (n: number) => `Feedback aller ${n} Übungsgruppen als ZIP`,
     feedbackTitle: 'Feedback an die Stammgruppe',
     fbTraegt: 'Was trägt',
     fbDuenn: 'Was bleibt dünn',
@@ -197,6 +199,8 @@ const TEXT = {
     feedbackOne: 'Feedback',
     feedbackLocked: (from: string) => `Feedback for the home groups available from ${from} — only after the session.`,
     feedbackHelp: 'The feedback is the second AI product: per building block what holds, what stays thin, next step, plus an outlook on the next touchpoint and the exam. It is released only after the session so that the dialogue in the touchpoint remains the authenticity check. You pass it on to your home groups, e.g. via Canvas.',
+    downloadAllUegs: (n: number) => `All ${n} tutorial groups as ZIP (one briefing document per group)`,
+    feedbackAllUegs: (n: number) => `Feedback of all ${n} tutorial groups as ZIP`,
     feedbackTitle: 'Feedback for the home group',
     fbTraegt: 'What holds',
     fbDuenn: 'What stays thin',
@@ -605,6 +609,28 @@ export default function BriefingsPage() {
             <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>{text.unassignedHint}</p>
             <div className="divider" />
             {unassigned.map(r => renderRecord(r, true))}
+          </div>
+        )}
+
+        {/* ÜGL mit mehreren Übungsgruppen: Sammel-Downloads */}
+        {!isMaster && grouped.size > 1 && (
+          <div className="flex flex-wrap items-center gap-3 mb-8">
+            <a
+              href={`/api/teacher/briefings/docx?tp=${tp}`}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium"
+              style={{ background: 'var(--ink)', color: 'var(--white)' }}
+            >
+              <Download size={14} /> {text.downloadAllUegs(grouped.size)}
+            </a>
+            {assigned[0]?.feedback_released && (
+              <a
+                href={`/api/teacher/briefings/feedback/zip?tp=${tp}`}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium"
+                style={{ border: '1px solid var(--ink)', color: 'var(--ink)' }}
+              >
+                <Download size={14} /> {text.feedbackAllUegs(grouped.size)}
+              </a>
+            )}
           </div>
         )}
 

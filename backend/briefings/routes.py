@@ -6,11 +6,13 @@ Auth-Kette: Router-weit ``require_api_key`` (fail-closed, 503 ohne Key) +
 ergänzt und die verifizierte Tutor-Identität als Header mitschickt:
 
 - ``X-Teacher-Id``     — Tutor-Kennung aus der signierten Session
-                         (Konvention: Kennung = Übungsgruppe, z.B. ``UEG07``)
+                         (Konvention: Kennung nennt die Übungsgruppe(n),
+                         z.B. ``UEG07`` oder ``UEG07+UEG12`` — eine ÜGL kann
+                         mehrere Übungsgruppen führen; ``parse_uegs``)
 - ``X-Teacher-Master`` — ``1`` nur für den Master-Tutor
 
 Sichtbarkeit: Der Master sieht alles (inkl. interner Einstufung). Eine
-reguläre ÜGL sieht nur die Briefings ihrer eigenen Übungsgruppe — und nie
+reguläre ÜGL sieht nur die Briefings ihrer eigenen Übungsgruppen — und nie
 die interne Kriterien-Einstufung. Requests OHNE Identitäts-Header (Skripte
 direkt mit API-Key) gelten als Operator (= Master), analog zur
 jti-Sperrliste, deren Header ebenfalls nur der Proxy setzt.
@@ -49,6 +51,7 @@ from backend.briefings.extraction import (
     extract_submission,
     iter_submission_entries,
     normalize_ueg,
+    parse_uegs,
 )
 from backend.briefings.formal import formal_checks
 from backend.briefings.generator import FeedbackGenerator
@@ -90,7 +93,14 @@ DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingm
 class TeacherContext:
     tutor_id: str | None
     is_master: bool
-    ueg: str            # eigene Übungsgruppe (normalisiert) oder ""
+    uegs: list[str]     # eigene Übungsgruppen (normalisiert), leer = keine Zuordnung
+
+    @property
+    def ueg(self) -> str:
+        return self.uegs[0] if self.uegs else ""
+
+    def may_see(self, ueg: str | None) -> bool:
+        return self.is_master or (bool(ueg) and ueg in self.uegs)
 
 
 async def teacher_context(
@@ -98,10 +108,10 @@ async def teacher_context(
     x_teacher_master: str | None = Header(default=None, alias=TEACHER_MASTER_HEADER),
 ) -> TeacherContext:
     if x_teacher_id is None and x_teacher_master is None:
-        return TeacherContext(tutor_id=None, is_master=True, ueg="")
+        return TeacherContext(tutor_id=None, is_master=True, uegs=[])
     tutor_id = (x_teacher_id or "").strip()
     is_master = (x_teacher_master or "").strip().lower() in {"1", "true", "yes"}
-    return TeacherContext(tutor_id=tutor_id or None, is_master=is_master, ueg=normalize_ueg(tutor_id))
+    return TeacherContext(tutor_id=tutor_id or None, is_master=is_master, uegs=parse_uegs(tutor_id))
 
 
 def require_master(ctx: TeacherContext = Depends(teacher_context)) -> TeacherContext:
@@ -134,7 +144,7 @@ async def upload_auth(
     if jti and revoked_session_store.is_revoked(jti):
         raise HTTPException(status_code=401, detail="Sitzung wurde abgemeldet — bitte neu einloggen")
     tutor = str(payload.get("tutor") or "") or None
-    return TeacherContext(tutor_id=tutor, is_master=True, ueg=normalize_ueg(tutor))
+    return TeacherContext(tutor_id=tutor, is_master=True, uegs=parse_uegs(tutor))
 
 
 # Eigener Router für den Upload: KEIN router-weites require_api_key, weil der
@@ -321,9 +331,12 @@ def _visible_records(ctx: TeacherContext, *, tp: int | None, ueg: str | None) ->
             wanted = normalize_ueg(ueg)
             records = [r for r in records if r.get("ueg") == wanted]
     else:
-        if not ctx.ueg:
+        if not ctx.uegs:
             return []
-        records = [r for r in records if r.get("ueg") == ctx.ueg]
+        records = [r for r in records if r.get("ueg") in ctx.uegs]
+        if ueg:
+            wanted = normalize_ueg(ueg)
+            records = [r for r in records if r.get("ueg") == wanted]
     records = _latest_per_group(records)
     records.sort(key=lambda r: (int(r.get("target_tp", 0)), r.get("ueg") or "~", int(r.get("sg") or 99)))
     return records
@@ -334,6 +347,28 @@ def _rubric_or_422(tp: int) -> BriefingRubric:
         return load_rubric(tp)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+def _bundle_targets(ctx: TeacherContext, ueg: str | None) -> list[str]:
+    """Übungsgruppen für einen Bundle-Download. Master: ``ueg`` Pflicht.
+    ÜGL: ohne ``ueg`` alle eigenen Übungsgruppen; mit ``ueg`` nur diese
+    (403, wenn fremd)."""
+    if ctx.is_master:
+        wanted = normalize_ueg(ueg or "")
+        if not wanted:
+            raise HTTPException(status_code=422, detail="ueg fehlt oder ist ungültig (z.B. UEG07)")
+        return [wanted]
+    if not ctx.uegs:
+        raise HTTPException(
+            status_code=403,
+            detail="Ihre Tutor-Kennung ist keiner Übungsgruppe zugeordnet (erwartet z.B. UEG07 oder UEG07+UEG12).",
+        )
+    if ueg:
+        wanted = normalize_ueg(ueg)
+        if wanted not in ctx.uegs:
+            raise HTTPException(status_code=403, detail="Diese Übungsgruppe gehört nicht zu Ihrer Kennung")
+        return [wanted]
+    return list(ctx.uegs)
 
 
 def _missing_groups(records: list[dict]) -> list[int]:
@@ -557,31 +592,43 @@ async def download_briefing_bundle(
     ueg: str | None = Query(default=None),
     ctx: TeacherContext = Depends(teacher_context),
 ):
-    """DOCX mit allen Briefings einer Übungsgruppe für einen Touchpoint.
-    ÜGL: eigene Übungsgruppe; Master: ``ueg`` erforderlich."""
+    """Briefing-Dokument je Übungsgruppe für einen Touchpoint (einheitliches
+    DOCX mit allen Stammgruppen). ÜGL mit mehreren Übungsgruppen und ohne
+    ``ueg``: ZIP mit einem DOCX je Übungsgruppe. Master: ``ueg`` Pflicht."""
     rubric = _rubric_or_422(tp)
-    if ctx.is_master:
-        wanted = normalize_ueg(ueg or "")
-        if not wanted:
-            raise HTTPException(status_code=422, detail="ueg fehlt oder ist ungültig (z.B. UEG07)")
-    else:
-        wanted = ctx.ueg
-        if not wanted:
-            raise HTTPException(
-                status_code=403,
-                detail="Ihre Tutor-Kennung ist keiner Übungsgruppe zugeordnet (erwartet z.B. UEG07).",
-            )
-    records = _visible_records(ctx, tp=tp, ueg=wanted)
-    if not records:
-        raise HTTPException(status_code=404, detail="Keine Briefings für diese Übungsgruppe")
-    payload = await asyncio.to_thread(
-        render_briefing_docx, records, rubric=rubric, ueg=wanted, missing_groups=_missing_groups(records)
-    )
-    filename = f"KI-Briefing_TP{tp}_{wanted}.docx"
+    targets = _bundle_targets(ctx, ueg)
+    documents: list[tuple[str, list[dict]]] = []
+    for target in targets:
+        records = _visible_records(ctx, tp=tp, ueg=target)
+        if records:
+            documents.append((target, records))
+    if not documents:
+        raise HTTPException(status_code=404, detail="Keine Briefings für diese Übungsgruppe(n)")
+
+    def _render(target: str, records: list[dict]) -> bytes:
+        return render_briefing_docx(records, rubric=rubric, ueg=target, missing_groups=_missing_groups(records))
+
+    if len(documents) == 1:
+        target, records = documents[0]
+        payload = await asyncio.to_thread(_render, target, records)
+        return Response(
+            content=payload,
+            media_type=DOCX_MEDIA_TYPE,
+            headers={"Content-Disposition": f'attachment; filename="KI-Briefing_TP{tp}_{target}.docx"'},
+        )
+
+    def _build_zip() -> bytes:
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+            for target, records in documents:
+                archive.writestr(f"KI-Briefing_TP{tp}_{target}.docx", _render(target, records))
+        return buffer.getvalue()
+
+    payload = await asyncio.to_thread(_build_zip)
     return Response(
         content=payload,
-        media_type=DOCX_MEDIA_TYPE,
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="KI-Briefings_TP{tp}_{ctx.tutor_id or "UEG"}.zip"'},
     )
 
 
@@ -595,35 +642,31 @@ async def download_feedback_bundle(
     """ZIP mit einem Feedback-DOCX je Stammgruppe einer Übungsgruppe — zur
     Weitergabe durch die ÜGL (z.B. über Canvas). Erst nach dem Termin."""
     rubric = _rubric_or_422(tp)
-    if ctx.is_master:
-        wanted = normalize_ueg(ueg or "")
-        if not wanted:
-            raise HTTPException(status_code=422, detail="ueg fehlt oder ist ungültig (z.B. UEG07)")
-    else:
-        wanted = ctx.ueg
-        if not wanted:
-            raise HTTPException(
-                status_code=403,
-                detail="Ihre Tutor-Kennung ist keiner Übungsgruppe zugeordnet (erwartet z.B. UEG07).",
-            )
-    records = [r for r in _visible_records(ctx, tp=tp, ueg=wanted) if _feedback_ready(r) and r.get("sg")]
+    targets = _bundle_targets(ctx, ueg)
+    records = [
+        r for target in targets
+        for r in _visible_records(ctx, tp=tp, ueg=target)
+        if _feedback_ready(r) and r.get("sg")
+    ]
     if not records:
-        raise HTTPException(status_code=404, detail="Keine Feedbacks für diese Übungsgruppe")
-    _feedback_access(records[0], ctx, force, ueg_label=wanted)
+        raise HTTPException(status_code=404, detail="Keine Feedbacks für diese Übungsgruppe(n)")
+    _feedback_access(records[0], ctx, force, ueg_label="+".join(targets))
 
     def _build() -> bytes:
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
             for record in records:
-                name = f"KI-Feedback_{record.get('code') or record['briefing_id'][:8]}.docx"
+                folder = f"{record.get('ueg')}/" if len(targets) > 1 else ""
+                name = f"{folder}KI-Feedback_{record.get('code') or record['briefing_id'][:8]}.docx"
                 archive.writestr(name, render_feedback_docx(record, rubric=rubric))
         return buffer.getvalue()
 
     payload = await asyncio.to_thread(_build)
+    label = targets[0] if len(targets) == 1 else (ctx.tutor_id or "UEG")
     return Response(
         content=payload,
         media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="KI-Feedback_TP{tp}_{wanted}.zip"'},
+        headers={"Content-Disposition": f'attachment; filename="KI-Feedback_TP{tp}_{label}.zip"'},
     )
 
 
@@ -642,7 +685,7 @@ async def get_briefing(briefing_id: str, ctx: TeacherContext = Depends(teacher_c
     record = briefing_store.get(briefing_id)
     if not record:
         raise HTTPException(status_code=404, detail="Briefing nicht gefunden")
-    if not ctx.is_master and record.get("ueg") != ctx.ueg:
+    if not ctx.may_see(record.get("ueg")):
         raise HTTPException(status_code=404, detail="Briefing nicht gefunden")
     return _public(record, ctx)
 
@@ -655,7 +698,7 @@ async def download_feedback(
 ):
     """Feedback-DOCX EINER Stammgruppe — erst nach dem Termin (423 vorher)."""
     record = briefing_store.get(briefing_id)
-    if not record or (not ctx.is_master and record.get("ueg") != ctx.ueg):
+    if not record or not ctx.may_see(record.get("ueg")):
         raise HTTPException(status_code=404, detail="Briefing nicht gefunden")
     if not _feedback_ready(record):
         raise HTTPException(status_code=404, detail="Für diese Abgabe liegt kein Feedback vor")
@@ -690,7 +733,7 @@ async def get_assessment(briefing_id: str, ctx: TeacherContext = Depends(require
 @router.get("/{briefing_id}/docx")
 async def download_single_briefing(briefing_id: str, ctx: TeacherContext = Depends(teacher_context)):
     record = briefing_store.get(briefing_id)
-    if not record or (not ctx.is_master and record.get("ueg") != ctx.ueg):
+    if not record or not ctx.may_see(record.get("ueg")):
         raise HTTPException(status_code=404, detail="Briefing nicht gefunden")
     rubric = _rubric_or_422(int(record.get("target_tp", 0)))
     payload = await asyncio.to_thread(

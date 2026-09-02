@@ -103,6 +103,19 @@ def normalize_ueg(value: str | int | None) -> str:
     return f"UEG{int(match.group(1)):02d}"
 
 
+def parse_uegs(value: str | None) -> list[str]:
+    """Alle Übungsgruppen einer Tutor-Kennung: 'UEG07' → ['UEG07'];
+    'UEG07+UEG12' / 'UEG07, UEG12' / '7 12' → ['UEG07', 'UEG12'].
+    Eine ÜGL kann mehrere Übungsgruppen führen — die Kennung (Schlüssel in
+    TEACHER_ACCESS_CODES) trägt sie alle. Nicht parsebare Teile werden ignoriert."""
+    out: list[str] = []
+    for token in re.split(r"[^A-Za-z0-9]+", str(value or "")):
+        ueg = normalize_ueg(token)
+        if ueg and ueg not in out:
+            out.append(ueg)
+    return out
+
+
 def build_code(tp: int, ueg: str, sg: int) -> str:
     return f"TP{tp}-{ueg}-SG{sg}"
 

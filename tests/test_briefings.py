@@ -34,6 +34,7 @@ from backend.briefings.extraction import (
     iter_submission_entries,
     normalize_ueg,
     parse_code,
+    parse_uegs,
     parse_code_from_filename,
     split_bausteine,
 )
@@ -598,6 +599,51 @@ def test_upload_flow_visibility_docx_and_assessment(client, monkeypatch):
     assert patched.json()["needs_human_review"] is False
     mine = client.get("/briefings?tp=1", headers=_tutor_headers("UEG07")).json()
     assert sorted(b["code"] for b in mine) == ["TP1-UEG07-SG2", "TP1-UEG07-SG3", "TP1-UEG07-SG5"]
+
+
+def test_tutor_with_multiple_uegs_sees_all_and_gets_zip(client, monkeypatch):
+    """Eine ÜGL führt mehrere Übungsgruppen: Kennung 'UEG07+UEG12'."""
+    import backend.briefings.routes as routes_module
+
+    _mock_llm(monkeypatch, _llm_payload())
+    monkeypatch.setattr(routes_module, "feedback_released", lambda tp: True)
+    files = {
+        "TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT),
+        "TP1_UEG12_SG1.pptx": _template_pptx(1, code="TP1-UEG12-SG1", b1=B1_TEXT, b2=B2_TEXT),
+        "TP1_UEG09_SG2.pptx": _template_pptx(1, code="TP1-UEG09-SG2", b1=B1_TEXT, b2=B2_TEXT),
+    }
+    assert _upload(client, files).status_code == 202
+    multi = _tutor_headers("UEG07+UEG12")
+    assert parse_uegs("UEG07+UEG12") == ["UEG07", "UEG12"]
+    assert parse_uegs("7, 12") == ["UEG07", "UEG12"] and parse_uegs("master") == []
+
+    mine = client.get("/briefings?tp=1", headers=multi).json()
+    assert sorted(b["ueg"] for b in mine) == ["UEG07", "UEG12"]
+    assert [b["ueg"] for b in client.get("/briefings?tp=1&ueg=12", headers=multi).json()] == ["UEG12"]
+    overview = client.get("/briefings/overview?tp=1", headers=multi).json()
+    assert sorted(o["ueg"] for o in overview) == ["UEG07", "UEG12"]
+
+    # Ohne ueg: ZIP mit einem einheitlichen Briefing-DOCX je Übungsgruppe
+    bundle = client.get("/briefings/docx?tp=1", headers=multi)
+    assert bundle.status_code == 200 and bundle.headers["content-type"] == "application/zip"
+    names = sorted(zipfile.ZipFile(io.BytesIO(bundle.content)).namelist())
+    assert names == ["KI-Briefing_TP1_UEG07.docx", "KI-Briefing_TP1_UEG12.docx"]
+    # Mit ueg: einzelnes DOCX; fremde Übungsgruppe → 403
+    single = client.get("/briefings/docx?tp=1&ueg=UEG12", headers=multi)
+    assert single.status_code == 200 and single.headers["content-type"].startswith("application/vnd")
+    assert client.get("/briefings/docx?tp=1&ueg=UEG09", headers=multi).status_code == 403
+    foreign_id = next(b["briefing_id"] for b in client.get("/briefings", headers=_master_headers()).json() if b["ueg"] == "UEG09")
+    assert client.get(f"/briefings/{foreign_id}", headers=multi).status_code == 404
+
+    # Feedback-ZIP über beide Übungsgruppen, nach Übungsgruppe in Ordnern
+    fb = client.get("/briefings/feedback/zip?tp=1", headers=multi)
+    assert fb.status_code == 200
+    assert sorted(zipfile.ZipFile(io.BytesIO(fb.content)).namelist()) == [
+        "UEG07/KI-Feedback_TP1-UEG07-SG3.docx", "UEG12/KI-Feedback_TP1-UEG12-SG1.docx",
+    ]
+    # Einzelne Übungsgruppe (Kennung mit genau einer UEG) bleibt wie bisher: DOCX direkt
+    one = client.get("/briefings/docx?tp=1", headers=_tutor_headers("UEG07"))
+    assert one.status_code == 200 and one.headers["content-type"].startswith("application/vnd")
 
 
 def test_reupload_same_group_latest_wins(client, monkeypatch):

@@ -107,8 +107,10 @@ Pfad 2 und 3 sind verkettet: Der Browser spricht NIE direkt mit den
 geschützten Backend-Routen (einzige Ausnahme: der Upload-Pfad 5). Seit
 2026-09-02 schickt der Proxy zusätzlich `X-Teacher-Id` (Tutor-Kennung) und
 `X-Teacher-Master` (`1`/`0`) mit; die Briefings-Routen leiten daraus die
-Sichtbarkeit ab (ÜGL: nur eigene Übungsgruppe = Kennung, z.B. `UEG07`;
-Master: alles; Requests OHNE die Header = Operator/Skript mit API-Key). `frontend/app/api/teacher/[...path]/route.ts`
+Sichtbarkeit ab (ÜGL: nur eigene Übungsgruppe(n) — die Kennung nennt sie,
+z.B. `UEG07` oder `UEG07+UEG12`, `parse_uegs`; Bundle-Download ohne `ueg`
+liefert bei mehreren ein ZIP mit einem DOCX je Übungsgruppe; Master: alles;
+Requests OHNE die Header = Operator/Skript mit API-Key). `frontend/app/api/teacher/[...path]/route.ts`
 verifiziert das Cookie und ergänzt den `X-API-Key` **server-seitig** —
 der Key gelangt nie ins Browser-Bundle. Tutor:innen erreichen über diesen
 Proxy nur Gruppen-Aggregate (`GET /dashboard/groups`,

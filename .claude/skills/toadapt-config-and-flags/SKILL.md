@@ -384,8 +384,8 @@ Neue Magic Numbers: Teacher-Login-Rate-Limit 10 Versuche/60 s pro IP
 Update 2026-09-02 (HEAD nach `d5c12d2`): +MONGODB_BRIEFINGS_COLLECTION,
 +MONGODB_BRIEFING_BATCHES_COLLECTION (ersetzen MONGODB_GROUP_UPLOADS_COLLECTION);
 neue Header: `X-Teacher-Id` + `X-Teacher-Master` (Proxy → Backend, Sichtbarkeit
-der Briefings; Konvention TEACHER_ACCESS_CODES-Schlüssel = Übungsgruppe, z.B.
-`UEG07`), `X-Upload-Token` (Direkt-Upload Browser→Railway, signiert mit
+der Briefings; Konvention TEACHER_ACCESS_CODES-Schlüssel = Übungsgruppe(n), z.B.
+`UEG07` oder `UEG07+UEG12` für eine ÜGL mit mehreren Übungsgruppen), `X-Upload-Token` (Direkt-Upload Browser→Railway, signiert mit
 TOADAPT_API_KEY, TTL 15 min / max 60). Voraussetzung dafür: ALLOWED_ORIGINS
 enthält die Vercel-Domain, TOADAPT_API_KEY beidseitig identisch. Neue Magic
 Numbers (backend/briefings/): MAX_ZIP_ENTRIES=600, MAX_FILE_BYTES=40MB,

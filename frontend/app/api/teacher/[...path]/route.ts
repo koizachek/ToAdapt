@@ -48,7 +48,8 @@ async function proxy(request: NextRequest, path: string[]): Promise<NextResponse
   }
   // Verifizierte Tutor-Identität für die Sichtbarkeitsregeln des Backends
   // (KI-Briefings: ÜGL sieht nur die eigene Übungsgruppe, Master alles).
-  // Kennung-Konvention: TEACHER_ACCESS_CODES-Schlüssel = Übungsgruppe (UEG07).
+  // Kennung-Konvention: TEACHER_ACCESS_CODES-Schlüssel = Übungsgruppe(n),
+  // z.B. UEG07 oder UEG07+UEG12 (eine ÜGL kann mehrere Übungsgruppen führen).
   headers['X-Teacher-Id'] = session.tutor
   headers['X-Teacher-Master'] = session.master ? '1' : '0'
 

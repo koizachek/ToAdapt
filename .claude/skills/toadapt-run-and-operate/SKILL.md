@@ -483,7 +483,8 @@ Verarbeitung läuft als Hintergrund-Task (~20 s je Abgabe, 8 parallel; 440
 Abgaben ≈ 20 min); bei Redeploy mitten im Batch bleibt der Batch `running`
 und wird nach 30 min als stale gemeldet → erneut hochladen. Vor dem ersten
 Kurs-Upload: `ALLOWED_ORIGINS` (Vercel-Domain) und `TEACHER_ACCESS_CODES`
-mit Übungsgruppen-Kennungen (`UEG01`…`UEG55`) setzen;
+mit Übungsgruppen-Kennungen setzen (`UEG01`…`UEG55`; führt eine ÜGL mehrere
+Übungsgruppen: `UEG07+UEG12` als EIN Schlüssel);
 `scripts/ensure_mongo_indexes.py --dry-run` für die neuen Collections.
 Kalibrierung vor Prompt-Änderungen: `scripts/calibrate_briefings.py --all`.
 

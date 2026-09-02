@@ -37,7 +37,7 @@ export const TEACHER_GUIDE: Record<Locale, TeacherGuideContent> = {
     briefings: {
       title: 'Briefings: Touchpoint vorbereiten in fünf Minuten',
       steps: [
-        'Touchpoint wählen, dann „Briefing-Dokument herunterladen" — ein DOCX mit allen Stammgruppen Ihrer Übungsgruppe (Ihre Tutor-Kennung ist Ihre Übungsgruppe, z.B. UEG07).',
+        'Touchpoint wählen, dann „Briefing-Dokument herunterladen" — ein DOCX mit allen Stammgruppen Ihrer Übungsgruppe (Ihre Tutor-Kennung nennt Ihre Übungsgruppen, z.B. UEG07 oder UEG07+UEG12; bei mehreren gibt es je Übungsgruppe ein Dokument und einen Sammel-Download als ZIP).',
         'Je Stammgruppe und Baustein: Kernposition, tragende Argumente, dünne Stellen. Die dünnen Stellen sind als Rückfragen formuliert — daraus ziehen Sie Ihre Spannungslinie.',
         'Die formale Vorprüfung (Zeichengrenzen, Code, Dateiname) wird nur gemeldet, nie bewertet. Es gibt keine Punkte und keine Musterlösung: Jede Wahl ist zulässig, beurteilt wird, ob die Begründung trägt.',
         '„Bitte prüfen" heisst: Die Automatik war unsicher oder hat einen Textteil zurückgehalten — lesen Sie diese Abgabe direkt.',
@@ -74,7 +74,7 @@ export const TEACHER_GUIDE: Record<Locale, TeacherGuideContent> = {
     briefings: {
       title: 'Briefings: prepare a touchpoint in five minutes',
       steps: [
-        'Choose the touchpoint, then "Download briefing document" — one DOCX with all home groups of your tutorial group (your tutor ID is your tutorial group, e.g. UEG07).',
+        'Choose the touchpoint, then "Download briefing document" — one DOCX with all home groups of your tutorial group (your tutor ID names your tutorial groups, e.g. UEG07 or UEG07+UEG12; with several you get one document per group and a combined ZIP download).',
         'Per home group and building block: core position, supporting arguments, thin spots. The thin spots are phrased as follow-up questions — that is where your line of tension comes from.',
         'The formal pre-check (character limits, code, filename) is reported, never graded. There are no points and no model solution: any choice is admissible; only the reasoning is judged.',
         '"Please check" means the automation was unsure or withheld part of the text — read that submission directly.',

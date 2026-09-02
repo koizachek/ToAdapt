@@ -168,9 +168,11 @@ nach dem LLM-Call regelbasiert nachgeprüft (`backend/briefings/guardrails.py`).
   Case-Kapitel des Running Case ON (`case/kapitel_{a..e}.md`, nur Tutor-Pipeline, nie
   studierendensichtbar), Vorlagentexte (`template_texts.json`).
 - Sichtbarkeit: Der Teacher-Proxy schickt `X-Teacher-Id` und `X-Teacher-Master` mit. Konvention:
-  Tutor-Kennung = Übungsgruppe (`TEACHER_ACCESS_CODES = {"UEG07": "<code>", …}`); eine ÜGL sieht
-  nur die eigene Übungsgruppe, der Master alles. Hochgeladene Dateien und Mitgliedernamen werden
-  nie gespeichert.
+  Tutor-Kennung nennt die Übungsgruppe(n) — `TEACHER_ACCESS_CODES = {"UEG07": "<code>",
+  "UEG08+UEG12": "<code>", …}`; eine ÜGL sieht nur ihre eigenen Übungsgruppen, der Master alles.
+  Der Download `GET /briefings/docx?tp=` liefert bei einer Übungsgruppe das DOCX, bei mehreren ein
+  ZIP mit je einem einheitlichen Briefing-DOCX pro Übungsgruppe (`ueg=` wählt eine aus). Hochgeladene
+  Dateien und Mitgliedernamen werden nie gespeichert.
 - Kalibrierung (Pflicht vor Prompt-/Rubric-Änderungen): `python scripts/calibrate_briefings.py --all`
   schickt die drei Beispielabgaben je TP durch den Generator und vergleicht die Einstufung.
 - **Upload-Weg (Vercel-Limit):** Vercel begrenzt Request-Bodies von Route-Handlern auf 4,5 MB
