@@ -1,0 +1,148 @@
+{
+  "meta": {
+    "course": "BWL A HS26",
+    "touchpoint": 5,
+    "version": "v1",
+    "date": "2026-08-28",
+    "exam_ref": [
+      "A5a",
+      "A5d"
+    ],
+    "learning_objectives": [
+      "5.1",
+      "5.2",
+      "5.4"
+    ],
+    "case": {
+      "document": "Case Study ON",
+      "chapter": "E",
+      "references": "Kapitel E, Abschnitt 6.2 (Wie sich ON verändert), Abschnitt 6.3 (Brief des CEO); Grundlage sind ausserdem die eigenen Abgaben aus den Touchpoints 2 bis 4 und die Ergebnisse aus PBL 3. Hinweis für die KI: Die referenzierten Vorentscheidungen der Gruppe stammen aus deren früheren Abgaben; bewertet wird die Binnenkohärenz der vorliegenden Antwort, nie die Qualität der Vorentscheidung."
+    }
+  },
+  "guardrails": [
+    "no_points_or_grades",
+    "no_model_solution",
+    "no_group_comparison",
+    "briefing_only_to_uegl",
+    "feedback_only_after_session",
+    "any_choice_admissible_judge_reasoning_only",
+    "swiss_standard_german_ss",
+    "judge_internal_coherence_never_quality_of_prior_decisions"
+  ],
+  "formal_checks": {
+    "slide2_max_chars": 1350,
+    "slide3_max_chars": 1350,
+    "chars_include_spaces": true,
+    "full_sentences_required": true,
+    "code_pattern": "TP5-UEG\\d{2}-SG[1-8]",
+    "filename_pattern": "TP5_UEG\\d{2}_SG[1-8]\\.pptx",
+    "submission_format": "pptx_3_slides_official_template",
+    "report_only_never_grade": true
+  },
+  "rubrics": {
+    "baustein1": {
+      "slide": 2,
+      "title": "Konsistenz und Tragfähigkeit",
+      "exam_ref": "A5a",
+      "criteria": [
+        {
+          "name": "Stützende Stelle",
+          "ueberzeugend": "Eine Stelle, an der sich zwei eigene Entscheidungen gegenseitig stützen, ist als Wechselwirkung gezeigt (die eine macht die andere stärker), nicht als blosse Verträglichkeit.",
+          "tragfaehig": "Zwei Entscheidungen werden als zusammenpassend benannt, aber ohne den Mechanismus der Wechselwirkung.",
+          "ansatzweise": "Keine konkrete Stelle; pauschale Behauptung der Stimmigkeit."
+        },
+        {
+          "name": "Spannungsstelle",
+          "ueberzeugend": "Eine echte Spannung zwischen eigenen Entscheidungen ist konkret gezeigt und nicht beschönigt; wer keine findet, hat nicht geprüft.",
+          "tragfaehig": "Eine Spannung wird benannt, aber als Nebensächlichkeit behandelt oder sofort relativiert.",
+          "ansatzweise": "Keine Spannung; alles wird für stimmig erklärt."
+        },
+        {
+          "name": "Tragfähigkeitsurteil",
+          "ueberzeugend": "Ein begründetes, gern differenziertes Urteil, ob die Entscheidungen zusammen ein tragfähiges Geschäftsmodell ergeben (tragfähig unter welcher Annahme, für wie lange).",
+          "tragfaehig": "Ein Urteil ist da, aber unbegründet (insgesamt stimmig).",
+          "ansatzweise": "Kein Urteil."
+        },
+        {
+          "name": "Abgeleitete Anpassung",
+          "ueberzeugend": "Eine konkrete Anpassung zur Herstellung der Kohärenz ist entwickelt, so dass man sie beschliessen könnte.",
+          "tragfaehig": "Eine Anpassung wird gefordert statt entwickelt (Kommunikation verbessern).",
+          "ansatzweise": "Keine Anpassung."
+        }
+      ],
+      "typical_weaknesses": "Typische Schwächen: Harmonie als Ausweichmanöver; Spannung als Nebensächlichkeit; Anpassung als Appell statt als Beschlussvorlage."
+    },
+    "baustein2": {
+      "slide": 3,
+      "title": "Revision und Folgewirkung",
+      "exam_ref": "A5d",
+      "criteria": [
+        {
+          "name": "Wahl der riskantesten Entscheidung",
+          "ueberzeugend": "Die riskanteste eigene Entscheidung ist gewählt und die Wahl ist kurz begründet (warum diese, nicht die kapitalintensivste).",
+          "tragfaehig": "Eine Entscheidung ist gewählt, die Begründung fehlt oder bleibt formelhaft.",
+          "ansatzweise": "Keine klare Wahl."
+        },
+        {
+          "name": "Revision",
+          "ueberzeugend": "Eine konkrete, tragfähige Revision ist entwickelt, erkennbar als Änderung, nicht als Absichtserklärung; langsamer vorgehen ist keine Revision.",
+          "tragfaehig": "Die Revision ist angedeutet, bleibt aber nahe an einer Verlangsamung oder Abschwächung des Bestehenden.",
+          "ansatzweise": "Absichtserklärung statt Änderung."
+        },
+        {
+          "name": "Folgewirkung mit Mechanismus",
+          "ueberzeugend": "Die Auswirkung auf eine weitere eigene Entscheidung ist konkret durchgespielt, und der Wirkungsweg ist gezeigt (worüber die Änderung wirkt, nicht nur, dass sie wirkt).",
+          "tragfaehig": "Die Folgewirkung wird behauptet, der Zwischenschritt fehlt.",
+          "ansatzweise": "Keine Folgewirkung."
+        }
+      ],
+      "typical_weaknesses": "Typische Schwächen: Revision als Rückzug (vorsichtiger, schrittweise); Wirkung ohne Weg (das hilft auch der Marge, ohne den Mechanismus); Wahl der riskantesten Entscheidung unbegründet."
+    }
+  },
+  "levels": [
+    "ueberzeugend",
+    "tragfaehig",
+    "ansatzweise"
+  ],
+  "outputs": {
+    "briefing": {
+      "audience": "uegl",
+      "timing": "wednesday_before_session",
+      "per_group_per_baustein": [
+        "kernposition_1_satz",
+        "tragende_argumente_max2",
+        "duenne_stellen_max2_als_rueckfrage_ansatz"
+      ],
+      "per_slot": [
+        "konsens_und_dissens_ueber_4_gruppen_als_spannungslinien_kandidaten"
+      ]
+    },
+    "feedback": {
+      "audience": "stammgruppe",
+      "timing": "after_session_only",
+      "per_baustein": [
+        "was_traegt",
+        "was_bleibt_duenn_mit_kriterienbezug",
+        "naechster_schritt"
+      ],
+      "closing": "feed_forward_klausur_aufgabe5"
+    }
+  },
+  "example_submissions": {
+    "ueberzeugend": {
+      "slide2": "Unsere Entscheidungen aus den Touchpoints 2 bis 4: Premium Fortress, Preisanhebung bei den Performance Runnern mit Fokus auf den Direktkanal, Verbleib beim externen Fulfillment mit zweitem Produktionsstandort. Stützende Stelle: Strategie und Kanal greifen ineinander als Wechselwirkung, denn der Direktkanal setzt die Selektivität von Premium Fortress durch (kein Rabattdruck, kontrolliertes Erlebnis), und die höhere Kanalmarge finanziert wiederum die Selektivität, die die Strategie verlangt. Spannungsstelle, unbeschönigt: Unser Direktkanal-Fokus schwächt genau den Fachhandel, dessen Beratung die Performance-Glaubwürdigkeit trägt, auf der unsere Preisanhebung beruht; wir sägen also indirekt am Ast unserer eigenen Preisentscheidung. Tragfähigkeitsurteil: Das Modell ist tragfähig, aber nur unter der Annahme, dass der Fachhandel gehalten werden kann; kippt er, fällt die Preisprämie mit. Abgeleitete Anpassung: ein selektives Partnerprogramm mit gesichertem Sortiment und Margenschutz für die besten fünfzig Laufhändler, beschliessbar als konkretes Programm statt als Absicht.",
+      "slide3": "Die riskanteste unserer Entscheidungen ist die Preisanhebung, nicht das zweite Produktionsland, das mehr Geld bindet: Die Anhebung beruht auf der Annahme einer stabilen Performance-Positionierung, und genau diese ist durch den Patentablauf ab 2027 bedroht. Unsere Revision: Wir heben die Preise nicht auf den Bestandsmodellen an, sondern führen die höheren Preise nur mit den neuen Modellgenerationen ein, deren Mehrwert sie rechtfertigt. Das ist eine echte Änderung des Vorgehens, kein blosses Verlangsamen. Folgewirkung auf unsere Kanalentscheidung, mit Mechanismus: Weil die Bestandspreise stabil bleiben, sinkt der Preisabstand zwischen Direktkanal und Fachhandel, der Rabattdruck auf die Händler nimmt ab, und der Kanalkonflikt aus unserer Spannungsstelle entschärft sich. Der Wirkungsweg läuft also über die Preisdifferenzierung nach Produktgeneration statt nach Kanal: Die Händler bleiben bei den Bestandsmodellen wettbewerbsfähig, während der Direktkanal die Neuheiten trägt.",
+      "calibration_note": "Baustein 1: Wechselwirkung statt Verträglichkeit, echte unbeschönigte Spannung, differenziertes Urteil mit Annahme, beschliessbare Anpassung. Baustein 2: Wahl gegen die kapitalintensive Alternative begründet, Revision als echte Änderung, Folgewirkung mit ausformuliertem Mechanismus. Erwartetes Feedback: durchgehend überzeugend; nächster Schritt allenfalls die Frage, was das Partnerprogramm kostet."
+    },
+    "tragfaehig": {
+      "slide2": "Unsere Entscheidungen: Premium Fortress, Preisanhebung im Performance-Segment über den Direktkanal, externes Fulfillment mit zweitem Produktionsland. Stützende Stelle: Die Strategie und die Kanalentscheidung passen gut zusammen, weil beide die Premiummarke stärken und auf Kontrolle setzen. Eine gewisse Spannung gibt es beim Fachhandel, der durch den Direktvertrieb etwas unter Druck gerät; das halten wir aber für verkraftbar, weil der Fachhandel für ON ohnehin an Bedeutung verliert und die Kunden zunehmend online kaufen. Insgesamt beurteilen wir unser Geschäftsmodell als stimmig und tragfähig, die Entscheidungen ergänzen sich gut. Als Verbesserung schlagen wir vor, die Kommunikation mit dem Handel zu verbessern und die Kanäle noch besser aufeinander abzustimmen, damit alle Beteiligten die Strategie verstehen und mittragen.",
+      "slide3": "Die riskanteste Entscheidung ist das zweite Produktionsland, weil es am meisten kostet und viel Aufwand bedeutet. Als Revision schlagen wir vor, den Aufbau der Zweitquelle erst ab 2027 zu starten und zunächst mit einer kleineren Kapazität zu beginnen, um Erfahrungen zu sammeln. So bleibt das Risiko überschaubar und ON kann flexibel reagieren. Diese Änderung wirkt sich auch positiv auf unsere anderen Entscheidungen aus: Die eingesparten Mittel helfen der Marge und stärken damit die Premiumstrategie. Ausserdem gewinnt ON Zeit, um die Lieferkette sorgfältig umzubauen. Insgesamt macht die Revision unser Konzept robuster.",
+      "calibration_note": "Baustein 1: stützende Stelle als Verträglichkeit ohne Mechanismus; Spannung benannt, aber sofort zur Nebensächlichkeit relativiert (verkraftbar); Urteil pauschal; Anpassung als Appell (Kommunikation verbessern). Baustein 2: Wahl über Kapitalbindung statt Risiko begründet; Revision ist eine Verlangsamung; Folgewirkung behauptet (hilft der Marge), der Wirkungsweg fehlt. Erwartetes Feedback: dünn bei Spannung, Anpassung, Revision und Mechanismus, je mit konkretem nächstem Schritt."
+    },
+    "ansatzweise": {
+      "slide2": "Wenn wir auf unsere Entscheidungen aus den Touchpoints zurückblicken, passen sie alle gut zusammen. Die Premiumstrategie, die Preisgestaltung und die Lieferkette stärken alle die Marke ON und zahlen auf das gleiche Ziel ein. Widersprüche konnten wir keine feststellen, weil wir bei jeder Entscheidung darauf geachtet haben, dass sie zur Strategie passt. Das Geschäftsmodell ist deshalb aus unserer Sicht tragfähig und zukunftssicher. ON ist mit diesen Entscheidungen gut aufgestellt und kann weiter erfolgreich wachsen.",
+      "slide3": "Da alle unsere Entscheidungen gut begründet sind, würden wir keine grundlegend ändern. Am ehesten würden wir alles etwas langsamer und vorsichtiger umsetzen, um Risiken zu vermeiden und flexibel zu bleiben. Wenn etwas nicht funktioniert, kann ON dann rechtzeitig anpassen. Diese vorsichtige Umsetzung wirkt sich positiv auf alle Bereiche aus, weil weniger Fehler passieren und das Unternehmen stabiler bleibt.",
+      "calibration_note": "Baustein 1: Harmonie als Ausweichmanöver (keine Spannung gefunden heisst nicht geprüft, siehe Hinweis im Arbeitsauftrag); kein begründetes Urteil, keine Anpassung. Baustein 2: keine Wahl einer riskantesten Entscheidung; langsamer vorgehen ist explizit keine Revision; Folgewirkung generisch ohne Mechanismus. Erwartetes Feedback: kleinster nächster Schritt: eine einzige Stelle suchen, an der zwei Entscheidungen um dieselbe Ressource oder denselben Kunden konkurrieren, und dort ansetzen."
+    }
+  }
+}

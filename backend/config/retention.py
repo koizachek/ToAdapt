@@ -1,7 +1,7 @@
 """Aufbewahrungsfristen gemäß Datenschutzantrag (Teil 1 Lehrbetrieb, Teil 2 Forschung).
 
 Formative Lehrbetriebs-Daten (sessions, submission_states, dashboard_results,
-group_uploads) werden zum festen Termin Semesterende + 4 Wochen gelöscht; das
+briefings) werden zum festen Termin Semesterende + 4 Wochen gelöscht; das
 Forschungslog (experiment_events) längstens 24 Monate nach Semesterende. Die
 Löschung übernimmt MongoDB über einen TTL-Index (expireAfterSeconds=0) auf dem
 Feld `expire_at`, das die Stores bei jedem Schreiben setzen. Indizes und

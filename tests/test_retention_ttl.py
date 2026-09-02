@@ -12,7 +12,7 @@ import backend.db.mongo as mongo_module
 from backend.config import retention
 from backend.db.dashboard_store import DashboardStore
 from backend.db.experiment_logger import experiment_logger
-from backend.db.group_upload_store import GroupUploadStore
+from backend.db.briefing_store import BriefingStore
 from backend.db.session_store import SessionStore
 from backend.db.submission_store import SubmissionStore
 from backend.models.session import Session
@@ -152,14 +152,14 @@ def test_dashboard_store_writes_formative_expire_at(monkeypatch, tmp_path):
     assert doc[retention.TTL_FIELD] == retention.formative_expire_at()
 
 
-def test_group_upload_store_writes_formative_expire_at(monkeypatch, tmp_path):
-    import backend.db.group_upload_store as group_module
+def test_briefing_store_writes_formative_expire_at(monkeypatch, tmp_path):
+    import backend.db.briefing_store as briefing_module
 
-    monkeypatch.setattr(group_module, "RESULTS_DIR", tmp_path)
+    monkeypatch.setattr(briefing_module, "RESULTS_DIR", tmp_path)
     fake = FakeCollection()
     monkeypatch.setattr(mongo_module, "get_collection", lambda name: fake)
 
-    GroupUploadStore().save_result({"upload_id": "up-1", "group_code": "G1"})
+    BriefingStore().save({"briefing_id": "br-1", "ueg": "UEG01", "sg": 1})
 
     _, doc = fake.replaced[0]
     assert doc[retention.TTL_FIELD] == retention.formative_expire_at()
@@ -186,7 +186,7 @@ def test_collection_plan_maps_research_deadline_to_events(monkeypatch):
     monkeypatch.delenv("RETENTION_RESEARCH_EXPIRE_AT", raising=False)
     plan = dict(collection_plan())
     assert plan["experiment_events"] == retention.research_expire_at()
-    for name in ("sessions", "submission_states", "dashboard_results", "group_uploads"):
+    for name in ("sessions", "submission_states", "dashboard_results", "briefings"):
         assert plan[name] == retention.formative_expire_at()
 
 

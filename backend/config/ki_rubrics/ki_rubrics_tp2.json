@@ -1,0 +1,140 @@
+{
+  "meta": {
+    "course": "BWL A HS26",
+    "touchpoint": 2,
+    "version": "v1",
+    "date": "2026-08-28",
+    "exam_ref": [
+      "A2a",
+      "A2b"
+    ],
+    "learning_objectives": [
+      "2.2",
+      "2.3"
+    ],
+    "case": {
+      "document": "Case Study ON",
+      "chapter": "B",
+      "references": "Abschnitt 3.1 (Die strategische Frage; drei Entwicklungspfade, Exhibit B1), Abschnitt 3.3 (Ressourcenbasis), Abschnitt 2.8 (Patentablauf CloudTec 2027 bis 2029), Exhibit B2 (Wettbewerb)."
+    }
+  },
+  "guardrails": [
+    "no_points_or_grades",
+    "no_model_solution",
+    "no_group_comparison",
+    "briefing_only_to_uegl",
+    "feedback_only_after_session",
+    "any_choice_admissible_judge_reasoning_only",
+    "swiss_standard_german_ss"
+  ],
+  "formal_checks": {
+    "slide2_max_chars": 1200,
+    "slide3_max_chars": 1200,
+    "chars_include_spaces": true,
+    "full_sentences_required": true,
+    "code_pattern": "TP2-UEG\\d{2}-SG[1-8]",
+    "filename_pattern": "TP2_UEG\\d{2}_SG[1-8]\\.pptx",
+    "submission_format": "pptx_3_slides_official_template",
+    "report_only_never_grade": true
+  },
+  "rubrics": {
+    "baustein1": {
+      "slide": 2,
+      "title": "Strategische Entscheidung",
+      "exam_ref": "A2a",
+      "criteria": [
+        {
+          "name": "Klarheit der Entscheidung",
+          "ueberzeugend": "Ein Entwicklungspfad (oder eine begründete Kombination mit Finanzierungslogik) ist eindeutig gewählt und als Richtungsentscheidung erkennbar.",
+          "tragfaehig": "Eine Richtung ist erkennbar, wird aber eher als Präferenz denn als Entscheidung formuliert, oder die Kombination bleibt ohne Finanzierungslogik.",
+          "ansatzweise": "Die drei Optionen werden referiert statt entschieden; alle drei gleichzeitig ist keine Entscheidung."
+        },
+        {
+          "name": "Fundierung des Vorteils",
+          "ueberzeugend": "Der angestrebte Wettbewerbsvorteil ist an konkreten Ressourcen oder Fähigkeiten ONs festgemacht (etwas, das ON hat: Marke, Community, Direktkanal-Daten, Innovationstempo), höchstens zwei Kernargumente.",
+          "tragfaehig": "Der Vorteil wird benannt, aber mit dem begründet, was ON tun will, statt mit dem, was ON hat; oder mehr als zwei Argumente ohne Gewichtung.",
+          "ansatzweise": "Allgemeine Aussagen über Premiummarken ohne Fallbezug."
+        },
+        {
+          "name": "Dauerhaftigkeit",
+          "ueberzeugend": "Es ist begründet, warum Wettbewerber den Vorteil schwer nachbauen können; wer CloudTec als Träger nennt, adressiert den Patentablauf (Abschnitt 2.8).",
+          "tragfaehig": "Imitationsschutz wird behauptet, aber nicht begründet; CloudTec als Träger ohne Blick auf den Patentablauf.",
+          "ansatzweise": "Keine Aussage zur Imitierbarkeit."
+        }
+      ],
+      "typical_weaknesses": "Typische Schwächen: Premium Fortress als Vermeidung (am wenigsten riskant) statt als Entscheidung; Vorteil aus Absicht statt Besitz; CloudTec ohne Patentablauf; mehr als zwei Argumente, Breite statt Tiefe."
+    },
+    "baustein2": {
+      "slide": 3,
+      "title": "Zielkonflikt",
+      "exam_ref": "A2b",
+      "criteria": [
+        {
+          "name": "Identifikation",
+          "ueberzeugend": "Der Zielkonflikt ergibt sich erkennbar aus der eigenen Entscheidung aus Baustein 1, nicht aus einem allgemeinen Spannungsfeld der Branche.",
+          "tragfaehig": "Ein echter Konflikt ist benannt, aber der Bezug zur eigenen Entscheidung bleibt lose (hätte die Gruppe bei jeder Option).",
+          "ansatzweise": "Generischer Konflikt (Qualität gegen Kosten, Wachstum gegen Stabilität) ohne Bezug zur Entscheidung."
+        },
+        {
+          "name": "Beide Seiten gewürdigt",
+          "ueberzeugend": "Für beide Seiten ist begründet, warum sie nicht ignoriert werden können; keine Seite wird zur Scheinoption gemacht.",
+          "tragfaehig": "Beide Seiten werden erwähnt, aber eine wird nur pro forma ernst genommen.",
+          "ansatzweise": "Nur eine Seite wird argumentiert."
+        },
+        {
+          "name": "Festlegung und Preis",
+          "ueberzeugend": "Es ist klar benannt, wofür sich die Gruppe entscheidet und was sie dafür in Kauf nimmt; der Preis ist beziffert, soweit der Fall es hergibt (z. B. Verzicht auf Wachstumsdelta laut Exhibit B1).",
+          "tragfaehig": "Eine Festlegung ist da, aber der Preis bleibt unbeziffert (etwas geringeres Wachstum).",
+          "ansatzweise": "Ein guter Mittelweg ohne Festlegung; nichts wird in Kauf genommen."
+        }
+      ],
+      "typical_weaknesses": "Typische Schwächen: Konflikt generisch statt entscheidungsspezifisch; Mittelweg statt Festlegung; Preis unbeziffert, obwohl Exhibit B1 Zahlen liefert."
+    }
+  },
+  "levels": [
+    "ueberzeugend",
+    "tragfaehig",
+    "ansatzweise"
+  ],
+  "outputs": {
+    "briefing": {
+      "audience": "uegl",
+      "timing": "wednesday_before_session",
+      "per_group_per_baustein": [
+        "kernposition_1_satz",
+        "tragende_argumente_max2",
+        "duenne_stellen_max2_als_rueckfrage_ansatz"
+      ],
+      "per_slot": [
+        "konsens_und_dissens_ueber_4_gruppen_als_spannungslinien_kandidaten"
+      ]
+    },
+    "feedback": {
+      "audience": "stammgruppe",
+      "timing": "after_session_only",
+      "per_baustein": [
+        "was_traegt",
+        "was_bleibt_duenn_mit_kriterienbezug",
+        "naechster_schritt"
+      ],
+      "closing": "feed_forward_tp3_und_klausur_aufgabe2"
+    }
+  },
+  "example_submissions": {
+    "ueberzeugend": {
+      "slide2": "Wir entscheiden uns für Premium Fortress. Der angestrebte Wettbewerbsvorteil beruht auf zwei Ressourcen, die ON bereits besitzt. Erstens die Marke mit ihrer Design-DNA und Schweizer Herkunft: Sie trägt eine Preisprämie von 20 bis 40 Prozent über dem Branchenschnitt und lässt sich nicht kurzfristig kopieren, weil sie über fünfzehn Jahre aus Community und Fachhandelsglaubwürdigkeit gewachsen ist. Zweitens die Direktkanal-Plattform mit ihren Kundendaten: 41 Prozent des Umsatzes laufen bereits über eigene Kanäle, und der Datenschatz wächst mit jedem Kauf, während Wettbewerber ihn nicht nachbilden können, ohne ihr Wholesale-Geschäft zu kannibalisieren. Bewusst nicht als Träger gewählt ist CloudTec: Der Patentschutz endet zwischen 2027 und 2029 (Abschnitt 2.8), Hoka bietet bereits Vergleichbares. Genau deshalb muss der Vorteil auf Marke und Daten umgebaut werden, solange die Technologie ihn noch stützt.",
+      "slide3": "Unsere Entscheidung erzeugt den Konflikt zwischen Markenschutz und der Wachstumserwartung der Investoren. Beide Seiten sind unverzichtbar: Ohne Selektivität erodiert die Exklusivität, auf der die Zahlungsbereitschaft der Kernkunden beruht; ohne Wachstum von rund 20 Prozent, das Analysten erwarten, fällt der Kurs, und mit ihm sinkt der Spielraum, Innovation und Stores zu finanzieren. Wir legen uns auf den Markenschutz fest und nehmen dafür in Kauf, dass ON den Wachstumspfad von plus 60 bis 80 Prozent (Global Push) gegen plus 20 bis 30 Prozent (Exhibit B1) tauscht. Diesen Preis wollen wir aktiv managen: mit einer klaren Kapitalmarktstory, die geringeres Volumen gegen steigende Marge und Markenwert stellt, statt die Erwartung still zu enttäuschen.",
+      "calibration_note": "Baustein 1: eindeutige Wahl; Vorteil an Besitz (Marke, Daten) statt Absicht; Dauerhaftigkeit inklusive bewusster CloudTec-Abgrenzung mit Patentbezug. Baustein 2: Konflikt folgt aus der Wahl, beide Seiten ernst, Festlegung mit beziffertem Preis aus Exhibit B1. Erwartetes Feedback: alle Kriterien überzeugend; nächster Schritt allenfalls die Frage, wie lange die Marke ohne Technologieschutz trägt."
+    },
+    "tragfaehig": {
+      "slide2": "Wir wählen Premium Fortress, weil dieser Pfad am wenigsten riskant ist und am besten zu ON passt. ON ist eine Premiummarke und sollte diese Position weiter stärken, statt sich mit Global Push oder Beyond Running zu verzetteln. Der Wettbewerbsvorteil liegt darin, dass ON konsequent auf Qualität und Innovation setzen will und die Premiumpositionierung schärft. Ausserdem hat ON mit CloudTec eine einzigartige Technologie, die kein anderer Anbieter hat, sowie eine starke Community. Wettbewerber können das nicht einfach nachbauen, weil ON einen Vorsprung hat und schneller neue Produkte auf den Markt bringt. Deshalb ist Premium Fortress die richtige Wahl für die nächsten Jahre und sichert die Zukunft des Unternehmens.",
+      "slide3": "Ein wichtiger Zielkonflikt bei ON ist Wachstum gegen Qualität. Einerseits will das Unternehmen wachsen und mehr Umsatz machen, andererseits darf die Qualität der Produkte und der Marke nicht darunter leiden. Beide Ziele sind wichtig: Ohne Wachstum verliert ON an Bedeutung, und ohne Qualität verliert es seine Kunden. Wir denken, dass ON hier einen guten Mittelweg finden sollte, indem es moderat wächst und gleichzeitig die Qualität hochhält. Dafür nimmt ON in Kauf, dass das Wachstum etwas geringer ausfällt als bei einer aggressiven Expansion. So bleibt die Marke geschützt und die Investoren bekommen trotzdem eine gute Rendite.",
+      "calibration_note": "Baustein 1: Wahl da, aber als Vermeidung begründet; Vorteil aus Absicht (will Qualität) statt Besitz; CloudTec ohne Patentablauf. Baustein 2: Konflikt generisch (hätte jede Option), Mittelweg statt Festlegung, Preis unbeziffert. Erwartetes Feedback: trägt bei Klarheit, dünn bei Fundierung, Dauerhaftigkeit, Identifikation und Preis, je mit konkretem nächstem Schritt (z. B. Exhibit B1 beziffern)."
+    },
+    "ansatzweise": {
+      "slide2": "ON hat drei strategische Optionen: Global Push, Beyond Running und Premium Fortress. Global Push bedeutet die Expansion nach Asien und bietet das grösste Wachstum, ist aber teuer und riskant. Beyond Running setzt auf Bekleidung und neue Kategorien, was die Marke verbreitert. Premium Fortress konzentriert sich auf die bestehenden Märkte und die Premiumposition. Alle drei Optionen haben Vor- und Nachteile, die man sorgfältig abwägen muss. Am besten wäre wahrscheinlich eine Kombination aus allen drei Ansätzen, damit ON von allen Vorteilen profitieren kann und kein Potenzial verschenkt.",
+      "slide3": "Bei jeder Strategie gibt es Zielkonflikte, zum Beispiel zwischen Kosten und Qualität oder zwischen kurzfristigem und langfristigem Erfolg. ON muss darauf achten, die Kosten im Griff zu behalten und trotzdem gute Produkte anzubieten. Auch die Nachhaltigkeit ist ein wichtiges Ziel, das mit dem Wachstum in Konflikt stehen kann. Diese Konflikte muss das Management im Auge behalten und ausbalancieren, damit das Unternehmen langfristig erfolgreich bleibt.",
+      "calibration_note": "Baustein 1: Optionen referiert statt entschieden; alle drei gleichzeitig ignoriert die Investitionslogik aus Exhibit B1; kein Vorteil begründet. Baustein 2: generische Konflikte ohne Bezug zu einer (fehlenden) Entscheidung, keine Festlegung. Erwartetes Feedback: freundlich, aber klar; kleinster nächster Schritt: eine Option wählen und ein einziges Besitz-Argument dafür ausformulieren."
+    }
+  }
+}

@@ -11,7 +11,6 @@ from pydantic import BaseModel
 
 from backend.auth import reject_revoked_teacher_session, require_api_key, require_research_key
 from backend.db.dashboard_store import dashboard_store
-from backend.db.group_upload_store import group_upload_store
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(
@@ -418,22 +417,6 @@ def _results_by_group(results: list[dict]) -> dict[str, list[dict]]:
     return grouped
 
 
-def _group_uploads_by_group() -> dict[str, list[dict]]:
-    """Bewertete Gruppenarbeiten (Master-Upload) nach Gruppencode.
-
-    extraction_failed-Einträge bleiben draußen (keine belastbare Bewertung);
-    nicht zuordenbare Dokumente laufen unter UNGROUPED, bis der Master-Tutor
-    die Gruppe nachträgt.
-    """
-    grouped: dict[str, list[dict]] = defaultdict(list)
-    for record in group_upload_store.load_all():
-        if record.get("status") != "evaluated":
-            continue
-        code = str(record.get("group_code") or "").strip() or UNGROUPED
-        grouped[code].append(record)
-    return grouped
-
-
 def _group_work_items(uploads: list[dict]) -> list[GroupWorkItem]:
     items = [
         GroupWorkItem(
@@ -455,8 +438,10 @@ def _group_work_items(uploads: list[dict]) -> list[GroupWorkItem]:
 
 def _group_detail(group_code: str, results: list[dict], uploads: list[dict] | None = None) -> GroupDetail:
     """Aggregiert eine Gruppe über ihre (pseudonymen) Mitglieder — Einzel-
-    kennungen verlassen diese Funktion nicht. `uploads` sind die per
-    Master-Upload bewerteten Gruppenarbeiten derselben Gruppe."""
+    kennungen verlassen diese Funktion nicht. `uploads` (punktbasierte
+    Gruppenarbeiten) sind seit der Umstellung auf punktfreie KI-Briefings
+    (backend/briefings/) immer leer; die Felder bleiben für das Frontend
+    stabil."""
     uploads = uploads or []
     by_member: dict[str, list[dict]] = defaultdict(list)
     for r in results:
@@ -537,17 +522,13 @@ def _group_detail(group_code: str, results: list[dict], uploads: list[dict] | No
 async def list_groups():
     """Gruppen-Übersicht für Tutor:innen (nur Aggregate, keine Personen).
 
-    Vereint beide Datenquellen: individuelle Submissions und per
-    Master-Upload bewertete Gruppenarbeiten — Gruppen, die bisher nur über
-    eine der beiden Quellen sichtbar sind, erscheinen trotzdem.
+    Datenquelle sind die individuellen Submissions des Studierenden-Tools.
+    Die Stammgruppen-Abgaben aus Canvas laufen getrennt über die punktfreien
+    KI-Briefings (/briefings) und fliessen hier bewusst nicht ein.
     """
     grouped = _results_by_group(_load_all_results())
-    uploads_grouped = _group_uploads_by_group()
-    codes = set(grouped) | set(uploads_grouped)
-    details = [
-        _group_detail(code, grouped.get(code, []), uploads_grouped.get(code, []))
-        for code in codes
-    ]
+    codes = set(grouped)
+    details = [_group_detail(code, grouped.get(code, [])) for code in codes]
     order = {code: i for i, code in enumerate(sorted(codes))}
     details.sort(key=lambda d: (d.group_code == UNGROUPED, order.get(d.group_code, 0)))
     return [GroupSummary(**d.model_dump(include=set(GroupSummary.model_fields))) for d in details]
@@ -557,16 +538,12 @@ async def list_groups():
 async def group_detail(group_code: str):
     """Fehlerquellen-Zusammenfassung EINER Gruppe (keine Einzelprofile)."""
     grouped = _results_by_group(_load_all_results())
-    uploads_grouped = _group_uploads_by_group()
     normalized = group_code.strip().upper()
-    code = (
-        normalized if (normalized in grouped or normalized in uploads_grouped) else group_code
-    )
+    code = normalized if normalized in grouped else group_code
     results = grouped.get(code, [])
-    uploads = uploads_grouped.get(code, [])
-    if not results and not uploads:
+    if not results:
         raise HTTPException(status_code=404, detail="Gruppe nicht gefunden")
-    return _group_detail(code, results, uploads)
+    return _group_detail(code, results)
 
 
 @router.get(

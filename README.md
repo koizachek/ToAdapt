@@ -50,6 +50,13 @@ Dozent → POST /admin/cases/generate  (Branche, Land, TP-Ziel)
 | `POST /admin/cases/{id}/approve` | Case freigeben |
 | `GET /dashboard/overview` | Kursübersicht |
 | `GET /dashboard/student/{matrikel}` | Einzelstudent |
+| `POST /briefings/upload` | Master-Upload: ZIP mit Stammgruppen-Abgaben → KI-Briefings (nur Master) |
+| `GET /briefings?tp=&ueg=` | Briefings (ÜGL: nur eigene Übungsgruppe) |
+| `GET /briefings/overview?tp=` | Je Übungsgruppe: vorhandene/fehlende Stammgruppen |
+| `GET /briefings/docx?tp=&ueg=` | DOCX mit allen Briefings einer Übungsgruppe |
+| `GET /briefings/{id}/docx` | DOCX eines einzelnen Briefings |
+| `GET /briefings/{id}/assessment` | Interne Kriterien-Einstufung (nur Master) |
+| `PATCH /briefings/{id}` | Zuordnung Übungsgruppe/Stammgruppe nachtragen (nur Master) |
 
 ## Tech Stack
 
@@ -139,6 +146,30 @@ Der Export schreibt bis zu drei Excel-Dateien nach `data/prolific_runs/derived/r
 - `*_chat_turns.xlsx`: separate Datei mit einer Zeile pro Bot-Interaktion aus `experiment_events.json`, inklusive `user_message`, `assistant_message`, `agent_type`, `message_count` und Session-/Prolific-Kontext
 
 Beide Dateien teilen dieselbe `review_item_id`, damit menschliche Bewertungen spaeter leicht mit den Rubric-Scores abgeglichen werden koennen.
+
+## KI-Briefings für Übungsgruppenleitungen (Tutor-Pipeline)
+
+Die Stammgruppen geben ihre Touchpoint-Ergebnisse über Canvas (LMS) ab — als PPTX aus der
+offiziellen Vorlage (Code `TPn-UEGxx-SGy`), ersatzweise DOCX oder PDF. Der Master-Tutor lädt
+den Canvas-Export als ZIP hoch (`POST /briefings/upload`, `target_tp` 1–5); je Datei entsteht
+ein Briefing für die ÜGL nach dem KI-Paket der Kursleitung: je Baustein Kernposition (ein Satz),
+tragende Argumente (max. 2), dünne Stellen als Rückfrage-Ansatz (max. 2) und eine Einschätzung
+in Prosa. Dazu die formale Vorprüfung (Zeichengrenzen je Folie, Code, Dateiname — gemeldet,
+nie bewertet). Die Niveau-Einstufung je Kriterium wird intern gespeichert und ist nur für den
+Master sichtbar. Keine Punkte, keine Musterlösung, kein Gruppenvergleich; Leitplanken werden
+nach dem LLM-Call regelbasiert nachgeprüft (`backend/briefings/guardrails.py`).
+
+- Code: `backend/briefings/` (Extraktion, Rubrics, Generator, DOCX-Renderer, Routen),
+  Store `backend/db/briefing_store.py` (Mongo `briefings`, Datei-Fallback `backend/db/briefings/`).
+- Config: `backend/config/ki_rubrics/` — `ki_rubrics_tp{n}.json` (Kursleitung, 2026-08-28),
+  Case-Kapitel des Running Case ON (`case/kapitel_{a..e}.md`, nur Tutor-Pipeline, nie
+  studierendensichtbar), Vorlagentexte (`template_texts.json`).
+- Sichtbarkeit: Der Teacher-Proxy schickt `X-Teacher-Id` und `X-Teacher-Master` mit. Konvention:
+  Tutor-Kennung = Übungsgruppe (`TEACHER_ACCESS_CODES = {"UEG07": "<code>", …}`); eine ÜGL sieht
+  nur die eigene Übungsgruppe, der Master alles. Hochgeladene Dateien und Mitgliedernamen werden
+  nie gespeichert.
+- Kalibrierung (Pflicht vor Prompt-/Rubric-Änderungen): `python scripts/calibrate_briefings.py --all`
+  schickt die drei Beispielabgaben je TP durch den Generator und vergleicht die Einstufung.
 
 
 ## License

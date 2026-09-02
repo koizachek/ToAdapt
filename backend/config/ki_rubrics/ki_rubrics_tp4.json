@@ -1,0 +1,140 @@
+{
+  "meta": {
+    "course": "BWL A HS26",
+    "touchpoint": 4,
+    "version": "v1",
+    "date": "2026-08-28",
+    "exam_ref": [
+      "A4a",
+      "A4b"
+    ],
+    "learning_objectives": [
+      "4.3",
+      "4.4"
+    ],
+    "case": {
+      "document": "Case Study ON",
+      "chapter": "D",
+      "references": "Exhibit D1 (Supply-Chain-Übersicht: Schuhe extern, Vietnam 65 Prozent, sechs Zulieferer, ein Logistik-Hub je Region), Exhibit D2 (Kostenstruktur je Schuh), Exhibit D4 (4,1 Mio. Bestellungen, 22 Prozent Retouren, 61 Prozent Passform, 24 Franken je Retoure), Abschnitte 5.1 und 5.2."
+    }
+  },
+  "guardrails": [
+    "no_points_or_grades",
+    "no_model_solution",
+    "no_group_comparison",
+    "briefing_only_to_uegl",
+    "feedback_only_after_session",
+    "any_choice_admissible_judge_reasoning_only",
+    "swiss_standard_german_ss"
+  ],
+  "formal_checks": {
+    "slide2_max_chars": 1500,
+    "slide3_max_chars": 1650,
+    "chars_include_spaces": true,
+    "full_sentences_required": true,
+    "code_pattern": "TP4-UEG\\d{2}-SG[1-8]",
+    "filename_pattern": "TP4_UEG\\d{2}_SG[1-8]\\.pptx",
+    "submission_format": "pptx_3_slides_official_template",
+    "report_only_never_grade": true
+  },
+  "rubrics": {
+    "baustein1": {
+      "slide": 2,
+      "title": "Eigen- oder Fremdleistung",
+      "exam_ref": "A4a",
+      "criteria": [
+        {
+          "name": "Klarheit der Entscheidung",
+          "ueberzeugend": "Eine eindeutige Entscheidung (eigenes Fulfillment-Center oder externe Partner) ist getroffen.",
+          "tragfaehig": "Eine Tendenz ist erkennbar, wird aber nicht festgelegt.",
+          "ansatzweise": "Keine Entscheidung, nur Für und Wider."
+        },
+        {
+          "name": "Abwägung",
+          "ueberzeugend": "Kosten, Kontrolle und Abhängigkeit sind gegeneinander abgewogen; der wirtschaftliche Teil rechnet mit den Fallzahlen (Exhibit D4: rund 22 Mio. Franken Retourenkosten pro Jahr) statt zu schätzen; die Gegenseite wird ernst genommen, kein Strohmann.",
+          "tragfaehig": "Die drei Kategorien kommen vor, aber es wird nicht gerechnet (Asset-light als Doktrin oder eigenes Lager als Bauchgefühl), oder es wird nur über Kosten argumentiert.",
+          "ansatzweise": "Weder Zahlen noch Kategorien; reine Behauptung."
+        },
+        {
+          "name": "Strategische Einordnung",
+          "ueberzeugend": "Die Entscheidung ist an der eigenen Strategie aus Touchpoint 2 gemessen; ein Widerspruch dazu wird reflektiert statt übergangen.",
+          "tragfaehig": "Die Einordnung wird erwähnt, bleibt aber oberflächlich.",
+          "ansatzweise": "Kein Bezug zur Strategieentscheidung."
+        }
+      ],
+      "typical_weaknesses": "Typische Schwächen: Doktrin ohne Rechnung (Asset-light ist unser Prinzip); nur Kostenargumente, obwohl Kontrolle das Markenerlebnis im Direktkanal betrifft; Retourenrechnung (4,1 Mio. mal 22 Prozent mal 24 Franken) nicht gemacht; kein Bezug zu Touchpoint 2."
+    },
+    "baustein2": {
+      "slide": 3,
+      "title": "Lieferkette und Abhängigkeit",
+      "exam_ref": "A4b",
+      "criteria": [
+        {
+          "name": "Risikopriorisierung und Sourcing-Entscheidung",
+          "ueberzeugend": "Das grösste Lieferkettenrisiko ist priorisiert (begründet, warum dieses und nicht die Abhängigkeit daneben in Exhibit D1), und eine eindeutige Sourcing-Entscheidung dagegen ist getroffen.",
+          "tragfaehig": "Ein Risiko ist gewählt, aber die Priorisierung gegenüber Alternativen bleibt unbegründet, oder die Massnahme bleibt vage (Diversifizierung).",
+          "ansatzweise": "Risiken werden aufgezählt statt priorisiert; keine Entscheidung."
+        },
+        {
+          "name": "Abwägung",
+          "ueberzeugend": "Die Absicherung ist entlang Kosten, Versorgungssicherheit und Abhängigkeit abgewogen, mit Bezug auf Exhibit D1 (nicht aus allgemeinen Beschaffungsregeln); die EU-Lieferkettenregulierung ab 2027 ist mitgedacht, wo einschlägig.",
+          "tragfaehig": "Die Abwägung nutzt nur eine Dimension oder erwähnt die Regulierung nur, ohne sie zu integrieren.",
+          "ansatzweise": "Keine Abwägung."
+        },
+        {
+          "name": "Preis der Absicherung und Einordnung",
+          "ueberzeugend": "Es ist benannt, was die Absicherung kostet (Geld und Komplexität) und ob sie zum Asset-light-Modell passt; auch das bewusste Tragen eines Risikos ist zulässig, wenn begründet.",
+          "tragfaehig": "Die Absicherung wird empfohlen, ihr Preis aber nicht benannt.",
+          "ansatzweise": "Weder Preis noch Einordnung."
+        }
+      ],
+      "typical_weaknesses": "Typische Schwächen: Aufzählen statt priorisieren; Absicherung ohne Preis; Konzentration (65 Prozent Vietnam, ein Hub je Region) nur als Risiko oder nur als Effizienz gelesen, ohne den Preis der anderen Lesart."
+    }
+  },
+  "levels": [
+    "ueberzeugend",
+    "tragfaehig",
+    "ansatzweise"
+  ],
+  "outputs": {
+    "briefing": {
+      "audience": "uegl",
+      "timing": "wednesday_before_session",
+      "per_group_per_baustein": [
+        "kernposition_1_satz",
+        "tragende_argumente_max2",
+        "duenne_stellen_max2_als_rueckfrage_ansatz"
+      ],
+      "per_slot": [
+        "konsens_und_dissens_ueber_4_gruppen_als_spannungslinien_kandidaten"
+      ]
+    },
+    "feedback": {
+      "audience": "stammgruppe",
+      "timing": "after_session_only",
+      "per_baustein": [
+        "was_traegt",
+        "was_bleibt_duenn_mit_kriterienbezug",
+        "naechster_schritt"
+      ],
+      "closing": "feed_forward_tp5_und_klausur_aufgabe4"
+    }
+  },
+  "example_submissions": {
+    "ueberzeugend": {
+      "slide2": "Wir entscheiden uns, beim externen Fulfillment zu bleiben. Zuerst die Rechnung: 4,1 Millionen Online-Bestellungen mal 22 Prozent Retourenquote mal 24 Franken ergeben rund 22 Millionen Franken Retourenkosten pro Jahr (Exhibit D4). Das ist viel, aber es ist kein Insourcing-Argument: 61 Prozent der Retouren sind Passformretouren, der grössere Hebel liegt also in der Vermeidung (datenbasierte Grössenempfehlung) und nicht darin, dieselben Retouren im eigenen Lager teurer abzuwickeln. Abwägung: Bei den Kosten spricht der Fixkostenaufbau eines eigenen Centers gegen das Insourcing, gerade weil die Volumen saisonal schwanken. Die Kontrolle nehmen wir ernst, denn Lieferzeit und Verpackung sind Teil des Markenerlebnisses im Direktkanal; hier setzen wir auf strengere Service-Levels im Vertrag statt auf Eigenbetrieb. Die Abhängigkeit von einem Logistikpartner je Region bleibt und adressieren wir in Baustein 2. Strategische Einordnung: Zu unserer Strategie aus Touchpoint 2 (Premium Fortress) würde eigentlich mehr Kontrolle passen; wir halten den Fremdbezug trotzdem für vertretbar, weil das gebundene Kapital in Marke und Produkt mehr Vorteil stiftet als im Lagerbetrieb.",
+      "slide3": "Das grösste Lieferkettenrisiko ist die Konzentration der Schuhproduktion: 65 Prozent laufen über Vietnam, verteilt auf wenige der sechs Zulieferer (Exhibit D1). Wir priorisieren dieses Risiko über die Logistik-Hubs, weil ein Produktionsausfall Monate wirkt, ein Hub-Ausfall Wochen, und weil die Schuhe 80 Prozent des Umsatzes tragen. Unsere Sourcing-Entscheidung: die Kapazität in Indonesien von 35 auf rund 45 Prozent ausbauen und für die zwei umsatzstärksten Modellfamilien vertraglich abgesicherte Zweitquellen aufbauen. Abwägung: Die Versorgungssicherheit steigt deutlich, die Abhängigkeit von einem Land sinkt; zugleich hilft die Zweiquellenstruktur bei der Rückverfolgbarkeit, die die EU-Lieferkettenregulierung ab 2027 verlangt, weil Audits ohnehin doppelt aufgebaut werden. Der Preis: doppelte Werkzeuge und Qualitätssicherung, geschätzt ein niedriger einstelliger Millionenbetrag pro Jahr, dazu mehr Koordinationsaufwand, und ein Teil der Skaleneffekte in Vietnam geht verloren. Das passt zum Asset-light-Modell, weil die Produktion fremdvergeben bleibt und nur die Vertragsstruktur dichter wird. Das Restrisiko einer regionalen Störung in Südostasien tragen wir bewusst, eine Verlagerung nach Europa wäre für Laufschuhe nicht wettbewerbsfähig.",
+      "calibration_note": "Baustein 1: eindeutige Entscheidung, gerechnet statt geschätzt (22 Mio.), alle drei Kategorien echt abgewogen, Widerspruch zur eigenen Strategie reflektiert. Baustein 2: Risiko priorisiert mit Begründung gegen die Alternative, konkrete Massnahme, Regulierung integriert, Preis benannt, bewusst getragenes Restrisiko. Erwartetes Feedback: durchgehend überzeugend; nächster Schritt allenfalls die Kostenschätzung härter machen."
+    },
+    "tragfaehig": {
+      "slide2": "Wir empfehlen, beim externen Fulfillment zu bleiben, weil Asset-light das Grundprinzip von ON ist und sich bewährt hat. ON hat sein Geschäftsmodell von Anfang an auf externe Partner aufgebaut und konnte nur so schnell wachsen. Ein eigenes Fulfillment-Center wäre sehr teuer und würde hohe Investitionen erfordern, die ON besser in Marketing und Produktentwicklung steckt. Ausserdem sind Logistikpartner Spezialisten, die das besser können. Die Retourenquote von 22 Prozent ist zwar hoch, aber das ist im Onlinehandel normal. Die Kontrolle über die Lieferung ist zwar ein Argument für ein eigenes Lager, aber insgesamt überwiegen die Kostenvorteile des Outsourcings deutlich. Die Entscheidung passt auch zur Strategie, weil ON sich auf seine Stärken konzentrieren sollte.",
+      "slide3": "ONs Lieferkette hat mehrere Risiken. Erstens die Konzentration der Produktion in Vietnam, zweitens die hohen Retourenkosten, drittens die neue EU-Lieferkettenregulierung ab 2027 und viertens mögliche Transportprobleme zwischen den Regionen. Diese Risiken können das Geschäft erheblich beeinträchtigen. Wir empfehlen deshalb eine Diversifizierung der Lieferkette, damit ON nicht zu stark von einzelnen Ländern und Partnern abhängig ist. Ausserdem sollte ON die Beziehungen zu seinen Zulieferern eng pflegen und die neuen regulatorischen Anforderungen frühzeitig umsetzen. So wird die Lieferkette insgesamt widerstandsfähiger und ON ist für Krisen besser gerüstet. Das ist auch mit dem Asset-light-Modell vereinbar.",
+      "calibration_note": "Baustein 1: Entscheidung da, aber Doktrin ohne Rechnung (Retourenkosten nicht beziffert, obwohl Exhibit D4 alles liefert); Kontrolle als Randnotiz abgetan; Einordnung oberflächlich. Baustein 2: vier Risiken aufgezählt statt eines priorisiert; Diversifizierung ohne konkrete Entscheidung und ohne Preis; Regulierung nur erwähnt. Erwartetes Feedback: trägt bei Klarheit und Risikoüberblick, dünn bei Rechnung, Priorisierung und Preis der Absicherung."
+    },
+    "ansatzweise": {
+      "slide2": "Wir finden, ON sollte ein eigenes Lager bauen, denn dann hat das Unternehmen mehr Kontrolle über die Lieferungen und ist unabhängiger von externen Partnern. Ausserdem kann ON dann die Retouren selbst bearbeiten und muss nicht für externe Dienstleister bezahlen. Ein eigenes Lager ist zwar am Anfang teuer, aber langfristig lohnt es sich bestimmt, weil die laufenden Kosten sinken. Viele grosse Unternehmen wie Amazon haben auch eigene Lager und sind damit erfolgreich. Deshalb ist ein eigenes Fulfillment-Center die beste Lösung für ON.",
+      "slide3": "Die Lieferkette von ON hat Risiken, weil die Produktion weit weg in Asien liegt. Wenn dort etwas passiert, zum Beispiel eine Naturkatastrophe oder politische Probleme, bekommt ON keine Schuhe mehr. ON sollte diese Risiken minimieren, indem es gute Partnerschaften mit den Zulieferern pflegt und immer genug Lagerbestand hat. Wichtig ist auch eine gute Kommunikation mit allen Beteiligten, damit Probleme früh erkannt werden. So kann ON Lieferprobleme vermeiden und die Kunden zuverlässig beliefern.",
+      "calibration_note": "Baustein 1: Entscheidung ohne Zahlen, langfristig lohnt es sich bestimmt ersetzt die Rechnung; Amazon-Vergleich statt Fallbezug; keine Einordnung. Baustein 2: Risiko benannt, aber weder priorisiert noch entschieden; Massnahmen generisch, Lagerbestand widerspricht unbemerkt dem Asset-light-Modell. Erwartetes Feedback: kleinster nächster Schritt: die eine Rechnung aus Exhibit D4 machen; ein Risiko wählen und eine Massnahme mit Preisschild formulieren."
+    }
+  }
+}

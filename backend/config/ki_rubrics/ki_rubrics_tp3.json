@@ -1,0 +1,140 @@
+{
+  "meta": {
+    "course": "BWL A HS26",
+    "touchpoint": 3,
+    "version": "v1",
+    "date": "2026-08-28",
+    "exam_ref": [
+      "A3a",
+      "A3b"
+    ],
+    "learning_objectives": [
+      "3.4",
+      "3.5"
+    ],
+    "case": {
+      "document": "Case Study ON",
+      "chapter": "C",
+      "references": "Exhibit C1 (Preisvergleich), Exhibit C2 (Preistest je Segment), Exhibit C3 (Kanalprofil), Abschnitt 4.3 (Kommunikation und Positionierung, Zendaya-Kontroverse), Abschnitt 4.4 (Die Frage der Stimmigkeit)."
+    }
+  },
+  "guardrails": [
+    "no_points_or_grades",
+    "no_model_solution",
+    "no_group_comparison",
+    "briefing_only_to_uegl",
+    "feedback_only_after_session",
+    "any_choice_admissible_judge_reasoning_only",
+    "swiss_standard_german_ss"
+  ],
+  "formal_checks": {
+    "slide2_max_chars": 1500,
+    "slide3_max_chars": 1650,
+    "chars_include_spaces": true,
+    "full_sentences_required": true,
+    "code_pattern": "TP3-UEG\\d{2}-SG[1-8]",
+    "filename_pattern": "TP3_UEG\\d{2}_SG[1-8]\\.pptx",
+    "submission_format": "pptx_3_slides_official_template",
+    "report_only_never_grade": true
+  },
+  "rubrics": {
+    "baustein1": {
+      "slide": 2,
+      "title": "Preisentscheidung",
+      "exam_ref": "A3a",
+      "criteria": [
+        {
+          "name": "Wahl des Zielsegments",
+          "ueberzeugend": "Ein Segment aus Exhibit C2 ist gewählt und die Wahl ist datenbezogen begründet (Umsatzanteil, Reagibilität), nicht reflexhaft das grösste.",
+          "tragfaehig": "Ein Segment ist gewählt, die Begründung nutzt aber nur ein Datum oder bleibt allgemein (grösstes Segment, wichtige Kunden).",
+          "ansatzweise": "Kein klares Segment oder Wahl ohne jeden Datenbezug."
+        },
+        {
+          "name": "Herleitung aus dem Segment",
+          "ueberzeugend": "Die Preisentscheidung (anheben, halten, senken) folgt aus Zahlungsbereitschaft und Preisreagibilität des gewählten Segments; alle Richtungen sind vertretbar, wenn sie zur Segmentcharakteristik passen.",
+          "tragfaehig": "Eine Richtung ist gewählt, aber teils aus allgemeinen Regeln hergeleitet (Premiummarken können Preise erhöhen) statt aus den Segmentdaten.",
+          "ansatzweise": "Preisregel statt Herleitung; Exhibit C2 wird nicht genutzt."
+        },
+        {
+          "name": "Konsequenz für Absatz und Marge",
+          "ueberzeugend": "Es ist konkret dargestellt, was mit Absatz und Marge geschieht (Richtung und Grössenordnung), idealerweise mit Abgrenzung zu einem Alternativsegment (z. B. Gelegenheitskäufer bei minus 27 Prozent).",
+          "tragfaehig": "Eine Konsequenz ist benannt, aber einseitig (nur Marge steigt) oder ohne Grössenordnung.",
+          "ansatzweise": "Keine Konsequenz für Absatz und Marge."
+        }
+      ],
+      "typical_weaknesses": "Typische Schwächen: reflexhaft das grösste Segment (Lifestyle, 30 Prozent, aber minus 14) ohne Begründung; Preisregel statt Datenherleitung; Konsequenz nur als Marge steigt; Nebenwirkungen auf andere Segmente ignoriert."
+    },
+    "baustein2": {
+      "slide": 3,
+      "title": "Kanalentscheidung und Stimmigkeit",
+      "exam_ref": "A3b",
+      "criteria": [
+        {
+          "name": "Kanalentscheidung",
+          "ueberzeugend": "Ein Kanal für das gewählte Segment ist eindeutig gewählt und mit Exhibit C3 begründet (Deckungsbeitrag, Kontrolle, Daten).",
+          "tragfaehig": "Ein Kanal ist gewählt, die Begründung nutzt aber nur die Marge.",
+          "ansatzweise": "Alle Kanäle nutzen oder keine begründete Wahl."
+        },
+        {
+          "name": "Abwägung Marge und Markenkontrolle",
+          "ueberzeugend": "Der Zielkonflikt ist als Abwägung ausgeführt (was gibt ON im nicht gewählten Kanal auf: Reichweite, Beratung, 60 Prozent der Kundschaft im Handel), nicht als Liste von Vor- und Nachteilen.",
+          "tragfaehig": "Vor- und Nachteile werden aufgezählt, die eigentliche Abwägung (was wird geopfert und warum ist das tragbar) bleibt implizit.",
+          "ansatzweise": "Keine Abwägung; der Direktkanal wird als offensichtlich überlegen behandelt."
+        },
+        {
+          "name": "Kohärenzurteil",
+          "ueberzeugend": "Je eine Stelle der Passung und eine der verbleibenden Spannung zwischen Kanal, Preis und Positionierung sind konkret benannt (Abschnitt 4.4); wer keine Spannung findet, hat nicht geprüft.",
+          "tragfaehig": "Ein Urteil ist da, aber die Spannung ist eine Nebensächlichkeit oder das Urteil bleibt pauschal (passt gut zusammen).",
+          "ansatzweise": "Kein Stimmigkeitsurteil."
+        }
+      ],
+      "typical_weaknesses": "Typische Schwächen: Direktkanal als Automatismus (bei ON laufen Marge und Kontrolle in dieselbe Richtung, in der Klausur nicht, deshalb wird die Abwägung geübt, nicht die Regel); Harmonieurteil ohne Spannung; Positionierungsachse (Abschnitt 4.3) übersehen."
+    }
+  },
+  "levels": [
+    "ueberzeugend",
+    "tragfaehig",
+    "ansatzweise"
+  ],
+  "outputs": {
+    "briefing": {
+      "audience": "uegl",
+      "timing": "wednesday_before_session",
+      "per_group_per_baustein": [
+        "kernposition_1_satz",
+        "tragende_argumente_max2",
+        "duenne_stellen_max2_als_rueckfrage_ansatz"
+      ],
+      "per_slot": [
+        "konsens_und_dissens_ueber_4_gruppen_als_spannungslinien_kandidaten"
+      ]
+    },
+    "feedback": {
+      "audience": "stammgruppe",
+      "timing": "after_session_only",
+      "per_baustein": [
+        "was_traegt",
+        "was_bleibt_duenn_mit_kriterienbezug",
+        "naechster_schritt"
+      ],
+      "closing": "feed_forward_tp4_und_klausur_aufgabe3"
+    }
+  },
+  "example_submissions": {
+    "ueberzeugend": {
+      "slide2": "Wir wählen die Performance Runner als Zielsegment. Sie stehen für 22 Prozent des Umsatzes und reagieren laut Exhibit C2 mit nur minus 4 Prozent Absatz auf eine Preiserhöhung von 10 Prozent: Ihre Kaufentscheidung hängt an Technologie und Performance, nicht am Preis. Wir entscheiden uns, die Preise der Performance-Linie um rund 10 Prozent anzuheben (Cloudmonster von 179 auf etwa 195 Franken, womit ON auf dem Niveau von New Balance liegt, Exhibit C1). Herleitung: Die Nachfrage dieses Segments ist nahezu unelastisch, die Zahlungsbereitschaft ist über den Technologie-Anker gedeckt, und der heutige Preis schöpft sie nicht aus. Konsequenz: Der Absatz im Segment geht um rund 4 Prozent zurück, der Umsatz steigt netto um rund 5 Prozent, und der Deckungsbeitrag je Paar steigt überproportional, weil die Kosten unverändert bleiben. Bewusst nicht anheben würden wir bei Gelegenheitskäufern (minus 27 Prozent) und im Lifestyle-Segment (minus 14 Prozent): Die Anhebung gilt deshalb für die Performance-Modelle, nicht über das ganze Sortiment.",
+      "slide3": "Wir bedienen die Performance Runner vorrangig über den eigenen Onlinekanal. Begründung aus Exhibit C3: höchster Deckungsbeitrag (82 Franken je Paar gegenüber 38 im Fachhandel), volle Kontrolle über Preis und Auftritt, voller Datenzugang, der für Passformempfehlungen und Produktentwicklung genutzt werden kann. Die Abwägung nehmen wir ernst: Mit dieser Wahl gibt ON Reichweite und vor allem Beratung auf. In Europa kaufen über 60 Prozent der Kundschaft im stationären Handel, und gerade Performance-Produkte werden über Beratung erklärt. Wir halten den Tausch für tragbar, weil das gewählte Segment markenkundig ist und weniger Beratung braucht als Einsteiger; der Fachhandel bleibt für die Breite gesetzt. Stimmigkeit: Preisanhebung, kontrollierter Kanal und Performance-Positionierung stützen sich gegenseitig, ein Premiumpreis lässt sich im eigenen Kanal ohne Rabattdruck durchsetzen. Die Spannung, die bleibt: Die Preisanhebung im Direktkanal verschärft den Konflikt mit genau den Fachhändlern, deren Beratung die Performance-Glaubwürdigkeit trägt. Diese Spannung lösen wir nicht auf, wir benennen sie als Preis unserer Entscheidung.",
+      "calibration_note": "Baustein 1: Segmentwahl doppelt datenbezogen, Richtung aus Reagibilität und Zahlungsbereitschaft hergeleitet, Konsequenz mit Grössenordnung und Abgrenzung zu Alternativsegmenten. Baustein 2: Kanalwahl mit drei C3-Dimensionen, echte Abwägung (was wird geopfert und warum tragbar), Passung und ehrliche Restspannung. Erwartetes Feedback: alle Kriterien überzeugend; nächster Schritt allenfalls die Rechnung Absatz mal Deckungsbeitrag explizit."
+    },
+    "tragfaehig": {
+      "slide2": "Wir wählen das Lifestyle-Segment, weil es mit 30 Prozent den grössten Umsatzanteil hat und weiter stark wächst. Als Premiummarke kann ON hier die Preise erhöhen, denn Premiummarken haben grundsätzlich Preissetzungsspielraum und die Kunden kaufen ON wegen des Designs und des Markenimages. Wir empfehlen deshalb eine Preiserhöhung von 10 Prozent auf der Lifestyle-Linie. Dadurch steigt die Marge deutlich, was den Ausbau der eigenen Stores finanziert. Die Preiserhöhung unterstreicht ausserdem die Exklusivität der Marke und passt zur Premiumstrategie. Insgesamt stärkt die Entscheidung die Profitabilität von ON und nutzt die Grösse des wichtigsten Segments optimal aus.",
+      "slide3": "Als Kanal wählen wir den eigenen Onlineshop, weil dort die Marge mit rund 60 Prozent am höchsten ist und ON die volle Kontrolle über den Markenauftritt hat. Vorteile sind ausserdem die Kundendaten und die Unabhängigkeit vom Handel. Nachteile sind die geringere Reichweite und die Kosten der Plattform. Insgesamt überwiegen die Vorteile klar. Zur Stimmigkeit: Preis, Kanal und Positionierung passen gut zusammen, denn alle drei zahlen auf die Premiummarke ein. Die Preiserhöhung unterstreicht die Exklusivität, der eigene Kanal schützt den Markenauftritt, und die Positionierung als hochwertige Marke wird dadurch insgesamt gestärkt. Das Konzept ist also in sich stimmig.",
+      "calibration_note": "Baustein 1: grösstes Segment reflexhaft, Herleitung über Preisregel (Premiummarken können erhöhen) statt aus minus 14 Prozent Reagibilität; Konsequenz nur Marge steigt, der Absatzeffekt fehlt. Baustein 2: Kanalwahl nur über Marge, Vor- und Nachteile als Liste statt Abwägung, Harmonieurteil ohne Spannung. Erwartetes Feedback: trägt bei der Entschiedenheit, dünn bei Herleitung, Konsequenz, Abwägung und Kohärenz; nächster Schritt je: mit Exhibit C2 rechnen, eine Stelle benennen, an der es nicht aufgeht."
+    },
+    "ansatzweise": {
+      "slide2": "Wir denken, dass ON die Preise stabil halten sollte, weil Kunden Preiserhöhungen grundsätzlich nicht mögen und zur Konkurrenz wechseln könnten. Der Laufschuhmarkt ist hart umkämpft, Nike und Adidas sind grosse Wettbewerber mit tieferen Preisen. Wenn ON die Preise erhöht, verliert es Kunden, und wenn es die Preise senkt, leidet das Premiumimage. Deshalb ist es am besten, die Preise so zu lassen, wie sie sind. So bleibt ON wettbewerbsfähig und die Kunden zufrieden. Wichtig ist auch gutes Marketing, damit die Kunden den Wert der Produkte verstehen.",
+      "slide3": "ON sollte alle Kanäle nutzen, um möglichst viele Kunden zu erreichen: den eigenen Onlineshop, die eigenen Stores, den Fachhandel, die Grossketten und die Plattformen. Jeder Kanal hat seine Stärken und erreicht andere Kunden. Der Onlineshop bringt hohe Margen, der Fachhandel bietet Beratung, und die Plattformen haben eine grosse Reichweite. Mit einer breiten Kanalstrategie maximiert ON den Umsatz und ist nicht von einem einzelnen Kanal abhängig. Das passt auch gut zur Wachstumsstrategie des Unternehmens.",
+      "calibration_note": "Baustein 1: keine Segmentwahl, Herleitung aus einer Alltagsregel statt aus Exhibit C2, keine Konsequenzbetrachtung. Baustein 2: alle Kanäle ist keine Entscheidung, keine Abwägung, kein Stimmigkeitsurteil. Erwartetes Feedback: kleinster nächster Schritt je Baustein: ein Segment aus C2 wählen und dessen zwei Zahlen nutzen; einen Kanal wählen und benennen, was diese Wahl kostet."
+    }
+  }
+}

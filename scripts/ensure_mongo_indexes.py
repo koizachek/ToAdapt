@@ -4,7 +4,7 @@ Setzt das Lösch- und Aufbewahrungskonzept des Datenschutzantrags um
 (Teil 1 Lehrbetrieb, Abschnitt 7; Teil 2 Forschung, Abschnitt 5):
 
 - Formative Lehrbetriebs-Daten (sessions, submission_states,
-  dashboard_results, group_uploads): Löschung Semesterende + 4 Wochen.
+  dashboard_results, briefings): Löschung Semesterende + 4 Wochen.
 - Forschungslog (experiment_events): Löschung längstens 24 Monate nach
   Semesterende.
 
@@ -52,7 +52,7 @@ def collection_plan() -> list[tuple[str, datetime]]:
         (os.environ.get("MONGODB_SESSIONS_COLLECTION", "sessions"), formative),
         (os.environ.get("MONGODB_SUBMISSIONS_COLLECTION", "submission_states"), formative),
         (os.environ.get("MONGODB_DASHBOARD_COLLECTION", "dashboard_results"), formative),
-        (os.environ.get("MONGODB_GROUP_UPLOADS_COLLECTION", "group_uploads"), formative),
+        (os.environ.get("MONGODB_BRIEFINGS_COLLECTION", "briefings"), formative),
         (os.environ.get("MONGODB_COLLECTION", "experiment_events"), research),
     ]
 

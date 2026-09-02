@@ -1,0 +1,147 @@
+{
+  "meta": {
+    "course": "BWL A HS26",
+    "touchpoint": 1,
+    "version": "v2",
+    "date": "2026-08-28",
+    "supersedes": "ki_rubrics_tp1_v1.json (v1.1)",
+    "exam_ref": [
+      "A1a",
+      "A1b"
+    ],
+    "learning_objectives": [
+      "1.3",
+      "1.4"
+    ],
+    "case": {
+      "document": "Case Study ON",
+      "chapter": "A",
+      "references": "Abschnitt 2.5 (Was ON beschäftigt: vier Ausgangspunkte), Abschnitt 2.8 (Was nicht in den Zahlen steht: Führungswechsel, Cyclon, China, Patentablauf), Exhibit A5 (Stakeholder-Übersicht, inkl. Dynamikvermerken wie hoch, sinkend)."
+    }
+  },
+  "guardrails": [
+    "no_points_or_grades",
+    "no_model_solution",
+    "no_group_comparison",
+    "briefing_only_to_uegl",
+    "feedback_only_after_session",
+    "any_choice_admissible_judge_reasoning_only",
+    "swiss_standard_german_ss"
+  ],
+  "formal_checks": {
+    "slide2_max_chars": 1350,
+    "slide3_max_chars": 1050,
+    "chars_include_spaces": true,
+    "full_sentences_required": true,
+    "code_pattern": "TP1-UEG\\d{2}-SG[1-8]",
+    "filename_pattern": "TP1_UEG\\d{2}_SG[1-8]\\.pptx",
+    "submission_format": "pptx_3_slides_official_template",
+    "report_only_never_grade": true
+  },
+  "rubrics": {
+    "baustein1": {
+      "slide": 2,
+      "title": "Herausforderungen und Wirkungskette",
+      "exam_ref": "A1a",
+      "criteria": [
+        {
+          "name": "Auswahl und Kritikalität",
+          "ueberzeugend": "Zwei Herausforderungen sind gewählt und es ist begründet, warum gerade diese kritischer sind als die übrigen; die Wahl greift über die vier Themen in Abschnitt 2.5 hinaus oder begründet, warum nicht.",
+          "tragfaehig": "Zwei Herausforderungen sind benannt und plausibel, die Begründung der Kritikalität bleibt aber allgemein (wichtig, zentral) oder stützt sich nur auf die naheliegenden Themen aus Abschnitt 2.5.",
+          "ansatzweise": "Herausforderungen werden aufgezählt statt gewichtet, oder es ist keine erkennbare Auswahl von zwei getroffen."
+        },
+        {
+          "name": "Erläuterung",
+          "ueberzeugend": "Für beide ist fallbezogen erläutert, worin sie bestehen und warum sie für ONs Geschäftsmodell relevant sind, mit konkreten Angaben aus dem Fall.",
+          "tragfaehig": "Die Erläuterung ist vorhanden, bleibt aber beschreibend oder nutzt kaum Fallmaterial.",
+          "ansatzweise": "Die Herausforderungen werden nur benannt, nicht erläutert."
+        },
+        {
+          "name": "Verortung im Spannungsfeld",
+          "ueberzeugend": "Mindestens eine Herausforderung ist klar zwischen Umwelt (was von aussen kommt) und interner Gestaltung (welche eigene Entscheidung ONs darauf trifft) verortet.",
+          "tragfaehig": "Die Verortung ist angedeutet, benennt aber nur eine der beiden Seiten klar.",
+          "ansatzweise": "Keine erkennbare Verortung."
+        },
+        {
+          "name": "Kausale Schlüssigkeit",
+          "ueberzeugend": "Die Kette Ursache, Wirkung im Unternehmen, Handlungsdruck ist durchgängig; der Mechanismus zwischen den Gliedern ist sichtbar, nicht nur behauptet.",
+          "tragfaehig": "Die Kette ist angelegt, aber ein Glied bleibt dünn; typisch: Sie endet bei einer Folge (Umsatz leidet) ohne den Mechanismus davor, oder der Handlungsdruck bleibt vage (ON muss reagieren).",
+          "ansatzweise": "Ursache und Folge stehen unverbunden nebeneinander; kein Mechanismus, kein konkreter Handlungsdruck."
+        }
+      ],
+      "typical_weaknesses": "Typische Schwächen: beschreiben statt begründen; nur die vier naheliegenden Themen aus Abschnitt 2.5, obwohl Abschnitt 2.8 kritischere Entwicklungen enthält; Kette endet beim Umsatz ohne Mechanismus; die beiden Herausforderungen werden nicht aufeinander bezogen."
+    },
+    "baustein2": {
+      "slide": 3,
+      "title": "Stakeholder und Implikation",
+      "exam_ref": "A1b",
+      "criteria": [
+        {
+          "name": "Einordnung",
+          "ueberzeugend": "Der Stakeholder ist nach beiden Dimensionen (Einfluss und Betroffenheit) eingeordnet und die Einordnung ist am Fall begründet; Dynamik (steigend, sinkend) wird beachtet; eine Abweichung von Exhibit A5 ist ausdrücklich benannt, eine Übernahme kurz bestätigt.",
+          "tragfaehig": "Beide Dimensionen sind adressiert, aber die Begründung stützt sich nur auf Exhibit A5, ohne eigene Fallbelege; Dynamik wird übersehen.",
+          "ansatzweise": "Nur eine Dimension oder blosse Behauptung der Wichtigkeit ohne Einordnung."
+        },
+        {
+          "name": "Erwartung",
+          "ueberzeugend": "Eine zentrale Erwartung des Stakeholders an ON ist konkret benannt und aus dem Fall belegt.",
+          "tragfaehig": "Die Erwartung ist benannt, bleibt aber generisch (gute Produkte, faire Behandlung).",
+          "ansatzweise": "Keine konkrete Erwartung erkennbar."
+        },
+        {
+          "name": "Implikation",
+          "ueberzeugend": "Aus der Erwartung folgt eine konkrete, fallbezogene Implikation für ONs Geschäftsmodell: was ON deshalb nicht tun kann oder tun muss, als Entscheidung formuliert.",
+          "tragfaehig": "Eine Implikation ist angedeutet, bleibt aber eine Feststellung (Beziehung pflegen, wichtig nehmen) statt einer Entscheidungskonsequenz.",
+          "ansatzweise": "Keine Implikation; es wird nur festgestellt, dass der Stakeholder wichtig ist."
+        }
+      ],
+      "typical_weaknesses": "Typische Schwächen: Exhibit A5 wird übernommen statt geprüft; der Dynamikvermerk (hoch, sinkend) wird übersehen; die Implikation ist eine Feststellung statt einer Entscheidungskonsequenz."
+    }
+  },
+  "levels": [
+    "ueberzeugend",
+    "tragfaehig",
+    "ansatzweise"
+  ],
+  "outputs": {
+    "briefing": {
+      "audience": "uegl",
+      "timing": "wednesday_before_session",
+      "per_group_per_baustein": [
+        "kernposition_1_satz",
+        "tragende_argumente_max2",
+        "duenne_stellen_max2_als_rueckfrage_ansatz"
+      ],
+      "per_slot": [
+        "konsens_und_dissens_ueber_4_gruppen_als_spannungslinien_kandidaten"
+      ]
+    },
+    "feedback": {
+      "audience": "stammgruppe",
+      "timing": "after_session_only",
+      "per_baustein": [
+        "was_traegt",
+        "was_bleibt_duenn_mit_kriterienbezug",
+        "naechster_schritt"
+      ],
+      "closing": "feed_forward_tp2_und_klausur_aufgabe1"
+    }
+  },
+  "example_submissions": {
+    "ueberzeugend": {
+      "slide2": "Die zwei kritischsten Herausforderungen sind der Kanalkonflikt und der auslaufende Patentschutz. Der Kanalkonflikt ist kritisch, weil der Direktvertrieb ONs Margen treibt, zugleich aber die Fachhändler bedroht, die in Europa noch über 60 Prozent der Kunden erreichen und die Marke glaubwürdig gemacht haben. Der Patentschutz ist kritisch, weil die CloudTec-Technologie der Kern der Differenzierung ist und ihr Schutz zwischen 2027 und 2029 endet, während Hoka bereits ein vergleichbares System anbietet. Der Patentablauf liegt im Spannungsfeld: Von aussen endet der rechtliche Schutz, innen hat ON entschieden, die gesamte Produktlinie auf dieser einen Technologie aufzubauen. Wirkungskette: Der Patentschutz läuft aus (Ursache). Wettbewerber können vergleichbare Dämpfungssysteme anbieten, die technologische Differenzierung erodiert und die Preisprämie gerät unter Druck (Wirkung im Unternehmen). ON muss vor dem Ablauf die Marke als zweiten Träger des Premiumanspruchs aufbauen oder das Innovationstempo so erhöhen, dass der Vorsprung ohne Schutzrecht hält (Handlungsdruck).",
+      "slide3": "Der Stakeholder, der ONs Handlungsspielraum derzeit am stärksten einschränkt, sind die Investoren. Wir ordnen sie wie Exhibit A5 ein: sehr hoher Einfluss, mittlere Betroffenheit. Die Einordnung stützen wir am Fall: Seit dem Börsengang reagiert der Aktienkurs empfindlich auf jede Verfehlung der Wachstumsprognose, und Analysten fordern steigende Margen. Ihre zentrale Erwartung ist profitables Wachstum von rund 20 Prozent. Die Implikation für das Geschäftsmodell: ON kann die Distribution nicht bewusst verknappen, um die Marke zu schützen, ohne zugleich einen glaubwürdigen Wachstumspfad zu zeigen. Jede Entscheidung für Exklusivität muss deshalb erklären, woher das Wachstum stattdessen kommt, etwa aus Apparel oder neuen Märkten.",
+      "calibration_note": "Baustein 1: Auswahl greift bewusst in Abschnitt 2.8 (Patentablauf), Kritikalität doppelt begründet, Verortung mit beiden Seiten, Kette mit sichtbarem Mechanismus und konkretem Handlungsdruck. Baustein 2: Einordnung übernimmt A5, bestätigt sie aber ausdrücklich mit Fallbelegen; Erwartung konkret; Implikation als Entscheidungskonsequenz formuliert. Erwartetes Feedback: alle Kriterien überzeugend; nächster Schritt allenfalls die Verbindung der beiden Bausteine (Investorenerwartung verschärft den Kanalkonflikt)."
+    },
+    "tragfaehig": {
+      "slide2": "Die zwei kritischsten Herausforderungen sind die Spannung zwischen Wachstum und Kultur sowie der Konflikt zwischen Direktvertrieb und Fachhandel. Beide Themen beschäftigen ON stark und werden im Fall ausführlich beschrieben. Die Kulturfrage ist kritisch, weil ON stark gewachsen ist und viele neue Führungskräfte von Konzernen kommen. Der Kanalkonflikt ist kritisch, weil der Fachhandel ON gross gemacht hat und sich nun übergangen fühlt. Der Kanalkonflikt liegt im Spannungsfeld zwischen Umwelt und interner Gestaltung: Die Händler reagieren von aussen, und ON entscheidet selbst, wie stark es den Direktvertrieb ausbaut. Wirkungskette: ON baut den Direktvertrieb aus, dadurch reduzieren Fachhändler ihre Flächen, dadurch verliert ON Präsenz im Handel und der Umsatz leidet. ON muss deshalb reagieren.",
+      "slide3": "Der wichtigste Stakeholder ist der Fachhandel. Er hat hohen Einfluss und sehr hohe Betroffenheit, wie auch Exhibit A5 zeigt. Der Fachhandel hat ON in den ersten Jahren aufgebaut und erreicht in Europa immer noch die Mehrheit der Kunden. Seine zentrale Erwartung sind faire Konditionen und keine Kannibalisierung durch ONs eigene Kanäle. Die Implikation für ON ist, dass es die Beziehung zum Fachhandel pflegen und die Händler nicht verlieren sollte, weil sie für die Marke wichtig sind. ON sollte deshalb beim Ausbau des Direktvertriebs vorsichtig vorgehen und die Händler gut informieren.",
+      "calibration_note": "Baustein 1: plausible, aber naheliegende Auswahl nur aus Abschnitt 2.5 mit allgemeiner Begründung (beschäftigen ON stark); Verortung in Ordnung; die Kette bricht am Ende (der Umsatz leidet, ON muss reagieren): Mechanismus und konkreter Handlungsdruck fehlen. Baustein 2: Einordnung übernimmt A5 unkritisch und übersieht den Dynamikvermerk (hoch, sinkend); Erwartung in Ordnung; Implikation bleibt Feststellung (Beziehung pflegen, vorsichtig vorgehen). Erwartetes Feedback: trägt in Auswahl und Erwartung, dünn bei Kausalität, Dynamik und Implikation, mit je einem konkreten nächsten Schritt."
+    },
+    "ansatzweise": {
+      "slide2": "ON steht vor vielen Herausforderungen. Erstens wächst das Unternehmen sehr schnell und die Kultur verändert sich. Zweitens gibt es einen Konflikt mit dem Fachhandel wegen des Direktvertriebs. Drittens könnte die Marke durch die Expansion verwässert werden. Viertens gibt es Nachhaltigkeitsziele, die schwer zu erreichen sind, weil das Wachstum den CO2-Ausstoss erhöht. Alle diese Herausforderungen sind wichtig für ON und hängen mit dem schnellen Wachstum zusammen. Die Wirkungskette zeigt, dass das Wachstum zu Problemen führt: Wenn ON weiter wächst, leidet die Kultur und auch die Marke, und am Ende geht der Umsatz zurück. Deshalb muss ON gut aufpassen, wie es weiter wächst.",
+      "slide3": "Die Kunden sind der wichtigste Stakeholder für ON, denn ohne Kunden gibt es keinen Umsatz. Sie haben deshalb einen sehr hohen Einfluss und eine hohe Betroffenheit. Die Kunden erwarten von ON gute und innovative Produkte zu einem fairen Preis. ON muss die Kundenerwartungen erfüllen, damit die Kunden treu bleiben. Die Kunden sind für das Geschäftsmodell von ON sehr wichtig, weil sie die Produkte kaufen und die Marke weiterempfehlen.",
+      "calibration_note": "Baustein 1: vier Herausforderungen aufgezählt statt zwei gewichtet; keine Verortung; die Wirkungskette ist eine Behauptungskette ohne Mechanismus. Baustein 2: Wahl der Kunden ist zulässig, aber die Einordnung ist unbegründet (ohne Kunden kein Umsatz), die Erwartung generisch, eine Implikation fehlt (nur Wichtigkeit festgestellt). Erwartetes Feedback: freundlich, aber klar entlang aller Kriterien; nächster Schritt jeweils die kleinste konkrete Verbesserung (zwei auswählen und begründen; einen Mechanismus ausformulieren; aus der Erwartung eine Konsequenz ableiten)."
+    }
+  }
+}

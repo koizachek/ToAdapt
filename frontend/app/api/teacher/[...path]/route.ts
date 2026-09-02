@@ -10,9 +10,10 @@ const BACKEND =
   process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 // Diese Backend-Pfade sind dem Master-Tutor vorbehalten (signiertes
-// Master-Flag in der Session) — reguläre Tutor:innen sehen die Ergebnisse
-// nur aggregiert über /dashboard/groups.
-const MASTER_ONLY_PREFIXES = ['group-uploads']
+// Master-Flag in der Session). Das Backend prüft dasselbe noch einmal über
+// den Header X-Teacher-Master — der Proxy ist die erste, nicht die einzige
+// Verteidigungslinie.
+const MASTER_ONLY_PATHS = ['briefings/upload']
 
 async function proxy(request: NextRequest, path: string[]): Promise<NextResponse> {
   const token = request.cookies.get(TEACHER_COOKIE)?.value
@@ -20,7 +21,8 @@ async function proxy(request: NextRequest, path: string[]): Promise<NextResponse
   if (!session) {
     return NextResponse.json({ detail: 'Nicht autorisiert' }, { status: 401 })
   }
-  if (MASTER_ONLY_PREFIXES.includes(path[0] ?? '') && !session.master) {
+  const joined = path.join('/')
+  if (MASTER_ONLY_PATHS.some(p => joined === p || joined.startsWith(p + '/')) && !session.master) {
     return NextResponse.json({ detail: 'Nur für den Master-Tutor' }, { status: 403 })
   }
 
@@ -44,6 +46,11 @@ async function proxy(request: NextRequest, path: string[]): Promise<NextResponse
   if (session.jti) {
     headers['X-Teacher-Session'] = session.jti
   }
+  // Verifizierte Tutor-Identität für die Sichtbarkeitsregeln des Backends
+  // (KI-Briefings: ÜGL sieht nur die eigene Übungsgruppe, Master alles).
+  // Kennung-Konvention: TEACHER_ACCESS_CODES-Schlüssel = Übungsgruppe (UEG07).
+  headers['X-Teacher-Id'] = session.tutor
+  headers['X-Teacher-Master'] = session.master ? '1' : '0'
 
   const init: RequestInit = { method: request.method, headers }
   if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -57,11 +64,14 @@ async function proxy(request: NextRequest, path: string[]): Promise<NextResponse
     return NextResponse.json({ detail: 'Backend nicht erreichbar' }, { status: 502 })
   }
 
-  const body = await upstream.text()
-  return new NextResponse(body, {
-    status: upstream.status,
-    headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json' },
-  })
+  // Binär durchreichen (DOCX-Downloads) — text() würde die Datei zerstören.
+  const body = await upstream.arrayBuffer()
+  const responseHeaders: Record<string, string> = {
+    'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json',
+  }
+  const disposition = upstream.headers.get('Content-Disposition')
+  if (disposition) responseHeaders['Content-Disposition'] = disposition
+  return new NextResponse(body, { status: upstream.status, headers: responseHeaders })
 }
 
 type Ctx = { params: Promise<{ path: string[] }> }
