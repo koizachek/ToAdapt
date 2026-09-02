@@ -745,7 +745,15 @@ def test_verify_upload_token_roundtrip(monkeypatch):
 # Produkt 2: KI-Feedback (Freigabe erst nach dem Termin)
 # ---------------------------------------------------------------------------
 
+def test_feedback_gate_off_by_default(monkeypatch):
+    monkeypatch.delenv("FEEDBACK_RELEASE_GATE", raising=False)
+    assert feedback_released(1, today=date(2026, 9, 1)) is True
+    monkeypatch.setenv("FEEDBACK_RELEASE_GATE", "1")
+    assert feedback_released(1, today=date(2026, 9, 1)) is False
+
+
 def test_feedback_release_date_is_day_after_termin(monkeypatch):
+    monkeypatch.setenv("FEEDBACK_RELEASE_GATE", "1")
     assert feedback_release_date(1) == date(2026, 10, 3)
     assert feedback_released(1, today=date(2026, 10, 2)) is False
     assert feedback_released(1, today=date(2026, 10, 3)) is True

@@ -381,6 +381,10 @@ Neue Magic Numbers: Teacher-Login-Rate-Limit 10 Versuche/60 s pro IP
 (`frontend/lib/loginRateLimit.ts`, pro Serverless-Instanz), Revoke-Endpoint
 30/60 s (`backend/api/teacher_session.py`).
 
+Update 2026-09-02 (4): +FEEDBACK_RELEASE_GATE (Backend, Standard AUS): `1` schaltet
+die Sperre "Feedback erst am Tag nach dem Termin" ein (423 vorher, Master `force=1`);
+Owner-Entscheidung: in der Pilotphase nicht gebraucht (`backend/briefings/rubrics.py`).
+
 Update 2026-09-02 (3): Pilotphase-Schalter. Frontend `NEXT_PUBLIC_PILOT_TUTOR_ONLY`
 (Build-Env Vercel; Standard AN, `0` = aus): blendet Studierenden-Flow, Case-Ansicht,
 Case-Generator (Admin) und Individual-Dashboard aus, Nav zeigt nur Briefings + Anleitung,

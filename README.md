@@ -201,10 +201,11 @@ nach dem LLM-Call regelbasiert nachgeprüft (`backend/briefings/guardrails.py`).
 - **Produkt 2 — KI-Feedback an die Stammgruppen.** Wird beim Upload gleich mit erzeugt (zweiter
   LLM-Call mit eigenem, gecachtem System-Prompt; die interne Einstufung dient als Konsistenzhilfe):
   je Baustein was trägt / was bleibt dünn (mit Kriterienbezug) / nächster Schritt, Abschluss ein
-  Feed-forward auf den nächsten Touchpoint und die Klausur. **Freigabe erst am Tag nach dem
-  Termin** (`BRIEFING_SCHEDULE`, Leitplanke `feedback_only_after_session`): vorher liefern die
-  Feedback-Endpoints 423 und die Liste keinen Feedback-Inhalt; der Master kann zur Qualitätssicherung
-  mit `force=1` lesen (Log `feedback_release_forced`). Die ÜGL lädt nach dem Termin ein ZIP mit
+  Feed-forward auf den nächsten Touchpoint und die Klausur. Die Freigabe-Sperre (Feedback erst am
+  Tag nach dem Termin, `BRIEFING_SCHEDULE`, Leitplanke `feedback_only_after_session`) ist
+  **standardmässig aus** (Owner-Entscheidung Pilotphase); mit `FEEDBACK_RELEASE_GATE=1` (Railway)
+  liefern die Feedback-Endpoints vor dem Termin 423 und die Liste keinen Feedback-Inhalt, der Master
+  kann dann zur Qualitätssicherung mit `force=1` lesen (Log `feedback_release_forced`). Die ÜGL lädt nach dem Termin ein ZIP mit
   einem DOCX je Stammgruppe und gibt es weiter (z.B. über Canvas). Kalibrierung inkl. Feedback:
   `python scripts/calibrate_briefings.py --all --feedback`.
 

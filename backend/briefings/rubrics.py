@@ -21,6 +21,7 @@ Studierenden-Tools und bleibt unberührt.
 from __future__ import annotations
 
 import json
+import os
 import re
 from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
@@ -72,7 +73,19 @@ def feedback_release_date(tp: int) -> date | None:
     return schedule["termin"] + timedelta(days=1)
 
 
+FEEDBACK_GATE_ENV = "FEEDBACK_RELEASE_GATE"
+
+
+def feedback_gate_enabled() -> bool:
+    """Die Freigabe-Sperre (Feedback erst nach dem Termin) ist standardmässig
+    AUS (Owner-Entscheidung 2026-09-02: aktuell nicht gebraucht). Einschalten
+    mit FEEDBACK_RELEASE_GATE=1 — dann gilt der Tag nach dem Termin."""
+    return os.environ.get(FEEDBACK_GATE_ENV, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def feedback_released(tp: int, today: date | None = None) -> bool:
+    if not feedback_gate_enabled():
+        return True
     release = feedback_release_date(tp)
     if release is None:
         return False

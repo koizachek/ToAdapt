@@ -412,7 +412,7 @@ zirka-Werte und drift-anfällig. Re-Verifikation pro Fakt (vom Repo-Root):
 | WEB_CONCURRENCY-Warnung | `grep -n "WEB_CONCURRENCY" railway.toml` |
 | Briefings: Upload nur Master (API-Key ODER Upload-Token), Dateien nur in-memory | `grep -n "upload_auth\|require_master\|verify_upload_token" backend/briefings/routes.py` |
 | Briefing-Leitplanken aktiv (Punkte/Musterlösung/Gruppenvergleich) | `grep -n "apply_guardrails\|GUARDRAIL_PLACEHOLDER" backend/briefings/generator.py backend/briefings/guardrails.py` |
-| Feedback erst nach dem Termin (Freigabedatum aus BRIEFING_SCHEDULE) | `grep -n "feedback_released\|BRIEFING_SCHEDULE" backend/briefings/routes.py backend/briefings/rubrics.py` |
+| Feedback-Sperre schaltbar (FEEDBACK_RELEASE_GATE, Standard aus) | `grep -n "feedback_gate_enabled\|FEEDBACK_RELEASE_GATE" backend/briefings/rubrics.py` |
 | Master-Flag im Teacher-Cookie + Proxy-Gate | `grep -n "master" frontend/lib/teacherAuth.ts "frontend/app/api/teacher/[...path]/route.ts"` |
 | Prompt-Caching + Fallback-Routing im LLM-Client | `grep -n "cache_system\|fallback_models\|LLM_PROMPT_CACHING" backend/llm.py` |
 | Gruppencode-Validierung (GROUP_CODE_MAX) | `grep -n "group_code_allowed\|GROUP_CODE_MAX" backend/anonymize.py backend/api/routes.py` |
