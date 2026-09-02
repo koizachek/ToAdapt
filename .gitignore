@@ -16,7 +16,7 @@ docs/
 # Freitextantworten) — dürfen NICHT ins Repo.
 backend/db/submissions/*.json
 backend/db/runtime_submissions/
-backend/db/group_uploads/
+backend/db/briefings/
 backend/db/dashboard_seed/
 data/submission_states.json
 data/experiment_events.json
@@ -32,3 +32,4 @@ datenschutz_teil1_lehrbetrieb_20260717.docx
 datenschutz_datentypologie_datenfluesse_20260711.docx
 ~$tenschutz_teil1_lehrbetrieb_20260717.docx
 tests/
+internal/
