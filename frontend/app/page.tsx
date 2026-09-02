@@ -63,6 +63,16 @@ const LOGIN_TEXT = {
       'Beantworte die Fragen in ganzen Sätzen. Die Canvas-Anzeige, der Selbst-Check und bis zu zwei Denkanstöße pro Frage helfen dir, Lücken selbst zu finden.',
       'Gib ab und sieh dir dein Feedback an — es zeigt Stärken und offene Denkschritte, keine Musterlösung.',
     ],
+    aboutWhatTeacher: 'To:Adapt unterstützt Übungsgruppenleitungen bei der Vorbereitung der Touchpoints. Aus den Abgaben der Stammgruppen in Canvas entsteht je Stammgruppe ein KI-Briefing (Kernposition, tragende Argumente, dünne Stellen als Ansatz für Rückfragen, Einschätzung in Prosa) und ein KI-Feedback an die Gruppe (was trägt, was bleibt dünn, nächster Schritt, Ausblick auf Klausur und nächsten Touchpoint). Es gibt bewusst keine Punkte, keine Stufen und keine Musterlösung: Jede Wahl ist zulässig, beurteilt wird nur, ob die Begründung trägt. Die Wahl der Spannungslinie und der Rückfragen bleibt Ihre didaktische Entscheidung.',
+    aboutHowTitleTeacher: 'So arbeiten Sie damit',
+    aboutStepsTeacher: [
+      'Melden Sie sich mit Ihrem Tutor-Code an. Ihre Kennung nennt Ihre Übungsgruppe(n), zum Beispiel UEG07 oder UEG07+UEG12.',
+      'Wählen Sie den Touchpoint: Sie sehen je Übungsgruppe, welche Stammgruppen abgegeben haben und welche fehlen.',
+      'Laden Sie das Briefing-Dokument (Word) je Übungsgruppe herunter — ein Abschnitt je Stammgruppe, bei mehreren Übungsgruppen auch als Sammel-ZIP.',
+      'Klappen Sie einzelne Abgaben auf: Die formale Vorprüfung (Zeichengrenzen, Code, Dateiname) wird nur gemeldet, nie bewertet. „Bitte prüfen" heisst: Die Automatik war unsicher — lesen Sie diese Abgabe direkt.',
+      'Laden Sie das Feedback an die Stammgruppen als ZIP (ein Dokument je Gruppe) und geben Sie es weiter, zum Beispiel über Canvas.',
+      'Master-Tutor: lädt den Canvas-Export als ZIP hoch, verfolgt die Verarbeitung im Hintergrund und ordnet Abgaben ohne erkennbaren Code nachträglich zu. Abgabedateien und Mitgliedernamen werden nie gespeichert.',
+    ],
   },
   en: {
     taglineStudent: 'Competency development with business cases',
@@ -103,6 +113,16 @@ const LOGIN_TEXT = {
       'Think with the learning companion: it asks questions and points out directions instead of delivering answers.',
       'Answer the questions in complete sentences. The canvas indicator, the self-check, and up to two thinking prompts per question help you find gaps yourself.',
       'Submit and review your feedback — it shows strengths and open thinking steps, not a model solution.',
+    ],
+    aboutWhatTeacher: 'To:Adapt supports tutorial group leads in preparing the touchpoints. From the home groups\' submissions in Canvas it creates, per home group, an AI briefing (core position, supporting arguments, thin spots as prompts for follow-up questions, a prose assessment) and AI feedback for the group (what holds, what stays thin, next step, outlook on the exam and the next touchpoint). There are deliberately no points, no levels and no model solution: any choice is admissible; only the reasoning is judged. Choosing the line of tension and the questions remains your didactic decision.',
+    aboutHowTitleTeacher: 'How you work with it',
+    aboutStepsTeacher: [
+      'Log in with your tutor code. Your ID names your tutorial group(s), e.g. UEG07 or UEG07+UEG12.',
+      'Choose the touchpoint: per tutorial group you see which home groups have submitted and which are missing.',
+      'Download the briefing document (Word) per tutorial group — one section per home group; with several tutorial groups also as a combined ZIP.',
+      'Expand individual submissions: the formal pre-check (character limits, code, filename) is reported, never graded. "Please check" means the automation was unsure — read that submission directly.',
+      'Download the feedback for the home groups as a ZIP (one document per group) and pass it on, e.g. via Canvas.',
+      'Master tutor: uploads the Canvas export as a ZIP, follows the background processing and assigns submissions without a recognisable code. Submission files and member names are never stored.',
     ],
   },
 } satisfies Record<Locale, Record<string, string | string[] | ((max: number) => string)>>
@@ -531,17 +551,17 @@ function LoginPageContent({
                 {text.aboutWhatTitle}
               </h3>
               <p className="text-sm leading-6" style={{ color: 'var(--ink)' }}>
-                {text.aboutWhat}
+                {mode === 'teacher' ? text.aboutWhatTeacher : text.aboutWhat}
               </p>
             </div>
 
             <div>
               <h3 className="mb-3 flex items-center gap-2.5 text-sm font-medium">
                 <NotionIcon name="questions" size={29} />
-                {text.aboutHowTitle}
+                {mode === 'teacher' ? text.aboutHowTitleTeacher : text.aboutHowTitle}
               </h3>
               <ol className="flex flex-col gap-2">
-                {text.aboutSteps.map((step, i) => (
+                {(mode === 'teacher' ? text.aboutStepsTeacher : text.aboutSteps).map((step, i) => (
                   <li key={i} className="flex gap-3 text-sm leading-6">
                     <span className="shrink-0 font-mono text-xs mt-0.5" style={{ color: 'var(--accent)' }}>
                       {i + 1}.
