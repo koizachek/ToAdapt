@@ -15,7 +15,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install dependencies
-        run: pip install -r requirements.txt pytest pytest-asyncio ruff
+        run: pip install -r requirements.txt pytest pytest-asyncio ruff httpx
       - name: Lint (ruff)
         run: ruff check .
       - name: Tests (pytest)
