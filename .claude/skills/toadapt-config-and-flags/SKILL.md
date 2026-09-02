@@ -381,6 +381,15 @@ Neue Magic Numbers: Teacher-Login-Rate-Limit 10 Versuche/60 s pro IP
 (`frontend/lib/loginRateLimit.ts`, pro Serverless-Instanz), Revoke-Endpoint
 30/60 s (`backend/api/teacher_session.py`).
 
+Update 2026-09-02 (3): Pilotphase-Schalter. Frontend `NEXT_PUBLIC_PILOT_TUTOR_ONLY`
+(Build-Env Vercel; Standard AN, `0` = aus): blendet Studierenden-Flow, Case-Ansicht,
+Case-Generator (Admin) und Individual-Dashboard aus, Nav zeigt nur Briefings + Anleitung,
+Login landet auf `/briefings`, Middleware leitet `/cases|/results|/goodbye` → Login und
+`/admin|/dashboard` → `/briefings` (`frontend/lib/pilot.ts`). Backend `PILOT_TUTOR_ONLY`
+(Railway; Standard AUS, `1` = an): `require_pilot_open` in `backend/auth.py` sperrt alle
+Studierenden-Routen und `POST /admin/cases/generate|regenerate` mit 503. Beide Schalter
+zusammen setzen; Freischaltung der Studierenden = beide umstellen, kein Code-Umbau.
+
 Update 2026-09-02 (HEAD nach `d5c12d2`): +MONGODB_BRIEFINGS_COLLECTION,
 +MONGODB_BRIEFING_BATCHES_COLLECTION (ersetzen MONGODB_GROUP_UPLOADS_COLLECTION);
 neue Header: `X-Teacher-Id` + `X-Teacher-Master` (Proxy → Backend, Sichtbarkeit

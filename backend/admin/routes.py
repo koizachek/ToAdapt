@@ -6,7 +6,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from backend.auth import reject_revoked_teacher_session, require_api_key
+from backend.auth import reject_revoked_teacher_session, require_api_key, require_pilot_open
 from backend.cases.generator import CaseGenerator
 from backend.cases.manager import case_manager
 from backend.cases.validator import CaseValidationReport, validate_case
@@ -91,7 +91,7 @@ def _bump_revision(case: Case, editor: str, action: str, detail: str) -> None:
 # Routes
 # ---------------------------------------------------------------------------
 
-@router.post("/cases/generate", response_model=Case, dependencies=[Depends(require_api_key)])
+@router.post("/cases/generate", response_model=Case, dependencies=[Depends(require_api_key), Depends(require_pilot_open)])
 async def generate_case(body: GenerateCaseRequest):
     """Generiert einen AI-Draft-Case und legt ihn im Pool ab."""
     if body.language not in {"de", "en"}:
@@ -156,7 +156,7 @@ async def update_case(case_id: str, body: UpdateCaseRequest):
     return case
 
 
-@router.post("/cases/{case_id}/regenerate", response_model=Case, dependencies=[Depends(require_api_key)])
+@router.post("/cases/{case_id}/regenerate", response_model=Case, dependencies=[Depends(require_api_key), Depends(require_pilot_open)])
 async def regenerate_case_part(case_id: str, body: RegeneratePartRequest):
     """Regeneriert gezielt einen Teil des Cases nach Anweisung der Lehrperson."""
     case = _require_case(case_id)

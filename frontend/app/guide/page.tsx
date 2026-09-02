@@ -11,6 +11,7 @@ import NotionIcon from '@/components/NotionIcon'
 import { APP_MODE_STORAGE_KEY } from '@/lib/appMode'
 import { TEACHER_GUIDE } from '@/lib/teacherGuide'
 import { useLanguage } from '@/lib/useLanguage'
+import { PILOT_TUTOR_ONLY } from '@/lib/pilot'
 
 export default function GuidePage() {
   const [language] = useLanguage()
@@ -20,11 +21,13 @@ export default function GuidePage() {
     sessionStorage.setItem(APP_MODE_STORAGE_KEY, 'teacher')
   }, [])
 
-  const sections = [
-    { icon: 'dashboard', href: '/dashboard', section: guide.dashboard },
-    { icon: 'guide', href: '/briefings', section: guide.briefings },
-    { icon: 'generator', href: '/admin', section: guide.admin },
-  ]
+  const sections = PILOT_TUTOR_ONLY
+    ? [{ icon: 'guide', href: '/briefings', section: guide.briefings }]
+    : [
+        { icon: 'dashboard', href: '/dashboard', section: guide.dashboard },
+        { icon: 'guide', href: '/briefings', section: guide.briefings },
+        { icon: 'generator', href: '/admin', section: guide.admin },
+      ]
 
   return (
     <>

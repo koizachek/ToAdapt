@@ -150,6 +150,18 @@ Der Export schreibt bis zu drei Excel-Dateien nach `data/prolific_runs/derived/r
 
 Beide Dateien teilen dieselbe `review_item_id`, damit menschliche Bewertungen spaeter leicht mit den Rubric-Scores abgeglichen werden koennen.
 
+## Pilotphase HS26: nur Tutorenansicht
+
+In der Pilotphase ist ausschliesslich die Tutorenansicht freigeschaltet. Studierenden-Flow,
+Case-Ansicht, Case-Generator (Admin) und das Individual-Dashboard bleiben im Code, werden aber
+nicht angezeigt. Es gibt zwei Rollen: der **Master-Tutor** (Login mit `TEACHER_ARCHIVE_CODE`)
+lädt den Canvas-Export hoch und lädt alles herunter; jede **Übungsgruppenleitung** (Einzelcode
+aus `TEACHER_ACCESS_CODES`) sieht ihre eigenen Übungsgruppen und lädt deren Briefings und
+Feedbacks herunter. Schalter: Frontend `NEXT_PUBLIC_PILOT_TUTOR_ONLY` (Vercel, Standard AN;
+`0` schaltet die Studierenden frei), Backend `PILOT_TUTOR_ONLY=1` (Railway; sperrt
+Studierenden-API und Case-Generator mit 503 — empfohlen, damit die versteckten Endpoints nicht
+offen bleiben). Die Freischaltung der Studierenden ist damit ein Env-Wechsel, kein Umbau.
+
 ## KI-Briefings für Übungsgruppenleitungen (Tutor-Pipeline)
 
 Die Stammgruppen geben ihre Touchpoint-Ergebnisse über Canvas (LMS) ab — als PPTX aus der

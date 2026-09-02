@@ -832,6 +832,18 @@ def test_feedback_gating_and_downloads(client, monkeypatch):
     assert client.get("/briefings/feedback/zip?tp=1&ueg=7", headers=_master_headers()).status_code == 200
 
 
+def test_pilot_tutor_only_blocks_student_api_and_generator(client, monkeypatch):
+    monkeypatch.setenv("PILOT_TUTOR_ONLY", "1")
+    assert client.post("/sessions", json={"case_id": "x", "user_id": "u"}).status_code == 503
+    assert client.get("/tp").status_code == 503
+    assert client.post("/admin/cases/generate", json={"industry": "x", "country": "y", "target_tp": 1},
+                       headers=_master_headers()).status_code == 503
+    # Tutor-Pipeline bleibt offen
+    assert client.get("/briefings", headers=_tutor_headers("UEG07")).status_code == 200
+    monkeypatch.setenv("PILOT_TUTOR_ONLY", "0")
+    assert client.get("/tp").status_code == 200
+
+
 def test_store_file_fallback_roundtrip(monkeypatch, tmp_path):
     monkeypatch.setattr(briefing_store_module, "RESULTS_DIR", tmp_path)
     store = briefing_store_module.BriefingStore()

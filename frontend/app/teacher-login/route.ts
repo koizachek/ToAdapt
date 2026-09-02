@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { TEACHER_HOME } from '@/lib/pilot'
 import { loginRateLimited } from '@/lib/loginRateLimit'
 import { resolveTutorByCode, signTeacherSession, verifyArchiveCode, TEACHER_COOKIE, TEACHER_COOKIE_MAX_AGE } from '@/lib/teacherAuth'
 
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(new URL(`/?mode=teacher&teacher_error=1${languageParam}`, request.url), 303)
   }
 
-  const response = NextResponse.redirect(new URL(`/cases${language === 'en' ? '?language=en' : ''}`, request.url), 303)
+  const response = NextResponse.redirect(new URL(`${TEACHER_HOME}${language === 'en' ? '?language=en' : ''}`, request.url), 303)
   const secure = process.env.NODE_ENV === 'production'
 
   // Signiertes, httpOnly Session-Cookie — nicht clientseitig fälschbar.

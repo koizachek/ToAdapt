@@ -14,6 +14,7 @@ import {
 } from '@/lib/appMode'
 import { caseIdForLanguage, Locale } from '@/lib/i18n'
 import { useLanguage } from '@/lib/useLanguage'
+import { PILOT_TUTOR_ONLY, TEACHER_HOME } from '@/lib/pilot'
 
 const studentLinks = [
   { href: '/cases', label: 'Cases' },
@@ -21,13 +22,20 @@ const studentLinks = [
 
 // Briefings sehen alle Tutor:innen (eigene Übungsgruppe); der Master-Tutor
 // bekommt auf derselben Seite zusätzlich den Canvas-Upload.
-const teacherLinks = (language: Locale) => [
-  { href: '/cases', label: 'Cases' },
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/briefings', label: 'Briefings' },
-  { href: '/guide', label: language === 'en' ? 'Guide' : 'Anleitung' },
-  { href: '/admin', label: 'Admin' },
-]
+// Pilotphase (PILOT_TUTOR_ONLY): nur Briefings + Anleitung — Cases, Dashboard
+// und Admin (Case-Generator) bleiben im Code, werden aber nicht angezeigt.
+const teacherLinks = (language: Locale) => PILOT_TUTOR_ONLY
+  ? [
+      { href: '/briefings', label: 'Briefings' },
+      { href: '/guide', label: language === 'en' ? 'Guide' : 'Anleitung' },
+    ]
+  : [
+      { href: '/cases', label: 'Cases' },
+      { href: '/dashboard', label: 'Dashboard' },
+      { href: '/briefings', label: 'Briefings' },
+      { href: '/guide', label: language === 'en' ? 'Guide' : 'Anleitung' },
+      { href: '/admin', label: 'Admin' },
+    ]
 
 const NAV_TEXT: Record<Locale, {
   modeAria: string
@@ -85,9 +93,9 @@ export default function Nav() {
   // Lehrkraft-Cookie), darf der Modus nicht mehr per Klick umgeschaltet werden —
   // sonst setzt ein versehentlicher Klick den ganzen Zustand zurück. Ein
   // bewusster Rollenwechsel bleibt über das ToAdapt-Wortmark → Startseite möglich.
-  const roleLocked = hasTeacherAccess || hasStudentIdentity || isExperimentalRun
+  const roleLocked = hasTeacherAccess || hasStudentIdentity || isExperimentalRun || PILOT_TUTOR_ONLY
 
-  const visibleLinks = !hasTeacherAccess && (isExperimentalRun || mode === 'student')
+  const visibleLinks = !PILOT_TUTOR_ONLY && !hasTeacherAccess && (isExperimentalRun || mode === 'student')
     ? studentLinks
     : teacherLinks(language)
 
@@ -110,7 +118,7 @@ export default function Nav() {
     writeAppMode(nextMode)
     setSelectedMode(nextMode)
     setHasTeacherAccess(readTeacherMode())
-    router.push(nextMode === 'teacher' ? '/dashboard' : '/cases')
+    router.push(nextMode === 'teacher' ? TEACHER_HOME : '/cases')
   }
 
   const switchLanguage = (nextLanguage: Locale) => {

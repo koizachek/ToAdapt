@@ -487,6 +487,11 @@ mit Übungsgruppen-Kennungen setzen (`UEG01`…`UEG55`; führt eine ÜGL mehrere
 Übungsgruppen: `UEG07+UEG12` als EIN Schlüssel);
 `scripts/ensure_mongo_indexes.py --dry-run` für die neuen Collections.
 Kalibrierung vor Prompt-Änderungen: `scripts/calibrate_briefings.py --all`.
+Pilotphase HS26 (nur Tutorenansicht): Vercel `NEXT_PUBLIC_PILOT_TUTOR_ONLY`
+(Standard an) + Railway `PILOT_TUTOR_ONLY=1` (sperrt Studierenden-API und
+Case-Generator, 503). Rollen: Master (`TEACHER_ARCHIVE_CODE`, Upload +
+Download alles) und ÜGL (Einzelcodes, eigene Übungsgruppen). Studierende
+später freischalten = beide Schalter umstellen.
 
 Update 2026-07-11 (HEAD `324d937`): Neue Datenablage `group_uploads`
 (Master-Upload für Gruppenarbeiten; Upload-Reiter erscheint nur beim Login

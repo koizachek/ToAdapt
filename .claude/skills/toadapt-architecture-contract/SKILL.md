@@ -353,6 +353,12 @@ neue Endpoints /tp + coverage/feedback + /dashboard/groups; neue Invarianten
 embedded-first Rubric); Schwachstellen "kein Gruppenkonzept",
 "target_tp hartkodiert", "Glossar/Canvas-Hardcodes" als BEHOBEN markiert;
 Zeilenangaben nachgezogen.
+Update 2026-09-02 (Pilotphase): Owner-Entscheidung — Pilot HS26 nur mit
+Tutorenansicht. Schalter `NEXT_PUBLIC_PILOT_TUTOR_ONLY` (Frontend, Standard an)
+und `PILOT_TUTOR_ONLY` (Backend, `require_pilot_open`: Studierenden-Router +
+Case-Generator → 503). Studierenden-Flow, Case-Ansicht, Generator und
+Individual-Dashboard sind AUSGEBLENDET, nicht entfernt — Invarianten 1–8
+gelten unverändert und werden bei der Freischaltung wieder sichtbar.
 Update 2026-09-02 (HEAD nach `d5c12d2`): Punktbasierter Gruppen-Upload
 (`backend/group_uploads/`, `group_uploads`) ERSETZT durch die punktfreie
 Tutor-Pipeline `backend/briefings/` (KI-Briefing vor dem Termin, KI-Feedback

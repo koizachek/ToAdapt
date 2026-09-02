@@ -80,6 +80,28 @@ async def require_student_access(
         )
 
 
+PILOT_ENV = "PILOT_TUTOR_ONLY"
+
+
+def pilot_tutor_only() -> bool:
+    """Pilotphase HS26: nur die Tutorenansicht ist freigeschaltet."""
+    return os.environ.get(PILOT_ENV, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+async def require_pilot_open() -> None:
+    """Sperrt Studierenden-API und Case-Generator in der Pilotphase (503).
+
+    Frontend-Pendant: NEXT_PUBLIC_PILOT_TUTOR_ONLY (blendet die Ansichten
+    aus). Beides ist Konfiguration, kein Löschen — die Freischaltung der
+    Studierenden ist ein Env-Wechsel, kein Code-Umbau.
+    """
+    if pilot_tutor_only():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="In der Pilotphase ist nur die Tutorenansicht freigeschaltet",
+        )
+
+
 TEACHER_JTI_HEADER = "X-Teacher-Session"
 
 

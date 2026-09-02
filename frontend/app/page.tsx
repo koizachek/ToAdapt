@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { PILOT_TUTOR_ONLY } from '@/lib/pilot'
 import { ArrowRight, BookOpen, LayoutDashboard, ShieldCheck, X } from 'lucide-react'
 import NotionIcon from '@/components/NotionIcon'
 import { languageFromSearchParams, Locale } from '@/lib/i18n'
@@ -118,6 +119,7 @@ function LoginPageContent({
   const router = useRouter()
   const [language, setLanguage] = useLanguage()
   const [mode, setMode] = useState<AppMode>(() => {
+    if (PILOT_TUTOR_ONLY) return 'teacher'
     if (typeof window === 'undefined') return 'student'
     if (prolificPid) return 'student'
     if (initialMode === 'teacher') return 'teacher'
@@ -321,7 +323,7 @@ function LoginPageContent({
         </button>
       </div>
 
-      {!prolificPid && (
+      {!prolificPid && !PILOT_TUTOR_ONLY && (
         <div
           className="mb-8 flex w-full max-w-sm items-center gap-1 p-1"
           style={{ border: '1px solid var(--hairline)', background: 'var(--field)' }}

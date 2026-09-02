@@ -17,7 +17,7 @@ from backend.anonymize import (
     normalize_group_code,
     pseudonymize,
 )
-from backend.auth import require_student_access, student_access_required
+from backend.auth import require_pilot_open, require_student_access, student_access_required
 from backend.cases.manager import case_manager
 from backend.config.tp_configs import TP_SCHEDULE, current_tp_phase
 from backend.db.dashboard_store import dashboard_store
@@ -46,7 +46,7 @@ logger = structlog.get_logger(__name__)
 
 # Alle Studierenden-Endpunkte verlangen den Kohorten-Zugangscode, sobald
 # STUDENT_ACCESS_CODE gesetzt ist (sonst offen — Dev-/Experiment-Modus).
-router = APIRouter(tags=["sessions"], dependencies=[Depends(require_student_access)])
+router = APIRouter(tags=["sessions"], dependencies=[Depends(require_pilot_open), Depends(require_student_access)])
 
 # Prozesslokaler Cache; persistente Quelle ist der jeweilige Store (Mongo).
 _sessions: dict[str, Session] = {}
