@@ -254,6 +254,15 @@ ausgeführt); `tests/conftest.py` isoliert die MONGODB_*-Env autouse (Suite
 `RETENTION_FORMATIVE_EXPIRE_AT`/`RETENTION_RESEARCH_EXPIRE_AT` und
 `MONGODB_REVOKED_SESSIONS_COLLECTION` (Katalog: `toadapt-config-and-flags`).
 
+Update 2026-09-02: requirements.txt um `python-pptx` und `python-docx`
+erweitert (Extraktion der Stammgruppen-Abgaben + DOCX-Rendering der
+KI-Briefings/-Feedbacks, `backend/briefings/`); `pypdf` bleibt für PDF.
+CI installiert zusätzlich `httpx` (Starlette-TestClient; neuere OpenAI-SDKs
+bringen es nicht mehr transitiv mit) — lokal `pip install httpx`, falls
+`RuntimeError: starlette.testclient requires httpx`. Ruff-Regelsatz ist in
+pyproject festgenagelt (E4/E7/E9/F), damit lokale und CI-Ruff-Versionen
+identisch prüfen.
+
 Update 2026-07-11 (HEAD `324d937`): requirements.txt um `pypdf` (PDF-Text-
 extraktion Master-Upload) und `python-multipart` (FastAPI-Multipart für den
 ZIP-Upload) erweitert — bei `ModuleNotFoundError: pypdf/multipart` das venv

@@ -309,7 +309,8 @@ liegt IMMER davor (prozesslokal).
 | Dashboard-Ergebnisse (evaluierte Scores; Dokumente tragen seit 2026-07-09 zusätzlich `group_code`, `answer_stats` (Tipp-/Paste-Telemetrie) und `feedback_requests`) | `dashboard_results` (`MONGODB_DASHBOARD_COLLECTION`) | Dateien `backend/db/submissions/*.json` | `backend/db/dashboard_store.py` |
 | Forschungs-Events (jeder Chat-Turn, jede Submission) | `experiment_events` (`MONGODB_COLLECTION`) | **KEINER — Events werden stillschweigend verworfen** | `backend/db/experiment_logger.py` |
 | Cases | `cases` (fest) | Dateien `backend/cases/pool/*.json` (kuratierte Cases sind zusätzlich im Repo/Image) | `backend/cases/manager.py` |
-| Gruppenarbeits-Uploads (seit 2026-07-10: Bewertungsergebnisse des Master-Uploads — Dateiname, Gruppencode, Scores; die PDFs selbst werden NIE gespeichert) | `group_uploads` (`MONGODB_GROUP_UPLOADS_COLLECTION`) | Dateien `backend/db/group_uploads/*.json` | `backend/db/group_upload_store.py` |
+| KI-Briefings + KI-Feedback (seit 2026-09-02, ersetzt `group_uploads`: je Stammgruppen-Abgabe Briefing, Feedback, formale Vorprüfung, interne Einstufung; Abgabedateien und Mitgliedernamen werden NIE gespeichert) | `briefings` (`MONGODB_BRIEFINGS_COLLECTION`) | Dateien `backend/db/briefings/*.json` | `backend/db/briefing_store.py` |
+| Upload-Batches (Fortschritt/Status je Master-Upload) | `briefing_batches` (`MONGODB_BRIEFING_BATCHES_COLLECTION`) | Dateien `backend/db/briefings/batches/*.json` | `backend/briefings/batches.py` |
 | Widerrufene Teacher-Sessions (seit 2026-07-17: jti-Sperrliste des Teacher-Logouts, Einträge verfallen nach 24 h) | `revoked_teacher_sessions` (`MONGODB_REVOKED_SESSIONS_COLLECTION`) | In-Memory pro Prozess; Lookup fail-open (Dashboards bleiben verfügbar) | `backend/db/revoked_sessions_store.py` |
 
 Datenbank-Name: `MONGODB_DATABASE` (Default `toadapt`).
@@ -317,7 +318,7 @@ Datenbank-Name: `MONGODB_DATABASE` (Default `toadapt`).
 **Löschkonzept (seit 2026-07-17, Commit `a38495e`):** Alle Schreibpfade
 setzen das TTL-Feld `expire_at` (`backend/config/retention.py`); MongoDB
 löscht formative Daten (sessions, submission_states, dashboard_results,
-group_uploads) zum Termin Semesterende + 4 Wochen und `experiment_events`
+briefings, briefing_batches) zum Termin Semesterende + 4 Wochen und `experiment_events`
 nach längstens 24 Monaten — **sobald die TTL-Indizes angelegt sind**
 (Checkliste §4 Schritt 7). „Daten verschwinden aus Mongo" kann seither
 also auch gewollte TTL-Löschung sein.
@@ -473,6 +474,18 @@ Regeln:
 ---
 
 ## Provenance und Wartung
+
+Update 2026-09-02 (HEAD nach `d5c12d2`): Datenablage `group_uploads` durch
+`briefings` + `briefing_batches` ersetzt (Tutor-Pipeline KI-Briefings/
+-Feedback). Betrieb: Master lädt den Canvas-Export auf `/briefings` hoch —
+der ZIP geht DIREKT an Railway (Upload-Token; Vercel-Limit 4,5 MB), die
+Verarbeitung läuft als Hintergrund-Task (~20 s je Abgabe, 8 parallel; 440
+Abgaben ≈ 20 min); bei Redeploy mitten im Batch bleibt der Batch `running`
+und wird nach 30 min als stale gemeldet → erneut hochladen. Vor dem ersten
+Kurs-Upload: `ALLOWED_ORIGINS` (Vercel-Domain) und `TEACHER_ACCESS_CODES`
+mit Übungsgruppen-Kennungen (`UEG01`…`UEG55`) setzen;
+`scripts/ensure_mongo_indexes.py --dry-run` für die neuen Collections.
+Kalibrierung vor Prompt-Änderungen: `scripts/calibrate_briefings.py --all`.
 
 Update 2026-07-11 (HEAD `324d937`): Neue Datenablage `group_uploads`
 (Master-Upload für Gruppenarbeiten; Upload-Reiter erscheint nur beim Login

@@ -189,3 +189,63 @@ def render_briefing_docx(
     buffer = io.BytesIO()
     doc.save(buffer)
     return buffer.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# Produkt 2: KI-Feedback an die Stammgruppe (ein Dokument je Stammgruppe)
+# ---------------------------------------------------------------------------
+
+def render_feedback_docx(record: dict, *, rubric: BriefingRubric) -> bytes:
+    """Rückmeldung an EINE Stammgruppe: je Baustein was trägt / was bleibt dünn /
+    nächster Schritt, Abschluss Feed-forward. Keine Punkte, keine Stufen, keine
+    formale Vorprüfung, keine interne Einstufung — nur die Rückmeldung selbst."""
+    doc = Document()
+    doc.styles["Normal"].font.name = "Calibri"
+    doc.styles["Normal"].font.size = Pt(10.5)
+
+    schedule = BRIEFING_SCHEDULE.get(rubric.tp, {})
+    sg = record.get("sg")
+    code = record.get("code") or record.get("filename", "")
+    title = f"Rückmeldung Touchpoint {rubric.tp}"
+    if sg:
+        title += f" · Stammgruppe SG{sg}"
+    doc.add_heading(title, level=0)
+
+    sub = doc.add_paragraph()
+    run = sub.add_run(
+        f"{rubric.course} · Running Case ON, Kapitel {rubric.case_chapter} · Abgabe {code} · "
+        f"Termin {_fmt_date(schedule.get('termin'))} · Klausurbezug {', '.join(rubric.exam_ref)}"
+    )
+    run.font.size = Pt(9)
+    run.font.color.rgb = _GREY
+
+    intro = doc.add_paragraph()
+    intro_run = intro.add_run(
+        "Diese Rückmeldung bezieht sich ausschliesslich auf Ihr eigenes Ergebnis und folgt denselben "
+        "Kriterien, die im Bewertungsraster der Klausur für die entsprechende Teilaufgabe gelten. Sie "
+        "enthält keine Punkte und keine Musterlösung: Jede Wahl ist zulässig; es geht nur darum, wo "
+        "Ihre Begründung trägt und wo sie dünn bleibt."
+    )
+    intro_run.font.size = Pt(9.5)
+    intro_run.italic = True
+
+    feedback = record.get("feedback", {}) or {}
+    for b in rubric.bausteine:
+        data = feedback.get(b.key, {}) or {}
+        _heading(doc, f"Baustein {b.key[-1]} · {b.title} (Folie {b.slide}, Klausur {b.exam_ref})", 1)
+        _para(doc, str(data.get("was_traegt", "")), bold_label="Was trägt:")
+        _para(doc, str(data.get("was_bleibt_duenn", "")), bold_label="Was bleibt dünn:")
+        _para(doc, str(data.get("naechster_schritt", "")), bold_label="Nächster Schritt:")
+
+    _heading(doc, "Ausblick", 1)
+    _para(doc, str(feedback.get("feed_forward", "")))
+
+    footer = doc.add_paragraph()
+    footer.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    fr = footer.add_run("Automatisch erstellt durch ToAdapt · KI-Pipeline BWL A HS26 · weitergegeben durch Ihre Übungsgruppenleitung")
+    fr.font.size = Pt(8)
+    fr.font.color.rgb = _GREY
+
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    return buffer.getvalue()

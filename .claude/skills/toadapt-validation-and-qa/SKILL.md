@@ -121,12 +121,12 @@ auseinander.
 | `tests/test_compare_teacher_rubric_scores.py` | 1 | Forschungs-Skript: Lehrer-Workbook ist kanonischer Scope, rubric-only-Zeilen by design ausgeschlossen |
 | `tests/test_import_prolific_runs.py` | 1 | Forschungs-Skript: Rohdaten-Import + SHA-256-Manifest, ignoriert `.DS_Store` |
 | `tests/test_publish_dashboard_scores.py` | 1 | Forschungs-Skript: publiziert nur `status=="evaluated"` mit Scores, zählt Fallbacks/Review-Flags |
-| `tests/test_group_uploads.py` (NEU 2026-07-10) | 14 | Master-Upload Gruppenarbeiten: ZIP-/PDF-Extraktion pur (minimales synthetisches PDF, Deckblatt-Parsing `Gruppe 12`→`G12`, Cover-only-Matching), fail-closed Auth (503/401), Upload-Flow mit gemocktem LLM (Zuordnung, TP-Punkteskala), `technical_fallback` bei Parse- UND Transportfehlern, unlesbares PDF → Report statt Crash, PATCH-Gruppenzuordnung, Dashboard-Merge beider Datenquellen (Gruppen ohne Individual-Submissions bleiben sichtbar, keine Einzelkennungen) |
+| `tests/test_briefings.py` (NEU 2026-09-02, ersetzt `test_group_uploads.py`) | ~50 | KI-Briefings/-Feedback: Rubric-/Case-Config aller 5 TPs, Extraktion (synthetische PPTX mit Vorlagen-Shapes `KENN_*`/`KOPF_*`, DOCX-Marker-Split, PDF, Code-Parsing inkl. Format-Hinweis-Falle, Mitgliedernamen nie im Ergebnis), formale Vorprüfung, Leitplanken (Punkte/Stufen/Musterlösung/Gruppenvergleich, ß→ss, erlaubte Prosa), Generator mit gemocktem LLM (valide → Briefing/Assessment getrennt, Garbage → `technical_fallback`, Guardrail-Treffer → Platzhalter + Review, leere Bausteine ohne LLM-Call), Routen (fail-closed 503/401, Master-Gate 403, Sichtbarkeit je Übungsgruppe, DOCX ohne Punkte/Stufen, Assessment nur Master, PATCH-Zuordnung, Re-Upload: neuester gewinnt, async Batch + Polling, Upload-Token gültig/manipuliert/abgelaufen/nicht-master, Feedback-Freigabe erst nach Termin), Store-Datei-Fallback |
 | `tests/test_llm_client.py` (NEU 2026-07-10) | 9 | LLM-Client: Prompt-Caching-Verpackung (`cache_control`-Block, byte-identischer Inhalt), `LLM_PROMPT_CACHING`-Off-Switch, `OPENROUTER_FALLBACK_MODELS`-Parsing, `models`-Routing-Liste in `extra_body`, leere Antwort → RuntimeError — via Stub statt echtem LLM |
 | `tests/test_group_code_validation.py` (NEU 2026-07-11) | 9 | `GROUP_CODE_MAX`: Grenzen (G1/G360 ok, G0/G361/Freitext nicht), leer/ungültig = Validierung aus, `/auth/student/verify`-Feedback (normalisiert + valid-Flag, ohne Body abwärtskompatibel), 422 bei Session-/Submission-Erstellung |
 | `tests/test_load_test_tools.py` (NEU 2026-07-10) | 6 | Lasttest-Tooling: Stub-Chat-Antwort besteht `guardrail_check` (TP1–4), Stub-Judge-JSON besteht `parse_evaluation_payload`, Perzentil-/Status-Aggregation, GATE-W1-Auswertung im Report |
-| `tests/test_retention_ttl.py` (NEU 2026-07-17) | 15 | Löschkonzept: `backend/config/retention.py` (Defaults 2027-01-31/2028-12-31, `RETENTION_*_EXPIRE_AT`-Env-Override, `retention_env_invalid` bei kaputtem Datum), alle Mongo-Schreibpfade setzen `expire_at` (sessions, submission_states, dashboard_results, group_uploads, experiment_events), Lese-Projektionen blenden `expire_at` aus, `scripts/ensure_mongo_indexes.py` (TTL-Index-Definitionen, Backfill, `--dry-run`) |
-| `tests/test_teacher_session_revocation.py` (NEU 2026-07-17) | 7 | jti-Sperrliste: `reject_revoked_teacher_session` (401 bei widerrufener jti, Durchlass ohne `X-Teacher-Session`-Header und bei unbekannter jti), `POST /auth/teacher-session/revoke`, fail-open bei Mongo-Ausfall (Logout scheitert nie), Dependency auf Dashboard-/Admin-/Group-Uploads-Routern |
+| `tests/test_retention_ttl.py` (NEU 2026-07-17) | 15 | Löschkonzept: `backend/config/retention.py` (Defaults 2027-01-31/2028-12-31, `RETENTION_*_EXPIRE_AT`-Env-Override, `retention_env_invalid` bei kaputtem Datum), alle Mongo-Schreibpfade setzen `expire_at` (sessions, submission_states, dashboard_results, briefings, experiment_events), Lese-Projektionen blenden `expire_at` aus, `scripts/ensure_mongo_indexes.py` (TTL-Index-Definitionen, Backfill, `--dry-run`) |
+| `tests/test_teacher_session_revocation.py` (NEU 2026-07-17) | 7 | jti-Sperrliste: `reject_revoked_teacher_session` (401 bei widerrufener jti, Durchlass ohne `X-Teacher-Session`-Header und bei unbekannter jti), `POST /auth/teacher-session/revoke`, fail-open bei Mongo-Ausfall (Logout scheitert nie), Dependency auf Dashboard-/Admin-/Briefings-Routern |
 
 ### Was NICHT abgedeckt ist (ehrlich)
 
@@ -457,6 +457,17 @@ Projekt-Doktrin — siehe `toadapt-change-control`.
 
 ## Provenance und Wartung
 
+Update 2026-09-02 (HEAD nach `d5c12d2`): `test_group_uploads.py` (14)
+ersetzt durch `test_briefings.py`; `test_retention_ttl.py` prüft jetzt den
+BriefingStore statt des Upload-Stores. Neues Gate für die Tutor-Pipeline
+(Klasse B2 ohne Teacher-Alignment-Baseline): `scripts/calibrate_briefings.py
+--all` schickt die drei Beispielabgaben je TP durch den echten Generator;
+obere/untere Anker müssen alle Kriterien treffen, der mittlere Anker ist
+laut Kursleitung ein Mischbild (Vergleich gegen die `calibration_note`, nicht
+gegen "alles tragfaehig"). Ruff-Regelsatz in pyproject festgenagelt
+(E4/E7/E9/F), weil unpinntes Ruff in der CI neue Default-Regeln brachte; CI
+installiert `httpx` explizit (TestClient-Abhängigkeit, kommt nicht mehr
+transitiv über das OpenAI-SDK). Aktuelle Baseline = letzter grüner CI-Lauf.
 Update 2026-07-17 (HEAD `ae2a558`): Test-Baseline 131 → 153; Landkarte um
 test_retention_ttl (15) und test_teacher_session_revocation (7) ergänzt;
 `tests/conftest.py` existiert jetzt (autouse Mongo-Isolation — Anlass:

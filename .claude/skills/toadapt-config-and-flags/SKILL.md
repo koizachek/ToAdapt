@@ -77,7 +77,7 @@ NICHT das Anthropic-SDK, egal was ältere Doku sagt.
 | `RESEARCH_API_KEY` | Forschungs-Key; Header `X-Research-Key` auf den Einzelpersonen-Endpoints `/dashboard/students`, `/dashboard/student/{m}`, `/dashboard/difficulties` (`backend/auth.py`, `require_research_key`) — **zusätzlich** zum `X-API-Key`. BEWUSST getrennt von `TOADAPT_API_KEY`: Tutor:innen sehen via Teacher-Proxy nur die Gruppen-Aggregate (`/dashboard/groups*`) | leer | nur für Forschende | Fail-closed: leer → **503** auf diesen Endpoints; falscher Key → 401. Der Teacher-Proxy kennt nur `TOADAPT_API_KEY` → Tutor bekommt dort 401, **das ist gewollt**. Startup loggt `research_key_configured`. |
 | `PSEUDONYM_SECRET` | HMAC-SHA256-Secret für die serverseitige Pseudonymisierung von `user_id` + `matrikelnummer` bei Session-/Submission-Erstellung (`backend/anonymize.py::pseudonymize`, Prefix `anon-`, idempotent) | leer | **JA** | Leer → Kennungen werden ROH gespeichert/geloggt; in `production` warnt der Start mit `pseudonymization_disabled`. **Rotation ändert alle Pseudonyme → bricht Lernverläufe** (→ toadapt-knowledge-tracing). Erzeugen: `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
 | `ALLOWED_ORIGINS` | Kommagetrennte CORS-Origin-Liste | leer → `http://localhost:3000`, `http://127.0.0.1:3000` | **JA** | Falsche/fehlende Origin → Browser blockt alle Frontend→Backend-Requests (CORS-Fehler). Wildcard ist mit `allow_credentials=True` unzulässig. |
-| `GROUP_CODE_MAX` | Gruppencode-Validierung gegen das Kurs-Schema: mit `360` sind genau G1–G360 gültig (`backend/anonymize.py::group_code_allowed`; geprüft im Login-Feedback `/auth/student/verify` + hart als 422 bei Session-/Submission-Erstellung, seit 2026-07-11) | leer = Validierung aus | empfohlen (Kursbetrieb) | Leer → freie Selbstauskunft, Tippfehler erscheinen als Phantom-Gruppen im Tutor-Dashboard und stören das Matching der Gruppenarbeits-Uploads. Für Prolific-Läufe (keine Gruppen) leer lassen. Ungültiger Wert → Validierung aus. |
+| `GROUP_CODE_MAX` | Gruppencode-Validierung gegen das Kurs-Schema: mit `360` sind genau G1–G360 gültig (`backend/anonymize.py::group_code_allowed`; geprüft im Login-Feedback `/auth/student/verify` + hart als 422 bei Session-/Submission-Erstellung, seit 2026-07-11) | leer = Validierung aus | empfohlen (Kursbetrieb) | Leer → freie Selbstauskunft, Tippfehler erscheinen als Phantom-Gruppen im Tutor-Dashboard. (Die Stammgruppen-Codes der Briefing-Pipeline `TPn-UEGxx-SGy` sind davon unabhängig.) Für Prolific-Läufe (keine Gruppen) leer lassen. Ungültiger Wert → Validierung aus. |
 | `SECRET_KEY` | **TOT.** Historischer Rest in alten `.env`-Dateien | — | nein | Wird nirgends im Code gelesen (`grep -rn SECRET_KEY backend/ frontend/` → keine Treffer). Nicht neu setzen, kann aus Envs entfernt werden. |
 
 ### MongoDB (primärer Store)
@@ -100,8 +100,9 @@ Host eine URI gebaut.
 | `MONGODB_SUBMISSIONS_COLLECTION` | Submission-States | `submission_states` | nein | — |
 | `MONGODB_SESSIONS_COLLECTION` | Chat-Sessions | `sessions` | nein | — |
 | `MONGODB_DASHBOARD_COLLECTION` | Dashboard-Ergebnisse | `dashboard_results` | nein | — |
-| `MONGODB_GROUP_UPLOADS_COLLECTION` (seit 2026-07-10) | Bewertete Gruppenarbeits-Uploads des Master-Tutors (`backend/db/group_upload_store.py`) | `group_uploads` | nein | — |
-| `RETENTION_FORMATIVE_EXPIRE_AT` (seit 2026-07-17) | Fester Löschtermin (ISO-Datum) der formativen Lehrbetriebs-Daten (sessions, submission_states, dashboard_results, group_uploads) — Stores schreiben ihn als `expire_at`, MongoDB löscht per TTL-Index (`backend/config/retention.py`; Indizes: `scripts/ensure_mongo_indexes.py`) | `2027-01-31` (Semesterende HS 2026 + 4 Wochen, Datenschutzantrag Teil 1 §7) | nein | Termin in der Vergangenheit ⇒ TTL-Monitor löscht SOFORT alle Daten; bei neuem Kursdurchlauf nachziehen. |
+| `MONGODB_BRIEFINGS_COLLECTION` (seit 2026-09-02, ersetzt `MONGODB_GROUP_UPLOADS_COLLECTION`) | KI-Briefings + KI-Feedback je Stammgruppen-Abgabe (`backend/db/briefing_store.py`) | `briefings` | nein | — |
+| `MONGODB_BRIEFING_BATCHES_COLLECTION` (seit 2026-09-02) | Statusdokumente der Upload-Batches (`backend/briefings/batches.py`) | `briefing_batches` | nein | — |
+| `RETENTION_FORMATIVE_EXPIRE_AT` (seit 2026-07-17) | Fester Löschtermin (ISO-Datum) der formativen Lehrbetriebs-Daten (sessions, submission_states, dashboard_results, briefings, briefing_batches) — Stores schreiben ihn als `expire_at`, MongoDB löscht per TTL-Index (`backend/config/retention.py`; Indizes: `scripts/ensure_mongo_indexes.py`) | `2027-01-31` (Semesterende HS 2026 + 4 Wochen, Datenschutzantrag Teil 1 §7) | nein | Termin in der Vergangenheit ⇒ TTL-Monitor löscht SOFORT alle Daten; bei neuem Kursdurchlauf nachziehen. |
 | `RETENTION_RESEARCH_EXPIRE_AT` (seit 2026-07-17) | Fester Löschtermin des Forschungslogs `experiment_events` (Datenschutzantrag Teil 2 §5: längstens 24 Monate nach Semesterende) | `2028-12-31` | nein | wie oben — Vergangenheitstermin löscht das komplette Forschungslog. |
 
 ### Betrieb / Observability
@@ -374,11 +375,29 @@ Update 2026-07-17 (2): +MONGODB_REVOKED_SESSIONS_COLLECTION (Default
 `revoked_teacher_sessions`, `backend/db/revoked_sessions_store.py`) —
 Sperrliste für per Logout widerrufene Teacher-Sessions (jti im signierten
 Cookie; Proxy schickt Header X-Teacher-Session, Backend-Dependency
-`reject_revoked_teacher_session` auf dashboard/admin/group-uploads-Routern
+`reject_revoked_teacher_session` auf dashboard/admin/briefings-Routern
 weist widerrufene Sessions mit 401 ab; TTL 24 h, fail-open bei Mongo-Ausfall).
 Neue Magic Numbers: Teacher-Login-Rate-Limit 10 Versuche/60 s pro IP
 (`frontend/lib/loginRateLimit.ts`, pro Serverless-Instanz), Revoke-Endpoint
 30/60 s (`backend/api/teacher_session.py`).
+
+Update 2026-09-02 (HEAD nach `d5c12d2`): +MONGODB_BRIEFINGS_COLLECTION,
++MONGODB_BRIEFING_BATCHES_COLLECTION (ersetzen MONGODB_GROUP_UPLOADS_COLLECTION);
+neue Header: `X-Teacher-Id` + `X-Teacher-Master` (Proxy → Backend, Sichtbarkeit
+der Briefings; Konvention TEACHER_ACCESS_CODES-Schlüssel = Übungsgruppe, z.B.
+`UEG07`), `X-Upload-Token` (Direkt-Upload Browser→Railway, signiert mit
+TOADAPT_API_KEY, TTL 15 min / max 60). Voraussetzung dafür: ALLOWED_ORIGINS
+enthält die Vercel-Domain, TOADAPT_API_KEY beidseitig identisch. Neue Magic
+Numbers (backend/briefings/): MAX_ZIP_ENTRIES=600, MAX_FILE_BYTES=40MB,
+MAX_TOTAL_BYTES=1200MB, MAX_BAUSTEIN_CHARS=8000, MAX_UPLOAD_BYTES=400MB
+(ZIP roh), UPLOAD_CONCURRENCY=8, STALE_AFTER_SECONDS=1800,
+BRIEFING_MAX_TOKENS=2200, MAX_ITEMS=2 (Argumente/dünne Stellen), TTL
+Upload-Token 900 s; Zeichengrenzen/Codes je TP aus
+`backend/config/ki_rubrics/ki_rubrics_tp{n}.json` (`formal_checks`),
+Termine (Abgabe/Termin je TP, Feedback-Freigabe = Tag nach dem Termin) in
+`BRIEFING_SCHEDULE` (`backend/briefings/rubrics.py`) — bewusst getrennt vom
+Studierenden-TP_SCHEDULE. Die Magic Numbers des alten Upload-Moduls
+(MAX_PDF_BYTES, GROUP_TP_MAX_POINTS …) sind weg.
 
 Update 2026-07-11 (HEAD `324d937`): +OPENROUTER_FALLBACK_MODELS,
 +LLM_PROMPT_CACHING (LLM-Client), +MONGODB_GROUP_UPLOADS_COLLECTION

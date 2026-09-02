@@ -9,7 +9,6 @@ import {
   AppMode,
   readStoredAppMode,
   readStudentIdentity,
-  readTeacherMaster,
   readTeacherMode,
   writeAppMode,
 } from '@/lib/appMode'
@@ -20,14 +19,14 @@ const studentLinks = [
   { href: '/cases', label: 'Cases' },
 ]
 
-const teacherLinks = (language: Locale, isMaster: boolean) => [
+// Briefings sehen alle Tutor:innen (eigene Übungsgruppe); der Master-Tutor
+// bekommt auf derselben Seite zusätzlich den Canvas-Upload.
+const teacherLinks = (language: Locale) => [
   { href: '/cases', label: 'Cases' },
   { href: '/dashboard', label: 'Dashboard' },
+  { href: '/briefings', label: 'Briefings' },
   { href: '/guide', label: language === 'en' ? 'Guide' : 'Anleitung' },
   { href: '/admin', label: 'Admin' },
-  // Nur der Master-Tutor (Login mit dem Master-Code) sieht den Upload-Reiter
-  // für die außerhalb der Plattform erstellten Gruppenarbeiten.
-  ...(isMaster ? [{ href: '/upload', label: 'Upload' }] : []),
 ]
 
 const NAV_TEXT: Record<Locale, {
@@ -54,7 +53,7 @@ const NAV_TEXT: Record<Locale, {
 }
 
 function modeFromPath(path: string): AppMode | null {
-  if (path.startsWith('/dashboard') || path.startsWith('/admin') || path.startsWith('/guide') || path.startsWith('/upload')) return 'teacher'
+  if (path.startsWith('/dashboard') || path.startsWith('/admin') || path.startsWith('/guide') || path.startsWith('/briefings')) return 'teacher'
   if (path.startsWith('/results') || path.startsWith('/goodbye')) return 'student'
   return null
 }
@@ -79,7 +78,6 @@ export default function Nav() {
     return readTeacherMode()
   })
   const [hasStudentIdentity] = useState(() => readStudentIdentity())
-  const [isMasterTutor] = useState(() => readTeacherMaster())
   const text = NAV_TEXT[language]
   const mode = hasTeacherAccess ? 'teacher' : isExperimentalRun ? 'student' : modeFromPath(path) ?? selectedMode
 
@@ -91,7 +89,7 @@ export default function Nav() {
 
   const visibleLinks = !hasTeacherAccess && (isExperimentalRun || mode === 'student')
     ? studentLinks
-    : teacherLinks(language, isMasterTutor)
+    : teacherLinks(language)
 
   const switchMode = (nextMode: AppMode) => {
     if (nextMode === 'student') {

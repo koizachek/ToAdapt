@@ -49,7 +49,7 @@ from backend.api.routes import router as session_router
 from backend.api.teacher_session import router as teacher_session_router
 from backend.admin.routes import router as admin_router
 from backend.dashboard.routes import router as dashboard_router
-from backend.briefings.routes import router as briefings_router
+from backend.briefings.routes import router as briefings_router, upload_router as briefings_upload_router
 from backend.config.tp_configs import current_tp_phase
 from backend.db.experiment_logger import experiment_logger
 from backend.llm import DEFAULT_OPENROUTER_MODEL
@@ -125,6 +125,7 @@ app.include_router(teacher_session_router)
 app.include_router(admin_router)
 app.include_router(dashboard_router)
 app.include_router(briefings_router)
+app.include_router(briefings_upload_router)
 
 
 from fastapi import Request

@@ -44,6 +44,7 @@ Klassifiziere JEDE Änderung zuerst. Bei Überschneidung gilt das strengste Gate
 |---|---|---|
 | **[A] Studierendensichtbares Verhalten** | Agent-System-Prompts (`backend/agents/orchestrator.py`: `AGENT_PROMPTS`, `AGENT_PROMPTS_EN`), Guardrail-Patterns (`guardrail_check`, ebd. Zeile ~113), formativer Denkanstoß (`backend/evaluator/formative_feedback.py`, ebenfalls guardrail-gefiltert), Wortlimits (jetzt primär `question.min_words`/`max_words` im Case-JSON; Index-Fallback in `frontend/app/cases/[id]/page.tsx`, `questionRequirement` Zeilen ~352–362), Case-Inhalte/Case-Generator, Evaluator-Feedback-Text | Guardrail-Regressionstests grün (`tests/test_orchestrator_guardrails.py`) + manueller Lehrdesign-Check (Abschnitt 2.1) + bei Änderung an Agent-/Formative-Prompts zusätzlich Tutor-Eval-Regressionsvergleich (NAACL-Dimensionen; Ablauf in `toadapt-tutor-response-evaluation`) + bei Prompt-Änderung am Judge zusätzlich Gate B |
 | **[B] Judge-/Scoring-Logik** | `backend/evaluator/rubric_evaluator.py` (`EVALUATOR_SYSTEM`, `EVALUATE_PROMPT`, generische `BLOOM_CALIBRATION_ANCHORS`, Schwellwerte), case-spezifische `calibration_notes` in den Case-JSONs (u.a. Golden Case `backend/cases/pool/alpes-bank-genai-001*.json`), `backend/config/rubrics/*.json` (nur noch Fallback für Alt-Cases ohne eingebettete Rubric), Punkte/Bloom in Case-Fragen | Kompletter Durchlauf der Teacher-Alignment-Pipeline (Abschnitt 2.5) und Vergleich der Metriken gegen die Baseline, BEVOR die Änderung produktiv bewertet |
+| **[B2] Tutor-Pipeline KI-Briefings/-Feedback** (seit 2026-09-02) | `backend/briefings/generator.py` (Briefing-/Feedback-Prompts), `backend/briefings/guardrails.py`, `backend/config/ki_rubrics/*.json` (Rubrics der Kursleitung — Änderungen nur mit ihr abstimmen), `backend/config/ki_rubrics/case/*.md` (ON-Case-Text) | `scripts/calibrate_briefings.py --all` (echte LLM-Calls, 15 Abgaben): obere/untere Anker müssen alle Kriterien treffen, mittlerer Anker gegen die `calibration_note` der Kursleitung lesen; plus `tests/test_briefings.py` grün. Sichtbar ist das Ergebnis Tutor:innen (Briefing) und nach dem Termin Stammgruppen (Feedback) — Leitplanken (keine Punkte/Stufen, keine Musterlösung, kein Gruppenvergleich) gelten wie in 2.1 |
 | **[C] Infra/Deploy** | `backend/main.py`, `railway.toml`, `Dockerfile`, `docker-compose.yml`, CI-Workflow, Env-Variablen, Auth (`backend/auth.py`), CORS, Mongo-Anbindung | CI grün + Smoke-Test gegen die laufende Instanz (`/health`, danach `/health/diagnostics` mit `X-API-Key`) |
 | **[D] Forschungs-Skripte** | `scripts/*.py` (Import, Workbook-Export, Score-Vergleich, Publish, Retry) | Zugehörige Tests in `tests/` grün (es existieren Tests pro Skript, z.B. `tests/test_compare_teacher_rubric_scores.py`); bei Skripten mit echten LLM-Calls (`scripts/retry_technical_fallback_scores.py`) zuerst `--dry-run` |
 
@@ -53,7 +54,7 @@ Browser oder im Judge-Feedback bemerken KÖNNTE, ist es Klasse A (ggf. +B).
 ### Gate-Kommandos (copy-paste, vom Repo-Root)
 
 ```bash
-# Backend-Tests (153 Tests, Stand 2026-07-17; asyncio_mode=auto via pyproject.toml)
+# Backend-Tests (Basislinie = letzter grüner CI-Lauf, Stand 2026-09-02 >180; asyncio_mode=auto via pyproject.toml)
 .venv/bin/python -m pytest tests/ -q
 
 # Nur Guardrail-Regression (Gate A)
@@ -288,7 +289,7 @@ Führe aus bzw. prüfe, in dieser Reihenfolge:
 - [ ] Änderung klassifiziert (A/B/C/D)? Strengstes zutreffendes Gate erfüllt?
 - [ ] `git status` + `git diff --stat` gelesen: keine echten Teilnehmerdaten,
       keine Secrets/`.env`, keine Dateien aus `~/ToAdapt_sensitive_data/`?
-- [ ] `.venv/bin/python -m pytest tests/ -q` → alles grün (153 Tests, Stand 2026-07-17)
+- [ ] `.venv/bin/python -m pytest tests/ -q` → alles grün (Basislinie = letzter grüner CI-Lauf; Stand 2026-09-02 >180)
 - [ ] Neue Testdatei dabei? `tests/` ist gitignored (seit `ae2a558`) —
       `git add -f tests/test_<neu>.py`, sonst fehlt sie im Commit und die
       CI-Baseline driftet
@@ -347,6 +348,13 @@ Update 2026-07-09 (HEAD 64b62f9): neue Unverhandelbare 2.6
 Zweistufigkeit (Golden-Case-JSON + BLOOM_CALIBRATION_ANCHORS) korrigiert,
 Wortlimit-Verweis auf question.min/max_words aktualisiert, Provenance-Tabelle
 um Research-Key/Pseudonymisierung ergänzt.
+Update 2026-09-02 (HEAD nach d5c12d2): Neue Klasse B2 (Tutor-Pipeline
+KI-Briefings/-Feedback, Gate = Kalibrierlauf gegen die Beispielabgaben der
+Kursleitung); `test_group_uploads.py` durch `test_briefings.py` ersetzt;
+Ruff-Regelsatz festgenagelt (unpinntes Ruff färbte main am 2026-09-02 rot),
+`httpx` explizit in der CI. Owner-Entscheidung: ON-Case ist Arbeitsgrundlage
+der Tutor-Pipeline (nur Tutor-sichtbar) — der Reserved-Term-Bann in 2.1
+gilt weiter für alles Studierendensichtbare.
 Update 2026-07-11 (HEAD 324d937): Testbestand 90→131 (Master-Upload
 `tests/test_group_uploads.py`, LLM-Client `tests/test_llm_client.py`,
 Gruppencode-Validierung `tests/test_group_code_validation.py`,

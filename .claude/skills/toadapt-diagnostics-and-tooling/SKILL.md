@@ -129,16 +129,24 @@ JSON-Zeilen mit dem Event-Namen im Feld `"event"`; lokal Console-Format.
 | `direct_recommendation_or_template` | Empfehlungs-/Textbaustein-Muster (`RECOMMENDATION_PATTERNS` + Regexe) |
 | `case_speculation_outside_context` | Agent spekuliert über Fakten außerhalb des Case-Materials (`CASE_SPECULATION_PATTERNS`) |
 
-### Gruppenarbeits-Upload (`backend/group_uploads/`, seit 2026-07-10)
+### KI-Briefings / KI-Feedback (`backend/briefings/`, seit 2026-09-02 — ersetzt `group_upload_*`)
 
 | Event | Level | Felder / Bedeutung |
 |---|---|---|
-| `group_upload_batch_processed` | info | `batch_id`, `target_tp`, `total`, `evaluated`, `unassigned`, `failed` — ein Master-Upload (ZIP) wurde verarbeitet; `unassigned` = Deckblatt ohne erkennbaren Gruppenindikator (Review-Liste im Upload-Reiter), `failed` = PDF nicht lesbar |
-| `group_upload_extraction_failed` | warning | `filename`, `error` — PDF ohne extrahierbaren Text (Scan ohne OCR?) |
-| `group_evaluation_json_parse_failed` / `group_evaluation_json_repair_failed` | warning/error | Judge-JSON der Gruppenarbeit invalide; nach Repair-Fehlschlag → `technical_fallback` (0 Punkte, Review-Flag) |
-| `group_evaluation_llm_failed` | error | `upload_id`, `error` — Transportfehler (Timeout/429); NUR dieses Dokument fällt auf `technical_fallback`, der Batch läuft weiter |
-| `group_upload_group_assigned` | info | `upload_id`, `group_code` — manuelle Nachzuordnung im Review |
-| `group_upload_store_save_failed` / `_load_failed` | warning | Mongo-Fehler des Upload-Stores (Datei-Fallback greift) |
+| `briefing_batch_started` | info | `batch_id`, `target_tp`, `total`, `uploaded_by`, `sync` — Master-Upload (ZIP) validiert, Verarbeitung gestartet (Hintergrund-Task, sofern nicht `sync`) |
+| `briefing_batch_processed` | info | `batch_id`, `target_tp`, `total`, `briefed`, `unassigned`, `failed`, `review`, `status` — Batch fertig; `unassigned` = kein Code `TPn-UEGxx-SGy` erkennbar (Zuordnung im Frontend), `failed` = Datei nicht lesbar, `review` = Vorbehalt (Low Confidence, Guardrail, fehlende Zuordnung) |
+| `briefing_extraction_failed` | warning | `filename`, `error` — PPTX/DOCX/PDF nicht lesbar oder ohne Text |
+| `briefing_json_parse_failed` / `briefing_json_repair_failed` | warning/error | Briefing-JSON invalide; nach Repair-Fehlschlag → `technical_fallback` (Platzhaltertexte, Review-Flag) |
+| `briefing_llm_failed` | error | `briefing_id`, `error` — Transportfehler; NUR diese Abgabe fällt auf `technical_fallback`, der Batch läuft weiter |
+| `briefing_guardrail_triggered` | warning | `briefing_id`, `hits` (points/grades/scale/model_solution/group_comparison) — betroffenes Feld durch Platzhalter ersetzt, Briefing zur manuellen Sicht markiert. Häufung ⇒ Prompt prüfen, nicht die Leitplanke lockern |
+| `feedback_json_parse_failed` / `feedback_json_repair_failed` / `feedback_llm_failed` / `feedback_guardrail_triggered` | wie oben | Dasselbe für das KI-Feedback (Produkt 2, nach dem Termin freigegeben) |
+| `briefing_assigned` | info | `briefing_id`, `ueg`, `sg`, `by` — manuelle Nachzuordnung durch den Master |
+| `feedback_release_forced` | warning | `by`, `target_tp`, `ueg` — Master hat Feedback VOR dem Freigabedatum abgerufen (`force=1`); nur zur Qualitätssicherung, nie zur Verteilung |
+| `briefing_store_save_failed` / `_load_failed`, `briefing_batch_store_*_failed` | warning | Mongo-Fehler der Stores (Datei-Fallback greift) |
+
+Kostenkontrolle: je Abgabe zwei LLM-Calls (Briefing + Feedback), System-Prompt
+je TP und Produkt byte-identisch und gecacht (`llm_call_completed.cached_tokens`
+≈ 14k von ≈ 15k Prompt-Tokens ab dem zweiten Call eines Batches).
 
 ### Evaluator / Judge (`backend/evaluator/rubric_evaluator.py`, `backend/api/routes.py`)
 
@@ -397,7 +405,7 @@ exportieren.
 
 Update 2026-07-11 (HEAD `324d937`): `llm_call_completed` um
 `served_model`/`fallback_used`/`cached_tokens` erweitert; neues Event-Kapitel
-Gruppenarbeits-Upload (`group_upload_*`, `group_evaluation_*`). Neu für
+Gruppenarbeits-Upload (`group_upload_*`, `group_evaluation_*` — seit 2026-09-02 ersetzt durch `briefing_*`/`feedback_*`, s. Kapitel oben). Neu für
 Smoke-/Lasttests: `scripts/llm_stub.py` (imitiert OpenRouter lokal, Antworten
 bestehen Guardrail + Evaluator-Pipeline) und `scripts/load_test.py`
 (W1-Gate-Protokoll; Mongo-Isolations-Warnung im Docstring beachten).

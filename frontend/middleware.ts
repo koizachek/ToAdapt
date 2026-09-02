@@ -14,15 +14,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  // /upload ist dem Master-Tutor vorbehalten (Login mit dem Master-Code);
-  // reguläre Tutor:innen landen im Dashboard.
-  if (request.nextUrl.pathname.startsWith('/upload') && !session.master) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  // Alte Upload-Adresse → Briefings (Upload ist dort für den Master integriert).
+  if (request.nextUrl.pathname.startsWith('/upload')) {
+    return NextResponse.redirect(new URL('/briefings', request.url))
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/dashboard/:path*', '/guide/:path*', '/upload/:path*'],
+  matcher: ['/admin/:path*', '/dashboard/:path*', '/guide/:path*', '/briefings/:path*', '/upload/:path*'],
 }

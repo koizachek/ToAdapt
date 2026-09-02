@@ -35,7 +35,12 @@ from dotenv import load_dotenv  # noqa: E402
 load_dotenv()
 
 from backend.briefings.extraction import ExtractedSubmission, Kenndaten, count_chars  # noqa: E402
-from backend.briefings.generator import BriefingGenerator, build_system_prompt, build_user_prompt  # noqa: E402
+from backend.briefings.generator import (  # noqa: E402
+    FeedbackGenerator,
+    build_feedback_system_prompt,
+    build_system_prompt,
+    build_user_prompt,
+)
 from backend.briefings.rubrics import SUPPORTED_TPS, load_rubric  # noqa: E402
 
 
@@ -55,12 +60,14 @@ def _example_submission(tp: int, level: str) -> ExtractedSubmission:
     return sub
 
 
-async def run_tp(tp: int, generator: BriefingGenerator | None, dry_run: bool) -> dict:
+async def run_tp(tp: int, generator: FeedbackGenerator | None, dry_run: bool, with_feedback: bool = False) -> dict:
     rubric = load_rubric(tp)
     report: dict = {"tp": tp, "levels": {}}
     if dry_run:
         print(f"=== TP{tp} SYSTEM PROMPT ({len(build_system_prompt(rubric))} Zeichen) ===")
         print(build_system_prompt(rubric)[:1500] + "\n…")
+        if with_feedback:
+            print(f"=== TP{tp} FEEDBACK SYSTEM PROMPT ({len(build_feedback_system_prompt(rubric))} Zeichen) ===")
     for level in rubric.levels:
         sub = _example_submission(tp, level)
         if dry_run:
@@ -89,6 +96,17 @@ async def run_tp(tp: int, generator: BriefingGenerator | None, dry_run: bool) ->
         )
         for key in ("baustein1", "baustein2"):
             print(f"   {key}: {result['briefing'][key]['kernposition']}")
+        if with_feedback:
+            fb = await generator.generate_feedback(
+                briefing_id=f"calib-fb-tp{tp}-{level}", rubric=rubric, sub=sub, assessment=result["assessment"]
+            )
+            report["levels"][level]["feedback"] = fb["feedback"]
+            report["levels"][level]["feedback_status"] = fb["feedback_status"]
+            report["levels"][level]["feedback_guardrail_hits"] = fb["feedback_guardrail_hits"]
+            print(f"   feedback: status={fb['feedback_status']} guardrails={fb['feedback_guardrail_hits'] or '-'}")
+            for key in ("baustein1", "baustein2"):
+                print(f"     {key} · nächster Schritt: {fb['feedback'][key]['naechster_schritt']}")
+            print(f"     Ausblick: {fb['feedback']['feed_forward']}")
     return report
 
 
@@ -98,6 +116,7 @@ async def main() -> int:
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--dry-run", action="store_true", help="Nur Prompts zeigen, kein LLM-Call")
     parser.add_argument("--out", type=Path, help="JSON-Report schreiben")
+    parser.add_argument("--feedback", action="store_true", help="Zusätzlich das KI-Feedback (Produkt 2) erzeugen")
     args = parser.parse_args()
     if not args.tp and not args.all:
         parser.error("--tp N oder --all angeben")
@@ -109,9 +128,9 @@ async def main() -> int:
         if not api_key:
             print("OPENROUTER_API_KEY fehlt (oder --dry-run verwenden)", file=sys.stderr)
             return 2
-        generator = BriefingGenerator(api_key=api_key)
+        generator = FeedbackGenerator(api_key=api_key)
 
-    reports = [await run_tp(tp, generator, args.dry_run) for tp in tps]
+    reports = [await run_tp(tp, generator, args.dry_run, with_feedback=args.feedback) for tp in tps]
     if args.out and not args.dry_run:
         args.out.write_text(json.dumps(reports, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"Report: {args.out}")

@@ -57,6 +57,9 @@ Dozent → POST /admin/cases/generate  (Branche, Land, TP-Ziel)
 | `GET /briefings/{id}/docx` | DOCX eines einzelnen Briefings |
 | `GET /briefings/{id}/assessment` | Interne Kriterien-Einstufung (nur Master) |
 | `PATCH /briefings/{id}` | Zuordnung Übungsgruppe/Stammgruppe nachtragen (nur Master) |
+| `GET /briefings/batches`, `/batches/{id}` | Status der Upload-Batches (nur Master) |
+| `GET /briefings/{id}/feedback/docx` | KI-Feedback einer Stammgruppe (DOCX) — erst nach dem Termin (423 vorher) |
+| `GET /briefings/feedback/zip?tp=&ueg=` | ZIP mit einem Feedback-DOCX je Stammgruppe — erst nach dem Termin |
 
 ## Tech Stack
 
@@ -170,6 +173,26 @@ nach dem LLM-Call regelbasiert nachgeprüft (`backend/briefings/guardrails.py`).
   nie gespeichert.
 - Kalibrierung (Pflicht vor Prompt-/Rubric-Änderungen): `python scripts/calibrate_briefings.py --all`
   schickt die drei Beispielabgaben je TP durch den Generator und vergleicht die Einstufung.
+- **Upload-Weg (Vercel-Limit):** Vercel begrenzt Request-Bodies von Route-Handlern auf 4,5 MB
+  (Infrastruktur-Limit). Der Master-Upload geht deshalb **direkt vom Browser an Railway**:
+  `POST /api/teacher/upload-token` (Frontend, nur Master-Session) signiert ein 15-Minuten-Token mit
+  `TOADAPT_API_KEY`; der Browser schickt das ZIP mit Header `X-Upload-Token` an
+  `NEXT_PUBLIC_API_URL/briefings/upload` (bis 400 MB). Voraussetzungen: `ALLOWED_ORIGINS` (Railway)
+  enthält die Vercel-Domain; `TOADAPT_API_KEY` ist auf beiden Seiten identisch. Die Verarbeitung
+  läuft asynchron (Antwort 202 mit `batch_id`, Fortschritt über `GET /briefings/batches/{id}`),
+  weil ein Semester-Batch (bis 440 Abgaben) länger dauert als jeder HTTP-Timeout. DOCX-Downloads
+  bleiben klein und laufen über den Proxy.
+- Frontend: Seite `/briefings` (alle Tutor:innen: eigene Übungsgruppe + DOCX-Download; Master:
+  zusätzlich Upload, Batch-Status, Zuordnung nicht erkannter Abgaben). `/upload` leitet dorthin um.
+- **Produkt 2 — KI-Feedback an die Stammgruppen.** Wird beim Upload gleich mit erzeugt (zweiter
+  LLM-Call mit eigenem, gecachtem System-Prompt; die interne Einstufung dient als Konsistenzhilfe):
+  je Baustein was trägt / was bleibt dünn (mit Kriterienbezug) / nächster Schritt, Abschluss ein
+  Feed-forward auf den nächsten Touchpoint und die Klausur. **Freigabe erst am Tag nach dem
+  Termin** (`BRIEFING_SCHEDULE`, Leitplanke `feedback_only_after_session`): vorher liefern die
+  Feedback-Endpoints 423 und die Liste keinen Feedback-Inhalt; der Master kann zur Qualitätssicherung
+  mit `force=1` lesen (Log `feedback_release_forced`). Die ÜGL lädt nach dem Termin ein ZIP mit
+  einem DOCX je Stammgruppe und gibt es weiter (z.B. über Canvas). Kalibrierung inkl. Feedback:
+  `python scripts/calibrate_briefings.py --all --feedback`.
 
 
 ## License

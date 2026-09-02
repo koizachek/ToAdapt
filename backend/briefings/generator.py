@@ -25,7 +25,7 @@ import structlog
 
 from backend.briefings.extraction import ExtractedSubmission
 from backend.briefings.guardrails import apply_guardrails, sanitize_swiss
-from backend.briefings.rubrics import BriefingRubric, case_context_for_tp
+from backend.briefings.rubrics import FEED_FORWARD, BriefingRubric, case_context_for_tp
 from backend.evaluator.rubric_evaluator import REPAIR_PROMPT, parse_evaluation_payload
 from backend.llm import OpenRouterClient
 
@@ -344,4 +344,214 @@ class BriefingGenerator:
             "needs_human_review": needs_review,
             "review_reason": review_reason,
             "guardrail_hits": hits,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Produkt 2: KI-Feedback an die Stammgruppe (Freigabe erst nach dem Termin)
+# ---------------------------------------------------------------------------
+
+FEEDBACK_SYSTEM_TEMPLATE = """Du schreibst für eine Stammgruppe von Studierenden des Kurses {course} eine Rückmeldung auf ihre Abgabe zu Touchpoint {tp}.
+
+KONTEXT
+Touchpoint {tp} übt formativ am Running Case ON (Kapitel {chapter}) die Denkoperation, die in der Klausur in Aufgabe {exam_ref} am unbekannten Fall summativ geprüft wird. Die Rückmeldung wird der Gruppe NACH dem Touchpoint-Termin zugestellt und schliesst den Lernkreis: Sie bekommt sie auf ihr eigenes Ergebnis, unabhängig davon, ob sie im Termin präsentiert hat.
+Massgebliche Case-Stellen: {case_references}
+
+LEITPLANKEN (hart, gelten ohne Ausnahme)
+- Keine Punkte, keine Noten, keine notenähnlichen Stufen, keine Prozentwerte als Bewertung, keine Etiketten wie "Niveau: tragfähig".
+- Keine Musterlösung: Nie benennen, welche Entscheidung richtig gewesen wäre. Jede Wahl ist zulässig; die Rückmeldung sagt nur, wo die Begründung trägt und wo sie dünn bleibt. Gegensätzliche Entscheidungen können gleich gute Rückmeldungen erhalten.
+- Kein Vergleich mit anderen Gruppen, keine Zusammenfassung der Abgabe.
+- Kriterienbezug: Benenne bei "was bleibt dünn" das Kriterium der Rubric in eigenen Worten (z.B. "die Wirkungskette", "die Einordnung des Stakeholders").
+- Nutze nur Informationen aus dem Fallmaterial und der Abgabe. Erfinde nichts.
+- Sprache: Schweizer Standarddeutsch (ss statt ß). Anrede "Sie"/"Ihre Gruppe". Ton: freundlich, aber klar. Ganze Sätze.
+- Nenne keine Namen von Studierenden.
+{extra_guardrails}
+RUBRIC (Kriterien mit Niveau-Deskriptoren; identisch mit dem Klausur-Bewertungsraster, hier punktfrei angewendet)
+{rubric_block}
+
+FALLMATERIAL (Running Case ON)
+{case_context}
+
+KALIBRIERUNGSANKER (konstruierte Beispielabgaben mit Einordnung durch die Kursleitung — keine Musterlösungen)
+{examples_block}
+
+FEED-FORWARD (Anker für den Schlussabsatz)
+{feed_forward}
+
+AUFGABE
+Du erhältst den Text der Abgabe je Baustein und, falls vorhanden, eine interne Einstufung je Kriterium aus dem Briefing-Lauf (nur als Konsistenzhilfe — sie darf im Text nicht als Stufe erscheinen). Erstelle je Baustein:
+1. "was_traegt": zwei bis drei Sätze — was an der Begründung trägt, konkret und fallbezogen.
+2. "was_bleibt_duenn": zwei bis drei Sätze — wo die Begründung dünn bleibt, mit Bezug auf das betroffene Kriterium. Ist nichts dünn, sage das in einem Satz.
+3. "naechster_schritt": ein bis zwei Sätze — die kleinste konkrete Verbesserung, formuliert als Handlung der Gruppe (z.B. "Formulieren Sie den Mechanismus zwischen … und … aus."), ohne die Entscheidung selbst vorzugeben.
+Dazu:
+4. "feed_forward": zwei bis drei Sätze Ausblick — wofür die geübte Operation im weiteren Semester und in der Klausur gebraucht wird (nutze den Anker oben).
+
+Ist der Text eines Bausteins leer, setze alle drei Felder auf "{no_content}".
+
+Antworte NUR mit einem JSON-Objekt dieser Form:
+{{
+  "baustein1": {{"was_traegt": "<Sätze>", "was_bleibt_duenn": "<Sätze>", "naechster_schritt": "<Sätze>"}},
+  "baustein2": {{"was_traegt": "<Sätze>", "was_bleibt_duenn": "<Sätze>", "naechster_schritt": "<Sätze>"}},
+  "feed_forward": "<Sätze>",
+  "judge_confidence": "high|medium|low",
+  "needs_human_review": <true|false>,
+  "review_reason": "<nur falls needs_human_review=true, sonst null>"
+}}"""
+
+FEEDBACK_SUBMISSION_TEMPLATE = """ABGABE {code}
+
+=== Baustein 1 · {title1} (Folie 2) ===
+{text1}
+
+=== Baustein 2 · {title2} (Folie 3) ===
+{text2}
+
+INTERNE EINSTUFUNG AUS DEM BRIEFING-LAUF (Konsistenzhilfe, nicht zitieren)
+{assessment}
+
+Erstelle jetzt das JSON."""
+
+FEEDBACK_FIELDS = ("was_traegt", "was_bleibt_duenn", "naechster_schritt")
+
+
+def build_feedback_system_prompt(rubric: BriefingRubric) -> str:
+    """Byte-identisch je TP → Prompt-Caching über den ganzen Batch."""
+    return FEEDBACK_SYSTEM_TEMPLATE.format(
+        course=rubric.course,
+        tp=rubric.tp,
+        chapter=rubric.case_chapter or "?",
+        exam_ref=", ".join(rubric.exam_ref) or f"A{rubric.tp}",
+        case_references=rubric.case_references or "siehe Kapitel",
+        extra_guardrails=TP5_EXTRA_GUARDRAIL if rubric.tp == 5 else "",
+        rubric_block=_rubric_block(rubric),
+        case_context=case_context_for_tp(rubric.tp) or "(Case-Kapitel nicht hinterlegt)",
+        examples_block=_examples_block(rubric),
+        feed_forward=FEED_FORWARD.get(rubric.tp, ""),
+        no_content=NO_CONTENT_TEXT,
+    )
+
+
+def _assessment_block(assessment: dict | None) -> str:
+    if not assessment:
+        return "(keine)"
+    lines: list[str] = []
+    for key in ("baustein1", "baustein2"):
+        for item in (assessment.get(key) or {}).get("kriterien", []) or []:
+            lines.append(f"- {key}: {item.get('name')}: {item.get('niveau')} — {item.get('begruendung', '')}")
+    return "\n".join(lines) or "(keine)"
+
+
+def build_feedback_user_prompt(rubric: BriefingRubric, sub: ExtractedSubmission, assessment: dict | None) -> str:
+    b1 = rubric.baustein("baustein1")
+    b2 = rubric.baustein("baustein2")
+    return FEEDBACK_SUBMISSION_TEMPLATE.format(
+        code=sub.kenndaten.code or sub.filename,
+        title1=b1.title,
+        text1=sub.baustein1.strip() or "(leer)",
+        title2=b2.title,
+        text2=sub.baustein2.strip() or "(leer)",
+        assessment=_assessment_block(assessment),
+    )
+
+
+def _normalize_feedback(rubric: BriefingRubric, sub: ExtractedSubmission, data: dict) -> tuple[dict, list[str], dict]:
+    """Rückgabe (feedback, guardrail_hits, meta)."""
+    feedback: dict = {}
+    hits: list[str] = []
+    for b in rubric.bausteine:
+        raw = data.get(b.key) if isinstance(data.get(b.key), dict) else {}
+        text = getattr(sub, b.key, "")
+        if not text.strip():
+            feedback[b.key] = {field: NO_CONTENT_TEXT for field in FEEDBACK_FIELDS}
+            continue
+        cleaned: dict = {}
+        for field in FEEDBACK_FIELDS:
+            value = str(raw.get(field, "") or "").strip() or FALLBACK_TEXT
+            value_clean, value_hits = apply_guardrails(value)
+            cleaned[field] = value_clean
+            hits.extend(h for h in value_hits if h not in hits)
+        feedback[b.key] = cleaned
+    ff = str(data.get("feed_forward", "") or "").strip() or FEED_FORWARD.get(rubric.tp, "")
+    ff_clean, ff_hits = apply_guardrails(ff)
+    feedback["feed_forward"] = ff_clean
+    hits.extend(h for h in ff_hits if h not in hits)
+
+    confidence = str(data.get("judge_confidence", "") or "").lower() or None
+    needs_review = bool(data.get("needs_human_review", False)) or confidence == "low" or bool(hits)
+    review_reason = data.get("review_reason")
+    meta = {
+        "judge_confidence": confidence,
+        "needs_human_review": needs_review,
+        "review_reason": sanitize_swiss(str(review_reason).strip()) if review_reason else None,
+    }
+    return feedback, hits, meta
+
+
+def fallback_feedback(rubric: BriefingRubric, sub: ExtractedSubmission, reason: str, status: str = "technical_fallback") -> dict:
+    feedback: dict = {}
+    for b in rubric.bausteine:
+        text = getattr(sub, b.key, "")
+        feedback[b.key] = {
+            field: (FALLBACK_TEXT if text.strip() else NO_CONTENT_TEXT) for field in FEEDBACK_FIELDS
+        }
+    feedback["feed_forward"] = FEED_FORWARD.get(rubric.tp, "")
+    return {
+        "feedback": feedback,
+        "feedback_status": status,
+        "feedback_guardrail_hits": [],
+        "feedback_needs_human_review": True,
+        "feedback_review_reason": reason,
+    }
+
+
+class FeedbackGenerator(BriefingGenerator):
+    """Produkt 2 — gleiche Robustheits-Kette wie das Briefing."""
+
+    async def generate_feedback(
+        self, *, briefing_id: str, rubric: BriefingRubric, sub: ExtractedSubmission, assessment: dict | None = None
+    ) -> dict:
+        if not sub.has_content:
+            return fallback_feedback(rubric, sub, "Kein Text in der Abgabe gefunden.", status="no_content")
+
+        system = build_feedback_system_prompt(rubric)
+        user = build_feedback_user_prompt(rubric, sub, assessment)
+        try:
+            text = await self._call(system=system, messages=[{"role": "user", "content": user}])
+        except Exception as exc:
+            logger.error("feedback_llm_failed", briefing_id=briefing_id, error=str(exc))
+            return fallback_feedback(rubric, sub, "LLM-Aufruf fehlgeschlagen.")
+
+        data: dict | None = None
+        try:
+            data = parse_evaluation_payload(text)
+        except ValueError:
+            logger.warning("feedback_json_parse_failed", briefing_id=briefing_id, raw_preview=text[:300])
+            try:
+                repaired = await self._call(
+                    system=system,
+                    messages=[
+                        {"role": "user", "content": user},
+                        {"role": "assistant", "content": text},
+                        {"role": "user", "content": REPAIR_PROMPT},
+                    ],
+                )
+                data = parse_evaluation_payload(repaired)
+            except Exception:
+                logger.error("feedback_json_repair_failed", briefing_id=briefing_id)
+                return fallback_feedback(
+                    rubric, sub, "Modellantwort war auch nach Reparaturversuch kein valides JSON."
+                )
+
+        feedback, hits, meta = _normalize_feedback(rubric, sub, data or {})
+        review_reason = meta["review_reason"]
+        if hits and not review_reason:
+            review_reason = "Leitplanken-Prüfung hat Textteile zurückgehalten: " + ", ".join(hits)
+        if hits:
+            logger.warning("feedback_guardrail_triggered", briefing_id=briefing_id, hits=hits)
+        return {
+            "feedback": feedback,
+            "feedback_status": "ok",
+            "feedback_guardrail_hits": hits,
+            "feedback_needs_human_review": bool(meta["needs_human_review"]),
+            "feedback_review_reason": review_reason,
         }

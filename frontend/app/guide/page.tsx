@@ -22,6 +22,7 @@ export default function GuidePage() {
 
   const sections = [
     { icon: 'dashboard', href: '/dashboard', section: guide.dashboard },
+    { icon: 'guide', href: '/briefings', section: guide.briefings },
     { icon: 'generator', href: '/admin', section: guide.admin },
   ]
 

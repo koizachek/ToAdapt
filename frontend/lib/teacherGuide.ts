@@ -13,6 +13,7 @@ export interface TeacherGuideContent {
   pageTitle: string
   pageIntro: string
   dashboard: GuideSection
+  briefings: GuideSection
   admin: GuideSection
   hint: string
   dismissLabel: string
@@ -31,6 +32,16 @@ export const TEACHER_GUIDE: Record<Locale, TeacherGuideContent> = {
         '„Mit Unterstützungsbedarf" heißt: mehrere schwache Lernziele oder sehr niedrige Scores. Sprechen Sie Themen an, keine Personen — Einzelprofile sehen Sie bewusst nicht.',
         'Der Copy-Paste-Anteil ist ein HINWEIS auf mögliche KI-Nutzung, kein Beweis — bitte nie als Vorwurf verwenden.',
         'Alle Zahlen stammen aus der individuellen Vorbereitung im Tool, nicht aus der Gruppenabgabe.',
+      ],
+    },
+    briefings: {
+      title: 'Briefings: Touchpoint vorbereiten in fünf Minuten',
+      steps: [
+        'Touchpoint wählen, dann „Briefing-Dokument herunterladen" — ein DOCX mit allen Stammgruppen Ihrer Übungsgruppe (Ihre Tutor-Kennung ist Ihre Übungsgruppe, z.B. UEG07).',
+        'Je Stammgruppe und Baustein: Kernposition, tragende Argumente, dünne Stellen. Die dünnen Stellen sind als Rückfragen formuliert — daraus ziehen Sie Ihre Spannungslinie.',
+        'Die formale Vorprüfung (Zeichengrenzen, Code, Dateiname) wird nur gemeldet, nie bewertet. Es gibt keine Punkte und keine Musterlösung: Jede Wahl ist zulässig, beurteilt wird, ob die Begründung trägt.',
+        '„Bitte prüfen" heisst: Die Automatik war unsicher oder hat einen Textteil zurückgehalten — lesen Sie diese Abgabe direkt.',
+        'Fehlende Stammgruppen stehen im Kopf des Dokuments. Das Feedback an die Gruppen entsteht erst nach dem Termin.',
       ],
     },
     admin: {
@@ -58,6 +69,16 @@ export const TEACHER_GUIDE: Record<Locale, TeacherGuideContent> = {
         '"Need support" means several weak objectives or very low scores. Address topics, not people — you deliberately never see individual profiles.',
         'The copy-paste share is an INDICATOR of possible AI use, not proof — never use it as an accusation.',
         'All numbers come from individual preparation in the tool, not from the group submission.',
+      ],
+    },
+    briefings: {
+      title: 'Briefings: prepare a touchpoint in five minutes',
+      steps: [
+        'Choose the touchpoint, then "Download briefing document" — one DOCX with all home groups of your tutorial group (your tutor ID is your tutorial group, e.g. UEG07).',
+        'Per home group and building block: core position, supporting arguments, thin spots. The thin spots are phrased as follow-up questions — that is where your line of tension comes from.',
+        'The formal pre-check (character limits, code, filename) is reported, never graded. There are no points and no model solution: any choice is admissible; only the reasoning is judged.',
+        '"Please check" means the automation was unsure or withheld part of the text — read that submission directly.',
+        'Missing home groups are listed at the top of the document. Feedback to the groups is created only after the session.',
       ],
     },
     admin: {

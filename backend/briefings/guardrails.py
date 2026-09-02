@@ -28,8 +28,11 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     # Punktzahl gelten als Skala. Prozentangaben werden NICHT geprüft: Sie
     # sind im Fallmaterial häufig (z.B. Kundenanteile) und in Argumenten
     # legitim.
+    # "Punkte" als Listeneinträge ("die vier Punkte aus Abschnitt 2.5") sind
+    # legitim — nur Zahl+Punkte oder Vergabe-Verben gelten als Bewertung.
     ("points", re.compile(r"\b\d+([.,]\d+)?\s*(?:von\s*\d+\s*)?punkte?\b", re.IGNORECASE)),
-    ("points", re.compile(r"\bpunktzahl\b|\bpunkte\b|\bpunktevergabe\b", re.IGNORECASE)),
+    ("points", re.compile(r"\bpunktzahl\b|\bpunktevergabe\b|\bpunktabzug\b", re.IGNORECASE)),
+    ("points", re.compile(r"\b(erh(ä|ae)lt|erhalten|erreicht|bekommt|bekommen|vergeben|verdient|kostet)\s+(\w+\s+){0,3}punkte?\b", re.IGNORECASE)),
     ("grades", re.compile(r"\bnote[n]?\b|\bbenotung\b|\bnotenstufe|\bbewertungsstufe", re.IGNORECASE)),
     ("scale", re.compile(r"\b(stufe|level|niveau)\s*[:=]?\s*([1-5]\b|ueberzeugend|überzeugend|tragf(ä|ae)hig|ansatzweise)", re.IGNORECASE)),
     ("scale", re.compile(r"\b(ueberzeugend|überzeugend|tragf(ä|ae)hig|ansatzweise)\s*/\s*(ueberzeugend|überzeugend|tragf(ä|ae)hig|ansatzweise)", re.IGNORECASE)),

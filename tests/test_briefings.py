@@ -12,7 +12,9 @@ Alle Abgabetexte sind synthetisch — keine echten Teilnehmerdaten.
 
 import io
 import json
+import time
 import zipfile
+from datetime import date, timedelta
 
 import pytest
 from docx import Document
@@ -20,8 +22,11 @@ from fastapi.testclient import TestClient
 from pptx import Presentation
 from pptx.util import Inches
 
+import backend.briefings.batches as batches_module
 import backend.db.briefing_store as briefing_store_module
 from backend.briefings import guardrails
+from backend.briefings.batches import is_stale, new_batch
+from backend.briefings.upload_token import UploadTokenError, sign_upload_token, verify_upload_token
 from backend.briefings.extraction import (
     ZipValidationError,
     count_chars,
@@ -36,18 +41,24 @@ from backend.briefings.formal import formal_checks, full_sentences_hint
 from backend.briefings.generator import (
     BriefingGenerator,
     FALLBACK_TEXT,
+    FeedbackGenerator,
     NO_CONTENT_TEXT,
+    build_feedback_system_prompt,
+    build_feedback_user_prompt,
     build_system_prompt,
     build_user_prompt,
 )
 from backend.briefings.rubrics import (
     SUPPORTED_TPS,
     case_context_for_tp,
+    feedback_release_date,
+    feedback_released,
     load_rubric,
     template_boilerplate,
 )
 from backend.llm import OpenRouterClient
 from backend.main import app
+from backend.timeutils import naive_utcnow
 
 API_KEY = "tutor-key"
 
@@ -88,7 +99,7 @@ def _template_pptx(tp: int, *, code: str, b1: str, b2: str, members: str = "Max 
         box.name = name
         box.text_frame.text = text
 
-    for idx, (title, body) in enumerate(((f"Baustein 1 - Test", b1), (f"Baustein 2 - Test", b2)), start=2):
+    for idx, (title, body) in enumerate((("Baustein 1 - Test", b1), ("Baustein 2 - Test", b2)), start=2):
         s = prs.slides.add_slide(title_content)
         s.shapes.title.text = title
         s.placeholders[1].text = body
@@ -164,11 +175,35 @@ def _llm_payload(**overrides) -> str:
     return json.dumps(data, ensure_ascii=False)
 
 
-def _mock_llm(monkeypatch, response_text: str):
+def _feedback_payload(**overrides) -> str:
+    def baustein(prefix: str):
+        return {
+            "was_traegt": f"{prefix}: Ihre Auswahl ist am Fall belegt und die Erwartung konkret benannt.",
+            "was_bleibt_duenn": f"{prefix}: Die Wirkungskette endet beim Umsatz; der Mechanismus davor fehlt.",
+            "naechster_schritt": f"{prefix}: Formulieren Sie den Mechanismus zwischen Ursache und Umsatzfolge aus.",
+        }
+    data = {
+        "baustein1": baustein("F1"),
+        "baustein2": baustein("F2"),
+        "feed_forward": "In Touchpoint 2 wird auf dieser Analyse entschieden; in der Klausur ist dies Aufgabe 1.",
+        "judge_confidence": "high",
+        "needs_human_review": False,
+        "review_reason": None,
+    }
+    data.update(overrides)
+    return json.dumps(data, ensure_ascii=False)
+
+
+def _mock_llm(monkeypatch, response_text: str, feedback_text: str | None = None):
+    """Antwortet auf den Briefing-Prompt mit response_text und auf den
+    Feedback-Prompt (erkennbar am System-Prompt) mit feedback_text."""
     calls: list[dict] = []
+    feedback_text = feedback_text if feedback_text is not None else _feedback_payload()
 
     async def fake_complete(self, *, system, messages, max_tokens, cache_system=False):
         calls.append({"system": system, "messages": messages, "cache_system": cache_system})
+        if "Rückmeldung auf ihre Abgabe" in system:
+            return feedback_text
         return response_text
 
     monkeypatch.setattr(OpenRouterClient, "complete", fake_complete)
@@ -182,6 +217,9 @@ def client(monkeypatch, tmp_path):
     store_dir = tmp_path / "briefings"
     store_dir.mkdir()
     monkeypatch.setattr(briefing_store_module, "RESULTS_DIR", store_dir)
+    batch_dir = tmp_path / "batches"
+    batch_dir.mkdir()
+    monkeypatch.setattr(batches_module, "BATCH_DIR", batch_dir)
     return TestClient(app)
 
 
@@ -193,12 +231,15 @@ def _tutor_headers(ueg: str) -> dict:
     return {"X-API-Key": API_KEY, "X-Teacher-Id": ueg, "X-Teacher-Master": "0"}
 
 
-def _upload(client, files: dict[str, bytes], tp: int = 1, headers: dict | None = None):
+def _upload(client, files: dict[str, bytes], tp: int = 1, headers: dict | None = None, sync: bool = True):
+    data = {"target_tp": str(tp)}
+    if sync:
+        data["sync"] = "1"
     return client.post(
         "/briefings/upload",
         files={"file": ("abgaben.zip", _zip_of(files), "application/zip")},
-        data={"target_tp": str(tp)},
-        headers=headers or _master_headers(),
+        data=data,
+        headers=headers if headers is not None else _master_headers(),
     )
 
 
@@ -369,6 +410,7 @@ def test_full_sentences_hint():
 
 @pytest.mark.parametrize("text,label", [
     ("Das ergibt 12 Punkte von 20.", "points"),
+    ("Dafür erhält die Gruppe volle Punkte.", "points"),
     ("Die Note wäre gut.", "grades"),
     ("Niveau: tragfähig bei der Auswahl.", "scale"),
     ("Die richtige Entscheidung wäre der Fachhandel gewesen.", "model_solution"),
@@ -384,6 +426,7 @@ def test_guardrail_hits(text, label):
     "Die Begründung trägt bei der Auswahl, bleibt aber bei der Wirkungskette dünn.",
     "Der Fachhandel erreicht 60 Prozent der Kunden.",
     "Woran macht die Gruppe fest, dass der Patentablauf kritischer ist als der Kanalkonflikt?",
+    "Die Gruppe zählt vier Punkte aus Abschnitt 2.5 auf, ohne zu gewichten.",
 ])
 def test_guardrail_allows_prose(text):
     assert guardrails.check_briefing_text(text) == []
@@ -482,7 +525,7 @@ def test_upload_requires_master(client, monkeypatch):
     files = {"TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT)}
     assert _upload(client, files, headers=_tutor_headers("UEG07")).status_code == 403
     # Direkt mit API-Key ohne Identitäts-Header = Operator (Skript) → erlaubt
-    assert _upload(client, files, headers={"X-API-Key": API_KEY}).status_code == 200
+    assert _upload(client, files, headers={"X-API-Key": API_KEY}).status_code == 202
 
 
 def test_upload_flow_visibility_docx_and_assessment(client, monkeypatch):
@@ -495,9 +538,10 @@ def test_upload_flow_visibility_docx_and_assessment(client, monkeypatch):
         "kaputt.pdf": b"kein pdf",
     }
     resp = _upload(client, files)
-    assert resp.status_code == 200, resp.text
+    assert resp.status_code == 202, resp.text
     body = resp.json()
-    assert body["briefed_count"] == 4 and body["failed_count"] == 1 and body["unassigned_count"] == 1
+    assert body["status"] == "done" and body["total"] == 5 and body["processed"] == 5
+    assert body["briefed"] == 4 and body["failed"] == 1 and body["unassigned"] == 1
     assert all("assessment" not in b for b in body["briefings"])
     by_name = {b["filename"]: b for b in body["briefings"]}
     assert by_name["TP1_UEG07_SG3.pptx"]["code"] == "TP1-UEG07-SG3"
@@ -583,7 +627,163 @@ def test_technical_fallback_is_flagged_in_record(client, monkeypatch):
     files = {"TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT)}
     body = _upload(client, files).json()
     assert body["briefings"][0]["evaluation_status"] == "technical_fallback"
-    assert body["review_count"] == 1
+    assert body["review"] == 1
+
+
+def test_async_upload_returns_running_batch_and_finishes(client, monkeypatch):
+    _mock_llm(monkeypatch, _llm_payload())
+    files = {"TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT)}
+    # Hintergrund-Task braucht einen persistenten Event-Loop → TestClient als
+    # Kontextmanager (ausserhalb des with-Blocks stirbt der Loop pro Request).
+    with TestClient(app) as running:
+        resp = _upload(running, files, sync=False)
+        assert resp.status_code == 202
+        body = resp.json()
+        assert body["status"] in ("running", "done") and body["total"] == 1 and body["briefings"] == []
+        batch_id = body["batch_id"]
+        status = body
+        for _ in range(100):
+            status = running.get(f"/briefings/batches/{batch_id}", headers=_master_headers()).json()
+            if status["status"] == "done":
+                break
+            time.sleep(0.05)
+        assert status["status"] == "done" and status["processed"] == 1 and status["briefed"] == 1
+        assert status["stale"] is False
+        listed = running.get("/briefings/batches?tp=1", headers=_master_headers()).json()
+        assert [b["batch_id"] for b in listed] == [batch_id]
+        assert running.get("/briefings/batches", headers=_tutor_headers("UEG07")).status_code == 403
+        assert running.get("/briefings?tp=1", headers=_tutor_headers("UEG07")).json()[0]["code"] == "TP1-UEG07-SG3"
+
+
+def test_stale_batch_flag():
+    batch = new_batch(batch_id="b", target_tp=1, total=3, uploaded_by=None, filename="x.zip")
+    assert is_stale(batch) is False
+    batch["updated_at"] = (naive_utcnow() - timedelta(hours=1)).isoformat()
+    assert is_stale(batch) is True
+    batch["status"] = "done"
+    assert is_stale(batch) is False
+
+
+def test_upload_token_auth(client, monkeypatch):
+    _mock_llm(monkeypatch, _llm_payload())
+    files = {"TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT)}
+    token = sign_upload_token(tutor="master", master=True)
+    resp = _upload(client, files, headers={"X-Upload-Token": token})
+    assert resp.status_code == 202 and resp.json()["uploaded_by"] == "master"
+    # Nicht-Master-Token, manipuliertes Token, abgelaufenes Token, fehlendes Token
+    assert _upload(client, files, headers={"X-Upload-Token": sign_upload_token(tutor="UEG07", master=False)}).status_code == 401
+    assert _upload(client, files, headers={"X-Upload-Token": token[:-3] + "abc"}).status_code == 401
+    expired = sign_upload_token(tutor="master", master=True, ttl_seconds=-120)
+    assert _upload(client, files, headers={"X-Upload-Token": expired}).status_code == 401
+    assert _upload(client, files, headers={"X-Nothing": "1"}).status_code == 401
+    # Token nur auf der Upload-Route gültig — Lese-Routen verlangen den API-Key
+    assert client.get("/briefings", headers={"X-Upload-Token": token}).status_code == 401
+    # Fail-closed ohne konfigurierten Key
+    monkeypatch.delenv("TOADAPT_API_KEY")
+    assert _upload(client, files, headers={"X-Upload-Token": token}).status_code == 503
+
+
+def test_verify_upload_token_roundtrip(monkeypatch):
+    monkeypatch.setenv("TOADAPT_API_KEY", API_KEY)
+    payload = verify_upload_token(sign_upload_token(tutor="master", master=True, jti="j-1"))
+    assert payload["tutor"] == "master" and payload["jti"] == "j-1"
+    with pytest.raises(UploadTokenError):
+        verify_upload_token("kaputt")
+    token = sign_upload_token(tutor="master", master=True)
+    monkeypatch.setenv("TOADAPT_API_KEY", "anderer-key")
+    with pytest.raises(UploadTokenError):
+        verify_upload_token(token)
+
+
+# ---------------------------------------------------------------------------
+# Produkt 2: KI-Feedback (Freigabe erst nach dem Termin)
+# ---------------------------------------------------------------------------
+
+def test_feedback_release_date_is_day_after_termin(monkeypatch):
+    assert feedback_release_date(1) == date(2026, 10, 3)
+    assert feedback_released(1, today=date(2026, 10, 2)) is False
+    assert feedback_released(1, today=date(2026, 10, 3)) is True
+    assert feedback_release_date(9) is None and feedback_released(9) is False
+
+
+async def test_feedback_generator_valid_and_guardrail(monkeypatch):
+    _mock_llm(monkeypatch, _llm_payload())
+    gen = FeedbackGenerator("k")
+    result = await gen.generate_feedback(briefing_id="f1", rubric=load_rubric(1), sub=_sub(), assessment=None)
+    assert result["feedback_status"] == "ok" and result["feedback_needs_human_review"] is False
+    assert result["feedback"]["baustein1"]["naechster_schritt"].startswith("F1")
+    assert result["feedback"]["feed_forward"].startswith("In Touchpoint 2")
+    # Guardrail: Musterlösung im Feedback → Platzhalter + Review
+    payload = json.loads(_feedback_payload())
+    payload["baustein2"]["naechster_schritt"] = "Die richtige Entscheidung wäre der Fachhandel gewesen."
+    _mock_llm(monkeypatch, _llm_payload(), json.dumps(payload, ensure_ascii=False))
+    result = await gen.generate_feedback(briefing_id="f2", rubric=load_rubric(1), sub=_sub(), assessment=None)
+    assert result["feedback_guardrail_hits"] == ["model_solution"]
+    assert result["feedback"]["baustein2"]["naechster_schritt"] == guardrails.GUARDRAIL_PLACEHOLDER
+    assert result["feedback_needs_human_review"] is True
+    # Garbage → technical_fallback mit Feed-forward-Anker
+    _mock_llm(monkeypatch, _llm_payload(), "kein json")
+    result = await gen.generate_feedback(briefing_id="f3", rubric=load_rubric(1), sub=_sub(), assessment=None)
+    assert result["feedback_status"] == "technical_fallback"
+    assert result["feedback"]["baustein1"]["was_traegt"] == FALLBACK_TEXT
+    assert "Touchpoint 2" in result["feedback"]["feed_forward"]
+
+
+def test_feedback_prompt_contains_anchor_and_assessment():
+    rubric = load_rubric(1)
+    system = build_feedback_system_prompt(rubric)
+    assert build_feedback_system_prompt(rubric) == system
+    assert "Rückmeldung auf ihre Abgabe" in system and "Aufgabe 1" in system
+    assessment = {"baustein1": {"kriterien": [{"name": "Erläuterung", "niveau": "tragfaehig", "begruendung": "x"}]}}
+    user = build_feedback_user_prompt(rubric, _sub(), assessment)
+    assert "Erläuterung: tragfaehig" in user
+
+
+def test_feedback_gating_and_downloads(client, monkeypatch):
+    import backend.briefings.routes as routes_module
+
+    _mock_llm(monkeypatch, _llm_payload())
+    files = {
+        "TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT),
+        "TP1_UEG07_SG5.pptx": _template_pptx(1, code="TP1-UEG07-SG5", b1=B1_TEXT, b2=B2_TEXT),
+    }
+    # Vor dem Termin
+    monkeypatch.setattr(routes_module, "feedback_released", lambda tp: False)
+    body = _upload(client, files).json()
+    rec = body["briefings"][0]
+    assert rec["feedback_status"] == "ok" and rec["feedback_released"] is False
+    assert rec["feedback_available_from"] == "2026-10-03"
+    assert rec["feedback"]["baustein1"]["was_traegt"].startswith("F1")   # Master sieht Inhalt
+    bid = rec["briefing_id"]
+    mine = client.get("/briefings?tp=1", headers=_tutor_headers("UEG07")).json()
+    assert all(b["feedback"] == {} for b in mine)                          # ÜGL nicht vor Freigabe
+    assert client.get(f"/briefings/{bid}/feedback/docx", headers=_tutor_headers("UEG07")).status_code == 423
+    assert client.get("/briefings/feedback/zip?tp=1", headers=_tutor_headers("UEG07")).status_code == 423
+    assert client.get(f"/briefings/{bid}/feedback/docx?force=1", headers=_tutor_headers("UEG07")).status_code == 423
+    forced = client.get(f"/briefings/{bid}/feedback/docx?force=1", headers=_master_headers())
+    assert forced.status_code == 200                                        # Master-QS, geloggt
+
+    # Nach dem Termin
+    monkeypatch.setattr(routes_module, "feedback_released", lambda tp: True)
+    mine = client.get("/briefings?tp=1", headers=_tutor_headers("UEG07")).json()
+    assert all(b["feedback_released"] and b["feedback"]["feed_forward"] for b in mine)
+    single = client.get(f"/briefings/{bid}/feedback/docx", headers=_tutor_headers("UEG07"))
+    assert single.status_code == 200 and "KI-Feedback_TP1-UEG07-SG3.docx" in single.headers["content-disposition"]
+    doc = Document(io.BytesIO(single.content))
+    text = "\n".join(p.text for p in doc.paragraphs)
+    assert "Stammgruppe SG3" in text and "Was trägt:" in text and "Nächster Schritt:" in text
+    assert "Ausblick" in text and "In Touchpoint 2" in text
+    lowered = text.lower()
+    assert "tragfaehig" not in lowered and "niveau" not in lowered and "punkte von" not in lowered
+    assert "Formale Vorprüfung" not in text and "Kernposition" not in text   # kein Briefing-Inhalt
+
+    bundle = client.get("/briefings/feedback/zip?tp=1", headers=_tutor_headers("UEG07"))
+    assert bundle.status_code == 200 and bundle.headers["content-type"] == "application/zip"
+    names = sorted(zipfile.ZipFile(io.BytesIO(bundle.content)).namelist())
+    assert names == ["KI-Feedback_TP1-UEG07-SG3.docx", "KI-Feedback_TP1-UEG07-SG5.docx"]
+    assert client.get("/briefings/feedback/zip?tp=1", headers=_tutor_headers("UEG08")).status_code == 404
+    assert client.get("/briefings/feedback/zip?tp=1", headers=_master_headers()).status_code == 422
+    assert client.get("/briefings/feedback/zip?tp=1&ueg=7", headers=_master_headers()).status_code == 200
 
 
 def test_store_file_fallback_roundtrip(monkeypatch, tmp_path):

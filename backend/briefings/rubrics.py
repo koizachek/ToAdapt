@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
 from pathlib import Path
 
@@ -50,6 +50,34 @@ BRIEFING_SCHEDULE: dict[int, dict[str, date]] = {
     4: {"abgabe": date(2026, 12, 8), "termin": date(2026, 12, 11)},
     5: {"abgabe": date(2026, 12, 15), "termin": date(2026, 12, 18)},
 }
+
+# Feed-forward-Sätze je Touchpoint (KI_Paket, Abschnitt "Formale Vorprüfung /
+# Feed-forward") — Anker für den Schlussabsatz des KI-Feedbacks. TP5 ohne die
+# Punktangabe der Klausur (Leitplanke no_points_or_grades gilt auch dort).
+FEED_FORWARD: dict[int, str] = {
+    1: "In Touchpoint 2 wird auf dieser Analyse entschieden; in der Klausur ist dies Aufgabe 1 am unbekannten Fall.",
+    2: "In Touchpoint 3 wird der Marktzugang an der heutigen Strategie gemessen; in der Klausur ist dies Aufgabe 2 am unbekannten Fall.",
+    3: "In Touchpoint 4 geht es um Eigenleistung und Lieferkette; in der Klausur ist dies Aufgabe 3, dort mit gegenläufiger Marge-Kontrolle-Konstellation.",
+    4: "In Touchpoint 5 werden alle Entscheidungen auf Konsistenz geprüft; in der Klausur ist dies Aufgabe 4 an einem Unternehmen mit anderem Geschäftsmodell, bei dem Kontrolle anders wiegt.",
+    5: "In der Klausur ist dies Aufgabe 5, der grösste Block; der Fall wechselt, die Denkoperationen bleiben.",
+}
+
+
+def feedback_release_date(tp: int) -> date | None:
+    """Das KI-Feedback an die Stammgruppen ist erst NACH dem Termin freigegeben
+    (Leitplanke feedback_only_after_session): ab dem Tag nach dem Touchpoint."""
+    schedule = BRIEFING_SCHEDULE.get(tp)
+    if not schedule:
+        return None
+    return schedule["termin"] + timedelta(days=1)
+
+
+def feedback_released(tp: int, today: date | None = None) -> bool:
+    release = feedback_release_date(tp)
+    if release is None:
+        return False
+    current = today or datetime.now(timezone.utc).date()
+    return current >= release
 
 
 class Criterion(BaseModel):
