@@ -198,13 +198,27 @@ def _render_group(doc, record: dict, rubric: BriefingRubric) -> None:
         _bullets(doc, list(data.get("duenne_stellen", []) or []), "Keine dünnen Stellen identifiziert.")
         _para(doc, str(data.get("einschaetzung", "")), bold_label="Einschätzung:")
 
+    questions = briefing.get("rueckfragen", {}) or {}
+    strengths = list(questions.get("zu_staerken", []) or [])
+    weaknesses = list(questions.get("zu_schwaechen", []) or [])
+    if strengths or weaknesses:
+        _heading(doc, "Beispiel-Rückfragen an die Gruppe", 3)
+        _para(
+            doc,
+            "Vorschläge für das Gespräch — welche Fragen Sie stellen, bleibt Ihre didaktische Entscheidung.",
+            italic=True, size=9, grey=True,
+        )
+        _para(doc, "", bold_label="An die Stärken anknüpfen:")
+        _bullets(doc, strengths, "Keine Vorschläge.")
+        _para(doc, "", bold_label="Dünne Stellen aufdecken:")
+        _bullets(doc, weaknesses, "Keine Vorschläge.")
+
 
 def render_briefing_docx(
     records: list[dict],
     *,
     rubric: BriefingRubric,
     ueg: str,
-    missing_groups: list[int] | None = None,
 ) -> bytes:
     """Rendert ein DOCX für eine Übungsgruppe (alle vorhandenen Stammgruppen)
     oder — bei genau einem Datensatz — für eine einzelne Stammgruppe."""
@@ -238,11 +252,6 @@ def render_briefing_docx(
         "didaktische Entscheidung. Das Feedback an die Stammgruppen ist ein eigenes Dokument.",
         italic=True, size=9.5,
     )
-    if missing_groups:
-        p = _para(doc, "Keine Abgabe eingegangen: " + ", ".join(f"SG{n}" for n in missing_groups), size=9.5)
-        for run in p.runs:
-            run.bold = True
-
     ordered = sorted(records, key=lambda r: (r.get("sg") is None, int(r.get("sg") or 99), str(r.get("filename", ""))))
     for record in ordered:
         _render_group(doc, record, rubric)

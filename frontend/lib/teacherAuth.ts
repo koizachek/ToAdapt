@@ -48,7 +48,7 @@ function getSecret(): string {
 
 export interface TeacherSessionPayload {
   tutor: string
-  /** true nur für den Master-Tutor (Login mit dem Master-Code, Env TEACHER_ARCHIVE_CODE). */
+  /** true nur für den Master (Login mit dem Master-Code aus TEACHER_ARCHIVE_CODE in beiden Feldern). */
   master: boolean
   /** Session-ID für den serverseitigen Widerruf beim Logout; fehlt bei Alt-Tokens. */
   jti?: string
@@ -106,41 +106,14 @@ export async function verifyTeacherSession(token: string | undefined): Promise<s
 }
 
 /**
- * Löst einen eingegebenen Zugangscode zur Tutor-Kennung auf.
+ * Prüft den Master-Code gegen die Env `TEACHER_ARCHIVE_CODE`.
  *
- * TEACHER_ACCESS_CODES: JSON-Objekt {"kennung": "code", ...} — Einzelcodes
- * für alle Tutor:innen (Generator: scripts/generate_tutor_codes.py).
- * Fallback: TEACHER_ACCESS_CODE (Alt-Setup, Kennung "teacher").
- */
-export function resolveTutorByCode(code: string): string | null {
-  const raw = process.env.TEACHER_ACCESS_CODES
-  if (raw) {
-    let mapping: Record<string, string>
-    try {
-      mapping = JSON.parse(raw)
-    } catch {
-      return null
-    }
-    for (const [tutorId, tutorCode] of Object.entries(mapping)) {
-      if (typeof tutorCode === 'string' && tutorCode.length > 0 && timingSafeEqual(code, tutorCode)) {
-        return tutorId
-      }
-    }
-    return null
-  }
-
-  const legacy = process.env.TEACHER_ACCESS_CODE
-  if (legacy && timingSafeEqual(code, legacy)) return 'teacher'
-  return null
-}
-
-/**
- * Prüft den Master-Archiv-Code gegen die Env `TEACHER_ARCHIVE_CODE`.
- *
- * Nur der Master-Tutor kennt diesen Code (z.B. "000") und darf damit Cases
- * archivieren — reguläre Tutor:innen mit ihren Login-Einzelcodes nicht. Der
- * Code ist NICHT hardcodiert, sondern liegt allein in der Env-Variable.
- * Fail-closed: ohne konfigurierten Code ist Archivieren gesperrt.
+ * Der Master loggt sich mit diesem Code in BEIDEN Feldern (Konto und
+ * Passwort) ein; nur er sieht das Monitoring und darf Cases archivieren. Die
+ * Übungsgruppenleiter (Konten UEGL01–UEGL26) haben eigene, selbst gewählte
+ * Passwörter, die das Backend prüft (POST /auth/tutor/login). Der Code ist
+ * NICHT hardcodiert, sondern liegt allein in der Env-Variable.
+ * Fail-closed: ohne konfigurierten Code gibt es keinen Master.
  */
 export function verifyArchiveCode(code: string): boolean {
   const master = process.env.TEACHER_ARCHIVE_CODE
@@ -150,3 +123,43 @@ export function verifyArchiveCode(code: string): boolean {
 
 export const TEACHER_COOKIE = COOKIE_NAME
 export const TEACHER_COOKIE_MAX_AGE = MAX_AGE_SECONDS
+
+export const MASTER_TUTOR_ID = 'master'
+
+// ── Erster Login: Passwort bestätigen ─────────────────────────────────────
+// Beim ersten Login gilt das eingegebene Passwort; der Nutzer bestätigt es
+// danach einmal. Zwischen den beiden Requests liegt es AES-GCM-verschlüsselt
+// in einem httpOnly-Cookie mit 10 Minuten Laufzeit (Schlüssel aus
+// TEACHER_SESSION_SECRET). Nie im Klartext, nie in der URL.
+
+export const PENDING_COOKIE = 'teacher_pending'
+export const PENDING_MAX_AGE = 10 * 60
+
+async function aesKey(): Promise<CryptoKey> {
+  const raw = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(getSecret() + ':pending'))
+  return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
+}
+
+export async function sealPendingPassword(account: string, password: string): Promise<string> {
+  const iv = crypto.getRandomValues(new Uint8Array(12)) as Uint8Array<ArrayBuffer>
+  const payload = new TextEncoder().encode(JSON.stringify({ account, password, exp: Date.now() + PENDING_MAX_AGE * 1000 }))
+  const cipher = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await aesKey(), payload))
+  return `${toBase64Url(iv)}.${toBase64Url(cipher)}`
+}
+
+export async function openPendingPassword(token: string | undefined): Promise<{ account: string; password: string } | null> {
+  if (!token) return null
+  const parts = token.split('.')
+  if (parts.length !== 2) return null
+  try {
+    const iv = fromBase64Url(parts[0]) as Uint8Array<ArrayBuffer>
+    const cipher = fromBase64Url(parts[1]) as Uint8Array<ArrayBuffer>
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, await aesKey(), cipher)
+    const data = JSON.parse(new TextDecoder().decode(plain))
+    if (typeof data?.account !== 'string' || typeof data?.password !== 'string') return null
+    if (Number(data?.exp) < Date.now()) return null
+    return { account: data.account, password: data.password }
+  } catch {
+    return null
+  }
+}

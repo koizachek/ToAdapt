@@ -31,8 +31,10 @@ from backend.llm import OpenRouterClient
 
 logger = structlog.get_logger(__name__)
 
-BRIEFING_MAX_TOKENS = 2200
+BRIEFING_MAX_TOKENS = 3000
 MAX_ITEMS = 2  # tragende Argumente / dünne Stellen je Baustein
+QUESTIONS_STRENGTHS = 2   # Beispiel-Rückfragen je Gruppe, die an Stärken anknüpfen
+QUESTIONS_WEAKNESSES = 3  # Beispiel-Rückfragen je Gruppe, die dünne Stellen aufdecken
 
 NO_CONTENT_TEXT = "Zu diesem Baustein liegt kein Text vor."
 FALLBACK_TEXT = (
@@ -73,6 +75,8 @@ Du erhältst den Text der Abgabe je Baustein. Erstelle je Baustein:
 
 Ist der Text eines Bausteins leer, setze kernposition auf "{no_content}", beide Listen leer, einschaetzung auf "{no_content}" und kriterien auf eine leere Liste.
 
+Erstelle ausserdem für die ganze Abgabe "rueckfragen": Beispiel-Rückfragen, die die ÜGL im Gespräch dieser Gruppe stellen kann (Oxford-Tutorial). Genau {q_strengths} Fragen unter "zu_staerken", die an tragende Argumente anknüpfen und die Gruppe ihre Begründung vertiefen oder verallgemeinern lassen ("Sie begründen X mit Y — was müsste eintreten, damit Y nicht mehr gilt?"). Genau {q_weaknesses} Fragen unter "zu_schwaechen", die dünne Stellen aufdecken, ohne die Antwort vorzugeben ("Woran machen Sie fest, dass …?"). Jede Frage bezieht sich konkret auf den Text dieser Abgabe und das Fallmaterial, ist eine echte offene Frage (kein Vorwurf, keine Suggestivfrage, keine versteckte Musterlösung) und steht für sich als ganzer Satz mit Fragezeichen.
+
 Antworte NUR mit einem JSON-Objekt dieser Form:
 {{
   "baustein1": {{
@@ -83,6 +87,10 @@ Antworte NUR mit einem JSON-Objekt dieser Form:
     "kriterien": [{{"name": "<Kriterium>", "niveau": "ueberzeugend|tragfaehig|ansatzweise", "begruendung": "<ein Satz>"}}]
   }},
   "baustein2": {{ ...gleiche Struktur... }},
+  "rueckfragen": {{
+    "zu_staerken": ["<Frage>", "<Frage>"],
+    "zu_schwaechen": ["<Frage>", "<Frage>", "<Frage>"]
+  }},
   "judge_confidence": "high|medium|low",
   "needs_human_review": <true|false>,
   "review_reason": "<nur falls needs_human_review=true, sonst null>"
@@ -151,6 +159,8 @@ def build_system_prompt(rubric: BriefingRubric) -> str:
         case_context=case_context_for_tp(rubric.tp) or "(Case-Kapitel nicht hinterlegt)",
         examples_block=_examples_block(rubric),
         max_items=MAX_ITEMS,
+        q_strengths=QUESTIONS_STRENGTHS,
+        q_weaknesses=QUESTIONS_WEAKNESSES,
         no_content=NO_CONTENT_TEXT,
     )
 
@@ -245,8 +255,29 @@ def _normalize_payload(
         missing = [n for n in allowed_names if n not in {k["name"] for k in kriterien}]
         assessment[b.key] = {"kriterien": kriterien, "fehlende_kriterien": missing}
 
+    raw_q = data.get("rueckfragen") if isinstance(data.get("rueckfragen"), dict) else {}
+    if sub.has_content:
+        questions = {
+            "zu_staerken": _strings(raw_q.get("zu_staerken"), QUESTIONS_STRENGTHS),
+            "zu_schwaechen": _strings(raw_q.get("zu_schwaechen"), QUESTIONS_WEAKNESSES),
+        }
+        cleaned_q: dict = {}
+        for key, value in questions.items():
+            value_clean, value_hits = apply_guardrails(value)
+            cleaned_q[key] = value_clean
+            hits.extend(h for h in value_hits if h not in hits)
+        briefing["rueckfragen"] = cleaned_q
+    else:
+        briefing["rueckfragen"] = {"zu_staerken": [], "zu_schwaechen": []}
+
     confidence = str(data.get("judge_confidence", "") or "").lower() or None
     needs_review = bool(data.get("needs_human_review", False)) or confidence == "low"
+    if sub.has_content and (
+        len(briefing["rueckfragen"]["zu_staerken"]) < QUESTIONS_STRENGTHS
+        or len(briefing["rueckfragen"]["zu_schwaechen"]) < QUESTIONS_WEAKNESSES
+    ):
+        needs_review = True
+        data = dict(data, review_reason=data.get("review_reason") or "Weniger Beispiel-Rückfragen als vorgesehen.")
     review_reason = data.get("review_reason")
     assessment["judge_confidence"] = confidence
     assessment["needs_human_review"] = needs_review
@@ -261,6 +292,7 @@ def fallback_result(rubric: BriefingRubric, sub: ExtractedSubmission, reason: st
         text = getattr(sub, b.key, "")
         briefing[b.key] = _empty_baustein(FALLBACK_TEXT if text.strip() else NO_CONTENT_TEXT)
         assessment[b.key] = {"kriterien": [], "keine_abgabe": not text.strip()}
+    briefing["rueckfragen"] = {"zu_staerken": [], "zu_schwaechen": []}
     assessment.update({
         "judge_confidence": "low",
         "needs_human_review": True,

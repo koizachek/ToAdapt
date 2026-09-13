@@ -3,8 +3,9 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { PILOT_TUTOR_ONLY } from '@/lib/pilot'
-import { ArrowRight, BookOpen, LayoutDashboard, ShieldCheck, X } from 'lucide-react'
+import { ArrowRight, X } from 'lucide-react'
 import NotionIcon from '@/components/NotionIcon'
+import TeacherLoginForm, { TeacherLoginView } from '@/components/TeacherLoginForm'
 import { languageFromSearchParams, Locale } from '@/lib/i18n'
 import { useLanguage } from '@/lib/useLanguage'
 
@@ -13,8 +14,10 @@ interface LoginPageContentProps {
   studyId?: string
   prolificSessionId?: string
   initialMode?: AppMode
-  teacherLoginError?: boolean
-  teacherRateLimited?: boolean
+  teacherError?: string
+  teacherView?: TeacherLoginView
+  teacherAccount?: string
+  teacherNotice?: string
   initialLanguage?: Locale | null
 }
 
@@ -37,17 +40,12 @@ const LOGIN_TEXT = {
     groupMissing: 'Bitte Gruppen-Nr. eingeben — dein Tutor-Team hat sie euch mitgeteilt.',
     groupInvalid: (max: number) => `Diese Gruppen-Nr. gibt es nicht — gültig sind G1 bis G${max}. Bitte prüft die Nummer, die euer Tutor-Team mitgeteilt hat.`,
     studentAccessCode: 'Zugangscode (falls von der Lehrperson ausgegeben)',
+    accessPlaceholder: 'Code eingeben',
     studentAccessError: 'Zugangscode fehlt oder ist nicht korrekt.',
     loginUnavailable: 'Anmeldung derzeit nicht möglich — bitte später erneut versuchen.',
     integrityNote: 'Mit dem Absenden bestätigst du, dass deine Antworten eigenständig verfasst sind. To:Adapt unterstützt dein Denken — es ersetzt es nicht.',
     loading: 'Wird geladen...',
     continue: 'Weiter',
-    teacherSection: 'Lehrkräfte',
-    accessCode: 'Zugangscode',
-    accessPlaceholder: 'Code eingeben',
-    accessError: 'Code nicht korrekt.',
-    rateLimitError: 'Zu viele Versuche — bitte eine Minute warten.',
-    openTeacher: 'Lehrkräftebereich öffnen',
     privacyNote: 'Deine Angaben werden pseudonymisiert erfasst. Tutor:innen sehen nur Gruppen-Zusammenfassungen — keine Einzelprofile und keine Chat-Verläufe.',
     languageAria: 'Sprache wählen',
     aboutToggle: 'Über To:Adapt',
@@ -66,12 +64,12 @@ const LOGIN_TEXT = {
     aboutWhatTeacher: 'To:Adapt unterstützt Übungsgruppenleitungen bei der Vorbereitung der Touchpoints. Aus den Abgaben der Stammgruppen in Canvas entsteht je Stammgruppe ein KI-Briefing (Kernposition, tragende Argumente, dünne Stellen als Ansatz für Rückfragen, Einschätzung in Prosa) und ein KI-Feedback an die Gruppe (was trägt, was bleibt dünn, nächster Schritt, Ausblick auf Klausur und nächsten Touchpoint). Es gibt bewusst keine Punkte, keine Stufen und keine Musterlösung: Jede Wahl ist zulässig, beurteilt wird nur, ob die Begründung trägt. Die Wahl der Spannungslinie und der Rückfragen bleibt Ihre didaktische Entscheidung.',
     aboutHowTitleTeacher: 'So arbeiten Sie damit',
     aboutStepsTeacher: [
-      'Melden Sie sich mit Ihrem Tutor-Code an. Ihre Kennung nennt Ihre Übungsgruppe(n), zum Beispiel UEG07 oder UEG07+UEG12.',
-      'Wählen Sie den Touchpoint: Sie sehen je Übungsgruppe, welche Stammgruppen abgegeben haben und welche fehlen.',
-      'Laden Sie das Briefing-Dokument (Word) je Übungsgruppe herunter — ein Abschnitt je Stammgruppe, bei mehreren Übungsgruppen auch als Sammel-ZIP.',
-      'Klappen Sie einzelne Abgaben auf: Die formale Vorprüfung (Zeichengrenzen, Code, Dateiname) wird nur gemeldet, nie bewertet. „Bitte prüfen" heisst: Die Automatik war unsicher — lesen Sie diese Abgabe direkt.',
-      'Laden Sie das Feedback an die Stammgruppen als ZIP (ein Dokument je Gruppe) und geben Sie es weiter, zum Beispiel über Canvas.',
-      'Master-Tutor: lädt den Canvas-Export als ZIP hoch, verfolgt die Verarbeitung im Hintergrund und ordnet Abgaben ohne erkennbaren Code nachträglich zu. Abgabedateien und Mitgliedernamen werden nie gespeichert.',
+      'Melden Sie sich mit Ihrem Konto (UEGL01 bis UEGL26) an. Beim ersten Mal legen Sie Ihr eigenes Passwort fest — nur Sie kennen es.',
+      'Laden Sie EINE ZIP-Datei mit den Einreichungen Ihrer Gruppen hoch (PPTX aus der offiziellen Vorlage, ersatzweise DOCX oder PDF). Touchpoint, Übungsgruppe und Stammgruppe liest das System vom Deckblatt.',
+      'Warten Sie, bis die Verarbeitung fertig ist — die Seite zeigt den Fortschritt. Sie dürfen sie zwischendurch schliessen.',
+      'Prüfen Sie die erkannten Angaben (Touchpoint, Übungsgruppe, Stammgruppe). Wo etwas nicht erkannt wurde, tragen Sie es nach.',
+      'Laden Sie das Briefing-Dokument (Word) herunter — ein Abschnitt je Stammgruppe — und das Feedback an die Stammgruppen als ZIP (ein Dokument je Gruppe), das Sie weitergeben, zum Beispiel über Canvas.',
+      'Abgabedateien und Mitgliedernamen werden nie gespeichert. Die Kursleitung sieht nur, wer wann hoch- und heruntergeladen hat.',
     ],
   },
   en: {
@@ -88,17 +86,12 @@ const LOGIN_TEXT = {
     groupMissing: 'Please enter your group number — your tutor team shared it with you.',
     groupInvalid: (max: number) => `This group number does not exist — valid codes are G1 to G${max}. Please check the number your tutor team shared with you.`,
     studentAccessCode: 'Access code (if provided by your teacher)',
+    accessPlaceholder: 'Enter code',
     studentAccessError: 'Access code is missing or incorrect.',
     loginUnavailable: 'Login is currently unavailable — please try again later.',
     integrityNote: 'By submitting, you confirm that your answers are your own work. To:Adapt supports your thinking — it does not replace it.',
     loading: 'Loading...',
     continue: 'Continue',
-    teacherSection: 'Teachers',
-    accessCode: 'Access code',
-    accessPlaceholder: 'Enter code',
-    accessError: 'Incorrect code.',
-    rateLimitError: 'Too many attempts — please wait a minute.',
-    openTeacher: 'Open teacher area',
     privacyNote: 'Your data is stored pseudonymously. Tutors only see group summaries — no individual profiles and no chat logs.',
     languageAria: 'Choose language',
     aboutToggle: 'About To:Adapt',
@@ -117,12 +110,12 @@ const LOGIN_TEXT = {
     aboutWhatTeacher: 'To:Adapt supports tutorial group leads in preparing the touchpoints. From the home groups\' submissions in Canvas it creates, per home group, an AI briefing (core position, supporting arguments, thin spots as prompts for follow-up questions, a prose assessment) and AI feedback for the group (what holds, what stays thin, next step, outlook on the exam and the next touchpoint). There are deliberately no points, no levels and no model solution: any choice is admissible; only the reasoning is judged. Choosing the line of tension and the questions remains your didactic decision.',
     aboutHowTitleTeacher: 'How you work with it',
     aboutStepsTeacher: [
-      'Log in with your tutor code. Your ID names your tutorial group(s), e.g. UEG07 or UEG07+UEG12.',
-      'Choose the touchpoint: per tutorial group you see which home groups have submitted and which are missing.',
-      'Download the briefing document (Word) per tutorial group — one section per home group; with several tutorial groups also as a combined ZIP.',
-      'Expand individual submissions: the formal pre-check (character limits, code, filename) is reported, never graded. "Please check" means the automation was unsure — read that submission directly.',
-      'Download the feedback for the home groups as a ZIP (one document per group) and pass it on, e.g. via Canvas.',
-      'Master tutor: uploads the Canvas export as a ZIP, follows the background processing and assigns submissions without a recognisable code. Submission files and member names are never stored.',
+      'Sign in with your account (UEGL01 to UEGL26). The first time, you set your own password — only you know it.',
+      'Upload ONE ZIP file with the submissions of your groups (PPTX from the official template, or DOCX/PDF). The system reads touchpoint, tutorial group and home group from the cover sheet.',
+      'Wait until processing has finished — the page shows the progress. You may close it in between.',
+      'Check the detected details (touchpoint, tutorial group, home group). Where something was not detected, enter it.',
+      'Download the briefing document (Word) — one section per home group — and the feedback for the home groups as a ZIP (one document per group) to pass on, e.g. via Canvas.',
+      'Submission files and member names are never stored. The course lead only sees who uploaded and downloaded when.',
     ],
   },
 } satisfies Record<Locale, Record<string, string | string[] | ((max: number) => string)>>
@@ -132,8 +125,10 @@ function LoginPageContent({
   studyId = '',
   prolificSessionId = '',
   initialMode = 'student',
-  teacherLoginError = false,
-  teacherRateLimited = false,
+  teacherError = '',
+  teacherView = 'login',
+  teacherAccount = '',
+  teacherNotice = '',
   initialLanguage = null,
 }: LoginPageContentProps) {
   const router = useRouter()
@@ -452,49 +447,13 @@ function LoginPageContent({
             </form>
           </>
         ) : (
-          <form action="/teacher-login" method="post" className="flex flex-col gap-4">
-            <input type="hidden" name="language" value={language} />
-            <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>
-              {text.teacherSection}
-            </p>
-            <div>
-              <label className="block text-xs mb-2 font-medium tracking-wide" style={{ color: 'var(--line)' }}>
-                {text.accessCode}
-              </label>
-              <input
-                type="password"
-                inputMode="numeric"
-                name="teacher_code"
-                placeholder={text.accessPlaceholder}
-                className="w-full px-4 py-3 text-sm outline-none transition-all"
-                style={{ background: 'var(--field)', border: '1px solid rgba(53,40,30,0.25)', color: 'var(--ink)' }}
-                onFocus={event => { event.currentTarget.style.borderColor = 'var(--accent)' }}
-                onBlur={event => { event.currentTarget.style.borderColor = 'rgba(53,40,30,0.25)' }}
-              />
-              {(teacherLoginError || teacherRateLimited) && (
-                <p className="mt-2 text-xs" style={{ color: '#c0392b' }}>
-                  {teacherRateLimited ? text.rateLimitError : text.accessError}
-                </p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              className="group flex items-center justify-between px-5 py-3 text-sm font-medium tracking-wide transition-all duration-200"
-              style={{ background: 'var(--ink)', color: 'var(--white)' }}
-              onMouseEnter={event => { event.currentTarget.style.background = 'var(--accent)' }}
-              onMouseLeave={event => { event.currentTarget.style.background = 'var(--ink)' }}
-            >
-              {text.openTeacher}
-              <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-1" />
-            </button>
-
-            <div className="grid grid-cols-3 gap-2 pt-2 text-xs" style={{ color: 'var(--muted)' }}>
-              <span className="flex items-center gap-1"><BookOpen size={12} /> Cases</span>
-              <span className="flex items-center gap-1"><LayoutDashboard size={12} /> Dashboard</span>
-              <span className="flex items-center gap-1"><ShieldCheck size={12} /> Admin</span>
-            </div>
-          </form>
+          <TeacherLoginForm
+            language={language}
+            view={teacherView}
+            account={teacherAccount}
+            error={teacherError}
+            notice={teacherNotice}
+          />
         )}
       </div>
 
@@ -587,8 +546,10 @@ function LoginPageInner() {
       studyId={searchParams.get('STUDY_ID') ?? searchParams.get('study_id') ?? ''}
       prolificSessionId={searchParams.get('SESSION_ID') ?? searchParams.get('session_id') ?? ''}
       initialMode={searchParams.get('mode') === 'teacher' ? 'teacher' : 'student'}
-      teacherLoginError={searchParams.get('teacher_error') === '1'}
-      teacherRateLimited={searchParams.get('teacher_error') === 'rate'}
+      teacherError={searchParams.get('teacher_error') ?? ''}
+      teacherView={searchParams.get('confirm_password') ? 'confirm_password' : searchParams.get('set_password') ? 'set_password' : 'login'}
+      teacherAccount={searchParams.get('confirm_password') ?? searchParams.get('set_password') ?? searchParams.get('account') ?? ''}
+      teacherNotice={searchParams.get('teacher_notice') ?? ''}
       initialLanguage={languageFromSearchParams(new URLSearchParams(searchParams.toString()))}
     />
   )

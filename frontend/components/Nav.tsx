@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useState } from 'react'
+import { useClientValue } from '@/lib/useClientValue'
 import { GraduationCap, LogOut, UserRoundCog } from 'lucide-react'
 import {
   AppMode,
@@ -20,10 +21,7 @@ const studentLinks = [
   { href: '/cases', label: 'Cases' },
 ]
 
-// Briefings sehen alle Tutor:innen (eigene Übungsgruppe); der Master-Tutor
-// bekommt auf derselben Seite zusätzlich den Canvas-Upload.
-// Pilotphase (PILOT_TUTOR_ONLY): nur Briefings + Anleitung — Cases, Dashboard
-// und Admin (Case-Generator) bleiben im Code, werden aber nicht angezeigt.
+// Briefings sehen alle Übungsgruppenleiter (eigene Uploads); der Master sieht dort zusätzlich das Monitoring.
 const teacherLinks = (language: Locale) => PILOT_TUTOR_ONLY
   ? [
       { href: '/briefings', label: 'Briefings' },
@@ -70,9 +68,12 @@ export default function Nav() {
   const path = usePathname()
   const router = useRouter()
   const [language, setLanguage] = useLanguage()
-  const [selectedMode, setSelectedMode] = useState<AppMode>(() => readStoredAppMode())
-  const [isExperimentalRun] = useState(() => {
-    if (typeof window === 'undefined') return false
+  // Browser-Zustand hydration-sicher lesen (Server sieht die Defaults).
+  const storedMode = useClientValue(readStoredAppMode, 'student' as AppMode)
+  const [modeOverride, setModeOverride] = useState<AppMode | null>(null)
+  const selectedMode = modeOverride ?? storedMode
+  const setSelectedMode = setModeOverride
+  const isExperimentalRun = useClientValue(() => {
     if (readTeacherMode()) return false
     try {
       const experimentContext = JSON.parse(sessionStorage.getItem('experiment_context') ?? 'null')
@@ -80,12 +81,12 @@ export default function Nav() {
     } catch {
       return false
     }
-  })
-  const [hasTeacherAccess, setHasTeacherAccess] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return readTeacherMode()
-  })
-  const [hasStudentIdentity] = useState(() => readStudentIdentity())
+  }, false)
+  const cookieTeacherAccess = useClientValue(readTeacherMode, false)
+  const [teacherOverride, setTeacherOverride] = useState<boolean | null>(null)
+  const hasTeacherAccess = teacherOverride ?? cookieTeacherAccess
+  const setHasTeacherAccess = setTeacherOverride
+  const hasStudentIdentity = useClientValue(readStudentIdentity, false)
   const text = NAV_TEXT[language]
   const mode = hasTeacherAccess ? 'teacher' : isExperimentalRun ? 'student' : modeFromPath(path) ?? selectedMode
 

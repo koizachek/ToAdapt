@@ -22,8 +22,12 @@ export default function GuidePage() {
   }, [])
 
   const sections = PILOT_TUTOR_ONLY
-    ? [{ icon: 'guide', href: '/briefings', section: guide.briefings }]
+    ? [
+        { icon: 'compass', href: '/?mode=teacher', section: guide.login },
+        { icon: 'guide', href: '/briefings', section: guide.briefings },
+      ]
     : [
+        { icon: 'compass', href: '/?mode=teacher', section: guide.login },
         { icon: 'dashboard', href: '/dashboard', section: guide.dashboard },
         { icon: 'guide', href: '/briefings', section: guide.briefings },
         { icon: 'generator', href: '/admin', section: guide.admin },

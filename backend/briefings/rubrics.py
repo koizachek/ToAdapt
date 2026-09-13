@@ -21,9 +21,8 @@ Studierenden-Tools und bleibt unberührt.
 from __future__ import annotations
 
 import json
-import os
 import re
-from datetime import date, datetime, timedelta, timezone
+from datetime import date
 from functools import lru_cache
 from pathlib import Path
 
@@ -62,35 +61,6 @@ FEED_FORWARD: dict[int, str] = {
     4: "In Touchpoint 5 werden alle Entscheidungen auf Konsistenz geprüft; in der Klausur ist dies Aufgabe 4 an einem Unternehmen mit anderem Geschäftsmodell, bei dem Kontrolle anders wiegt.",
     5: "In der Klausur ist dies Aufgabe 5, der grösste Block; der Fall wechselt, die Denkoperationen bleiben.",
 }
-
-
-def feedback_release_date(tp: int) -> date | None:
-    """Das KI-Feedback an die Stammgruppen ist erst NACH dem Termin freigegeben
-    (Leitplanke feedback_only_after_session): ab dem Tag nach dem Touchpoint."""
-    schedule = BRIEFING_SCHEDULE.get(tp)
-    if not schedule:
-        return None
-    return schedule["termin"] + timedelta(days=1)
-
-
-FEEDBACK_GATE_ENV = "FEEDBACK_RELEASE_GATE"
-
-
-def feedback_gate_enabled() -> bool:
-    """Die Freigabe-Sperre (Feedback erst nach dem Termin) ist standardmässig
-    AUS (Owner-Entscheidung 2026-09-02: aktuell nicht gebraucht). Einschalten
-    mit FEEDBACK_RELEASE_GATE=1 — dann gilt der Tag nach dem Termin."""
-    return os.environ.get(FEEDBACK_GATE_ENV, "").strip().lower() in {"1", "true", "yes", "on"}
-
-
-def feedback_released(tp: int, today: date | None = None) -> bool:
-    if not feedback_gate_enabled():
-        return True
-    release = feedback_release_date(tp)
-    if release is None:
-        return False
-    current = today or datetime.now(timezone.utc).date()
-    return current >= release
 
 
 class Criterion(BaseModel):

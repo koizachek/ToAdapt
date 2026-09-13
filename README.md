@@ -50,16 +50,19 @@ Dozent → POST /admin/cases/generate  (Branche, Land, TP-Ziel)
 | `POST /admin/cases/{id}/approve` | Case freigeben |
 | `GET /dashboard/overview` | Kursübersicht |
 | `GET /dashboard/student/{matrikel}` | Einzelstudent |
-| `POST /briefings/upload` | Master-Upload: ZIP mit Stammgruppen-Abgaben → KI-Briefings (nur Master) |
-| `GET /briefings?tp=&ueg=` | Briefings (ÜGL: nur eigene Übungsgruppe) |
-| `GET /briefings/overview?tp=` | Je Übungsgruppe: vorhandene/fehlende Stammgruppen |
-| `GET /briefings/docx?tp=&ueg=` | DOCX mit allen Briefings einer Übungsgruppe |
+| `POST /briefings/upload` | Upload je Übungsgruppenleiter: ZIP mit Einreichungen → Briefing + Feedback je Datei (Touchpoint vom Deckblatt) |
+| `GET /briefings?tp=&tutor=` | Briefings (eigene Uploads; Master alle, `tutor` filtert) |
+| `GET /briefings/overview?tp=` | Je Übungsgruppe: vorhandene Stammgruppen |
+| `GET /briefings/monitoring` | Master: je Konto Uploads/Downloads je Touchpoint, Prüffälle, Kontostatus |
+| `GET /briefings/docx?tp=&ueg=&tutor=` | DOCX mit allen Briefings einer Übungsgruppe (Master: `tutor` Pflicht) |
 | `GET /briefings/{id}/docx` | DOCX eines einzelnen Briefings |
 | `GET /briefings/{id}/assessment` | Interne Kriterien-Einstufung (nur Master) |
-| `PATCH /briefings/{id}` | Zuordnung Übungsgruppe/Stammgruppe nachtragen (nur Master) |
-| `GET /briefings/batches`, `/batches/{id}` | Status der Upload-Batches (nur Master) |
-| `GET /briefings/{id}/feedback/docx` | KI-Feedback einer Stammgruppe (DOCX) — erst nach dem Termin (423 vorher) |
-| `GET /briefings/feedback/zip?tp=&ueg=` | ZIP mit einem Feedback-DOCX je Stammgruppe — erst nach dem Termin |
+| `PATCH /briefings/{id}` | Touchpoint/Übungsgruppe/Stammgruppe verifizieren oder nachtragen (eigene Uploads) |
+| `GET /briefings/batches`, `/batches/{id}` | Status der eigenen Upload-Batches (Master: alle) |
+| `POST /auth/tutor/login`, `/set-password`, `/reset-request` | Login der Übungsgruppenleiter (vom Frontend-Server aufgerufen) |
+| `POST /auth/tutor/{account}/reset-code`, `GET /auth/tutor/accounts` | Master: Einmalcode erzeugen, Kontostatus |
+| `GET /briefings/{id}/feedback/docx` | KI-Feedback einer Stammgruppe (DOCX) |
+| `GET /briefings/feedback/zip?tp=&ueg=&tutor=` | ZIP mit einem Feedback-DOCX je Stammgruppe |
 
 ## Tech Stack
 
@@ -85,8 +88,8 @@ uvicorn backend.main:app --reload
 
 ## Aktueller Stand
 
-- Das Frontend hat zwei Modi. Studierende nutzen den bestehenden Studien-/Case-Flow. Lehrkräfte melden sich auf der Startseite mit einem Zugangscode an und sehen danach `Cases`, `Dashboard` und `Admin` direkt in der oberen Navigation.
-- Der Lehrkräfte-Code wird serverseitig über `TEACHER_ACCESS_CODE` geprüft. Lokal ist `0000` möglich, der Code wird im Frontend nicht angezeigt.
+- Das Frontend hat zwei Modi. Studierende nutzen den bestehenden Studien-/Case-Flow (in der Pilotphase ausgeblendet). Übungsgruppenleiter melden sich auf der Startseite mit Konto (`UEGL01`–`UEGL26`) und selbst gewähltem Passwort an, der Master mit dem Master-Code in beiden Feldern; danach sehen sie `Briefings` und `Anleitung` in der oberen Navigation.
+- Passwörter werden serverseitig geprüft (Backend `POST /auth/tutor/login`, nur Prüfwerte gespeichert); der Master-Code kommt aus `TEACHER_ARCHIVE_CODE` und wird nie im Frontend angezeigt.
 - Der LLM-as-a-Judge ist an die Lehrerbewertung kalibriert: Rubric-Scores enthalten jetzt Confidence, Score-Band, Review-Flags, technische Fallbacks, Stärken und Abzüge.
 - Die zuletzt neu bewertete Datei liegt lokal unter `data/prolific_runs/derived/aligned_rescores/submission_states_aligned_20260531T140830Z.json`.
 - Der Vorher-Nachher-Bericht liegt unter `data/prolific_runs/derived/aligned_rescores/teacher_alignment_report_20260531.md`.
@@ -154,61 +157,79 @@ Beide Dateien teilen dieselbe `review_item_id`, damit menschliche Bewertungen sp
 
 In der Pilotphase ist ausschliesslich die Tutorenansicht freigeschaltet. Studierenden-Flow,
 Case-Ansicht, Case-Generator (Admin) und das Individual-Dashboard bleiben im Code, werden aber
-nicht angezeigt. Es gibt zwei Rollen: der **Master-Tutor** (Login mit `TEACHER_ARCHIVE_CODE`)
-lädt den Canvas-Export hoch und lädt alles herunter; jede **Übungsgruppenleitung** (Einzelcode
-aus `TEACHER_ACCESS_CODES`) sieht ihre eigenen Übungsgruppen und lädt deren Briefings und
-Feedbacks herunter. Schalter: Frontend `NEXT_PUBLIC_PILOT_TUTOR_ONLY` (Vercel, Standard AN;
-`0` schaltet die Studierenden frei), Backend `PILOT_TUTOR_ONLY=1` (Railway; sperrt
-Studierenden-API und Case-Generator mit 503 — empfohlen, damit die versteckten Endpoints nicht
-offen bleiben). Die Freischaltung der Studierenden ist damit ein Env-Wechsel, kein Umbau.
+nicht angezeigt. Rollen (Owner-Entscheidung 2026-09-13): **26 Übungsgruppenleiter** mit festen
+Konten `UEGL01`–`UEGL26` laden jeweils eine ZIP-Datei mit den Einreichungen ihrer Gruppen hoch,
+sehen nur ihre eigenen Uploads und laden Briefings und Feedbacks herunter. Der **Master**
+(Login mit `TEACHER_ARCHIVE_CODE` in beiden Feldern) darf dasselbe und sieht zusätzlich das
+Monitoring (wer hat wann was hoch- und heruntergeladen, Passwort-Anfragen). Schalter: Frontend
+`NEXT_PUBLIC_PILOT_TUTOR_ONLY` (Standard AN; `0` schaltet die Studierenden frei), Backend
+`PILOT_TUTOR_ONLY=1` (sperrt Studierenden-API und Case-Generator mit 503). Die Freischaltung der
+Studierenden ist damit ein Env-Wechsel, kein Umbau.
 
-## KI-Briefings für Übungsgruppenleitungen (Tutor-Pipeline)
+### Login der Übungsgruppenleiter
+
+Die Passwörter legen die Übungsgruppenleiter selbst fest: Beim ersten Login hat das Konto noch
+kein Passwort, das Backend antwortet `set_password`, das Formular verlangt das neue Passwort
+zweimal (mindestens 6 Zeichen). Gespeichert wird nur ein PBKDF2-Prüfwert
+(`backend/db/tutor_account_store.py`, Mongo `tutor_accounts`, Datei-Fallback
+`backend/db/tutor_accounts/`). Es gibt keine Env-Variable mit Tutor-Codes mehr
+(`TEACHER_ACCESS_CODES` ist entfallen). Passwort vergessen: der Übungsgruppenleiter wählt sein Konto,
+der Master sieht die Anfrage rot im Monitoring, erzeugt einen Einmalcode (24 h gültig) und
+schickt ihn selbst per E-Mail; der Login mit dem Code löscht das alte Passwort und führt zum
+Festlegen eines neuen. Routen: `POST /auth/tutor/login`, `/set-password`, `/reset-request`,
+`/{account}/reset-code` (Master), `GET /auth/tutor/accounts` (Master) — alle hinter `X-API-Key`,
+aufgerufen vom Frontend-Route-Handler `/teacher-login`.
+
+## KI-Briefings für Übungsgruppenleiter (Tutor-Pipeline)
 
 Die Stammgruppen geben ihre Touchpoint-Ergebnisse über Canvas (LMS) ab — als PPTX aus der
-offiziellen Vorlage (Code `TPn-UEGxx-SGy`), ersatzweise DOCX oder PDF. Der Master-Tutor lädt
-den Canvas-Export als ZIP hoch (`POST /briefings/upload`, `target_tp` 1–5); je Datei entsteht
-ein Briefing für die ÜGL nach dem KI-Paket der Kursleitung: je Baustein Kernposition (ein Satz),
+offiziellen Vorlage (Deckblatt-Code `TPn-UEGxx-SGy`), ersatzweise DOCX oder PDF. Jeder
+Übungsgruppenleiter lädt die Dateien seiner Gruppen als ZIP hoch (`POST /briefings/upload`,
+kein Touchpoint-Feld — Touchpoint, Übungsgruppe und Stammgruppe kommen vom Deckblatt); je Datei
+entsteht ein Briefing nach dem KI-Paket der Kursleitung: je Baustein Kernposition (ein Satz),
 tragende Argumente (max. 2), dünne Stellen als Rückfrage-Ansatz (max. 2) und eine Einschätzung
-in Prosa. Dazu die formale Vorprüfung (Zeichengrenzen je Folie, Code, Dateiname — gemeldet,
-nie bewertet). Die Niveau-Einstufung je Kriterium wird intern gespeichert und ist nur für den
-Master sichtbar. Keine Punkte, keine Musterlösung, kein Gruppenvergleich; Leitplanken werden
-nach dem LLM-Call regelbasiert nachgeprüft (`backend/briefings/guardrails.py`).
+in Prosa, dazu das Feedback an die Stammgruppe und die formale Vorprüfung (Zeichengrenzen je
+Folie, Code, Dateiname — gemeldet, nie bewertet). Die Niveau-Einstufung je Kriterium wird intern
+gespeichert und ist nur für den Master sichtbar. Keine Punkte, keine Musterlösung, kein
+Gruppenvergleich; Leitplanken werden nach dem LLM-Call regelbasiert nachgeprüft
+(`backend/briefings/guardrails.py`).
 
 - Code: `backend/briefings/` (Extraktion, Rubrics, Generator, DOCX-Renderer, Routen),
-  Store `backend/db/briefing_store.py` (Mongo `briefings`, Datei-Fallback `backend/db/briefings/`).
+  Store `backend/db/briefing_store.py` (Mongo `briefings`, Datei-Fallback `backend/db/briefings/`),
+  Download-Protokoll `backend/db/download_log.py` (Mongo `briefing_downloads`: Konto, Zeitpunkt,
+  Touchpoint, Art — für das Master-Monitoring, keine Inhalte).
 - Config: `backend/config/ki_rubrics/` — `ki_rubrics_tp{n}.json` (Kursleitung, 2026-08-28),
   Case-Kapitel des Running Case ON (`case/kapitel_{a..e}.md`, nur Tutor-Pipeline, nie
-  studierendensichtbar), Vorlagentexte (`template_texts.json`).
-- Sichtbarkeit: Der Teacher-Proxy schickt `X-Teacher-Id` und `X-Teacher-Master` mit. Konvention:
-  Tutor-Kennung nennt die Übungsgruppe(n) — `TEACHER_ACCESS_CODES = {"UEG07": "<code>",
-  "UEG08+UEG12": "<code>", …}`; eine ÜGL sieht nur ihre eigenen Übungsgruppen, der Master alles.
-  Der Download `GET /briefings/docx?tp=` liefert bei einer Übungsgruppe das DOCX, bei mehreren ein
-  ZIP mit je einem einheitlichen Briefing-DOCX pro Übungsgruppe (`ueg=` wählt eine aus). Hochgeladene
-  Dateien und Mitgliedernamen werden nie gespeichert.
+  studierendensichtbar), Vorlagentexte (`template_texts.json`); Konten
+  `backend/config/tutor_accounts.py`.
+- Sichtbarkeit: Der Teacher-Proxy schickt `X-Teacher-Id` (Konto) und `X-Teacher-Master` mit.
+  Jeder sieht genau die Datensätze mit `uploaded_by == eigenes Konto`; der Master alles
+  (`?tutor=UEGL05` filtert auf ein Konto, auch bei den Downloads). Keine Namensregel, keine
+  Zuordnungstabelle Konto → Übungsgruppe, keine Annahme über die Anzahl Stammgruppen.
+- Deckblatt nicht lesbar: fehlt der Touchpoint, bleibt der Datensatz `pending` (extrahierter
+  Text ohne Namen wird bis zur Zuordnung behalten); `PATCH /briefings/{id}` mit `target_tp`,
+  `ueg`, `sg` trägt die Angaben nach und stösst dann die Auswertung an. Bereits ausgewertete
+  Datensätze lassen sich ebenfalls korrigieren.
+- Downloads: `GET /briefings/docx?tp=` (ein DOCX je Übungsgruppe, bei mehreren ein ZIP; `ueg=`
+  wählt eine aus), `GET /briefings/feedback/zip?tp=` (ein Feedback-DOCX je Stammgruppe), plus
+  Einzeldokumente je Datensatz. Feedback ist sofort verfügbar (keine Terminsperre mehr).
+  Jeder Download wird protokolliert (Konto, Zeitpunkt, Touchpoint, Art).
+- Monitoring (nur Master): `GET /briefings/monitoring` — je Konto Uploads je Touchpoint mit
+  Gruppen und Status, letzter Upload, letzter Download je Art, offene Prüffälle, Kontostatus.
 - Kalibrierung (Pflicht vor Prompt-/Rubric-Änderungen): `python scripts/calibrate_briefings.py --all`
   schickt die drei Beispielabgaben je TP durch den Generator und vergleicht die Einstufung.
 - **Upload-Weg (Vercel-Limit):** Vercel begrenzt Request-Bodies von Route-Handlern auf 4,5 MB
-  (Infrastruktur-Limit). Der Master-Upload geht deshalb **direkt vom Browser an Railway**:
-  `POST /api/teacher/upload-token` (Frontend, nur Master-Session) signiert ein 15-Minuten-Token mit
+  (Infrastruktur-Limit). Der Upload geht deshalb **direkt vom Browser an Railway**:
+  `POST /api/teacher/upload-token` (Frontend, jede Tutor-Session) signiert ein 15-Minuten-Token mit
   `TOADAPT_API_KEY`; der Browser schickt das ZIP mit Header `X-Upload-Token` an
   `NEXT_PUBLIC_API_URL/briefings/upload` (bis 400 MB). Voraussetzungen: `ALLOWED_ORIGINS` (Railway)
-  enthält die Vercel-Domain; `TOADAPT_API_KEY` ist auf beiden Seiten identisch. Die Verarbeitung
-  läuft asynchron (Antwort 202 mit `batch_id`, Fortschritt über `GET /briefings/batches/{id}`),
-  weil ein Semester-Batch (bis 440 Abgaben) länger dauert als jeder HTTP-Timeout. DOCX-Downloads
-  bleiben klein und laufen über den Proxy.
-- Frontend: Seite `/briefings` (alle Tutor:innen: eigene Übungsgruppe + DOCX-Download; Master:
-  zusätzlich Upload, Batch-Status, Zuordnung nicht erkannter Abgaben). `/upload` leitet dorthin um.
-- **Produkt 2 — KI-Feedback an die Stammgruppen.** Wird beim Upload gleich mit erzeugt (zweiter
-  LLM-Call mit eigenem, gecachtem System-Prompt; die interne Einstufung dient als Konsistenzhilfe):
-  je Baustein was trägt / was bleibt dünn (mit Kriterienbezug) / nächster Schritt, Abschluss ein
-  Feed-forward auf den nächsten Touchpoint und die Klausur. Die Freigabe-Sperre (Feedback erst am
-  Tag nach dem Termin, `BRIEFING_SCHEDULE`, Leitplanke `feedback_only_after_session`) ist
-  **standardmässig aus** (Owner-Entscheidung Pilotphase); mit `FEEDBACK_RELEASE_GATE=1` (Railway)
-  liefern die Feedback-Endpoints vor dem Termin 423 und die Liste keinen Feedback-Inhalt, der Master
-  kann dann zur Qualitätssicherung mit `force=1` lesen (Log `feedback_release_forced`). Die ÜGL lädt nach dem Termin ein ZIP mit
-  einem DOCX je Stammgruppe und gibt es weiter (z.B. über Canvas). Kalibrierung inkl. Feedback:
-  `python scripts/calibrate_briefings.py --all --feedback`.
-
+  enthält die Frontend-Domain; `TOADAPT_API_KEY` ist auf beiden Seiten identisch. Die Verarbeitung
+  läuft asynchron (Antwort 202 mit `batch_id`, Fortschritt über `GET /briefings/batches/{id}`).
+  DOCX-Downloads bleiben klein und laufen über den Proxy.
+- Frontend: Seite `/briefings` (alle: Upload, Fortschritt, Zuordnung prüfen, Downloads, rotes
+  Ausrufezeichen bei abweichenden Gruppen zwischen Touchpoints; Master: zusätzlich Monitoring
+  mit Einmalcodes und Konto-Auswahl). Jede Funktion hat ein ?-Symbol; Reiter „Anleitung“ (`/guide`)
+  beschreibt Login, Upload, Prüfen, Download Schritt für Schritt.
 
 ## License
 

@@ -1,11 +1,12 @@
-"""Tests für die KI-Briefings (Master-Upload → Briefing je Stammgruppe).
+"""Tests für die KI-Briefings (Upload je Übungsgruppenleiter → Briefing je Stammgruppe).
 
 Abgedeckt: Rubric-/Case-Config, Extraktion (PPTX mit Vorlagen-Shapes, DOCX,
 PDF; Kenndaten; Zeichenzählung), formale Vorprüfung, Leitplanken-Nachprüfung,
 Generator mit gemocktem LLM (valide Antwort, Garbage → technical_fallback,
-Leitplanken-Treffer), Routen (fail-closed Auth, Master-Gate,
-Sichtbarkeit je Übungsgruppe, DOCX-Download ohne Punkte, interne Einstufung
-nur für Master, manuelle Zuordnung) und den Store-Datei-Fallback.
+Leitplanken-Treffer), Routen (fail-closed Auth, Sichtbarkeit nach eigenem
+Upload, Touchpoint vom Deckblatt, pending → Zuordnung → Auswertung,
+DOCX-Download ohne Punkte, interne Einstufung nur für Master,
+Download-Protokoll + Master-Monitoring) und den Store-Datei-Fallback.
 
 Alle Abgabetexte sind synthetisch — keine echten Teilnehmerdaten.
 """
@@ -14,7 +15,7 @@ import io
 import json
 import time
 import zipfile
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pytest
 from docx import Document
@@ -24,6 +25,8 @@ from pptx.util import Inches
 
 import backend.briefings.batches as batches_module
 import backend.db.briefing_store as briefing_store_module
+import backend.db.download_log as download_log_module
+import backend.db.tutor_account_store as tutor_account_store_module
 from backend.briefings import guardrails
 from backend.briefings.batches import is_stale, new_batch
 from backend.briefings.upload_token import UploadTokenError, sign_upload_token, verify_upload_token
@@ -34,7 +37,6 @@ from backend.briefings.extraction import (
     iter_submission_entries,
     normalize_ueg,
     parse_code,
-    parse_uegs,
     parse_code_from_filename,
     split_bausteine,
 )
@@ -52,8 +54,6 @@ from backend.briefings.generator import (
 from backend.briefings.rubrics import (
     SUPPORTED_TPS,
     case_context_for_tp,
-    feedback_release_date,
-    feedback_released,
     load_rubric,
     template_boilerplate,
 )
@@ -168,6 +168,10 @@ def _llm_payload(**overrides) -> str:
     data = {
         "baustein1": baustein("B1", [c.name for c in rubric.baustein("baustein1").criteria]),
         "baustein2": baustein("B2", [c.name for c in rubric.baustein("baustein2").criteria]),
+        "rueckfragen": {
+            "zu_staerken": ["Q1: Was müsste eintreten, damit Ihr Argument A nicht mehr gilt?", "Q2: Wo im Fall sehen Sie Argument B bestätigt?"],
+            "zu_schwaechen": ["Q3: Woran machen Sie fest, dass …?", "Q4: Welcher Schritt fehlt zwischen Ursache und Handlungsdruck?", "Q5: Wer trägt die Folgen, wenn …?"],
+        },
         "judge_confidence": "high",
         "needs_human_review": False,
         "review_reason": None,
@@ -215,12 +219,15 @@ def _mock_llm(monkeypatch, response_text: str, feedback_text: str | None = None)
 def client(monkeypatch, tmp_path):
     monkeypatch.setenv("TOADAPT_API_KEY", API_KEY)
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
-    store_dir = tmp_path / "briefings"
-    store_dir.mkdir()
-    monkeypatch.setattr(briefing_store_module, "RESULTS_DIR", store_dir)
-    batch_dir = tmp_path / "batches"
-    batch_dir.mkdir()
-    monkeypatch.setattr(batches_module, "BATCH_DIR", batch_dir)
+    for module, attr, name in (
+        (briefing_store_module, "RESULTS_DIR", "briefings"),
+        (batches_module, "BATCH_DIR", "batches"),
+        (download_log_module, "DOWNLOADS_DIR", "downloads"),
+        (tutor_account_store_module, "ACCOUNTS_DIR", "accounts"),
+    ):
+        d = tmp_path / name
+        d.mkdir()
+        monkeypatch.setattr(module, attr, d)
     return TestClient(app)
 
 
@@ -228,19 +235,24 @@ def _master_headers() -> dict:
     return {"X-API-Key": API_KEY, "X-Teacher-Id": "master", "X-Teacher-Master": "1"}
 
 
-def _tutor_headers(ueg: str) -> dict:
-    return {"X-API-Key": API_KEY, "X-Teacher-Id": ueg, "X-Teacher-Master": "0"}
+def _tutor_headers(account: str) -> dict:
+    return {"X-API-Key": API_KEY, "X-Teacher-Id": account, "X-Teacher-Master": "0"}
 
 
-def _upload(client, files: dict[str, bytes], tp: int = 1, headers: dict | None = None, sync: bool = True):
-    data = {"target_tp": str(tp)}
-    if sync:
-        data["sync"] = "1"
+def _upload(client, files: dict[str, bytes], headers: dict | None = None, sync: bool = True):
+    data = {"sync": "1"} if sync else {}
     return client.post(
         "/briefings/upload",
         files={"file": ("abgaben.zip", _zip_of(files), "application/zip")},
         data=data,
-        headers=headers if headers is not None else _master_headers(),
+        headers=headers if headers is not None else _tutor_headers("UEGL01"),
+    )
+
+
+def _docx_text(content: bytes) -> str:
+    doc = Document(io.BytesIO(content))
+    return "\n".join(p.text for p in doc.paragraphs) + "\n".join(
+        c.text for t in doc.tables for r in t.rows for c in r.cells
     )
 
 
@@ -456,6 +468,7 @@ def test_system_prompt_is_cached_and_contains_rubric_case_examples(monkeypatch):
     assert "Auswahl und Kritikalität" in system and "## 2.5" in system
     assert "Beispielabgabe · tragfaehig" in system
     assert "Keine Punkte" in system and "Keine Musterlösung" in system
+    assert "Genau 2 Fragen unter \"zu_staerken\"" in system and "Genau 3 Fragen unter \"zu_schwaechen\"" in system
     user = build_user_prompt(rubric, _sub())
     assert B1_TEXT in user and "TP1-UEG07-SG3" in user
 
@@ -471,6 +484,25 @@ async def test_generator_valid_payload_splits_briefing_and_assessment(monkeypatc
     assert "kriterien" not in b1                 # intern bleibt intern
     assert result["assessment"]["baustein1"]["kriterien"][0]["niveau"] == "tragfaehig"
     assert result["assessment"]["baustein1"]["fehlende_kriterien"] == []
+    # Beispiel-Rückfragen je Gruppe: 2 an Stärken, 3 an Schwächen
+    q = result["briefing"]["rueckfragen"]
+    assert len(q["zu_staerken"]) == 2 and len(q["zu_schwaechen"]) == 3
+    assert q["zu_staerken"][0].startswith("Q1") and q["zu_schwaechen"][2].startswith("Q5")
+
+
+async def test_generator_flags_missing_questions_and_filters_them(monkeypatch):
+    payload = json.loads(_llm_payload())
+    payload["rueckfragen"] = {"zu_staerken": ["Q1: Nur eine?"],
+                              "zu_schwaechen": ["Q3: Woran?", "Die richtige Entscheidung wäre der Fachhandel gewesen?", "Q5: Wer?"]}
+    _mock_llm(monkeypatch, json.dumps(payload, ensure_ascii=False))
+    result = await BriefingGenerator("k").generate(briefing_id="b2", rubric=load_rubric(1), sub=_sub())
+    assert result["needs_human_review"] is True and "Rückfragen" in result["review_reason"]
+    q = result["briefing"]["rueckfragen"]
+    assert q["zu_schwaechen"][1] == guardrails.GUARDRAIL_PLACEHOLDER and "model_solution" in result["guardrail_hits"]
+    # Fallback ohne LLM-Antwort: leere Listen, kein Crash
+    _mock_llm(monkeypatch, "kein json")
+    result = await BriefingGenerator("k").generate(briefing_id="b3", rubric=load_rubric(1), sub=_sub())
+    assert result["briefing"]["rueckfragen"] == {"zu_staerken": [], "zu_schwaechen": []}
 
 
 async def test_generator_garbage_then_repair_then_fallback(monkeypatch):
@@ -519,151 +551,180 @@ def test_auth_fail_closed_and_wrong_key(client, monkeypatch):
     assert client.get("/briefings").status_code == 503
     monkeypatch.setenv("TOADAPT_API_KEY", API_KEY)
     assert client.get("/briefings", headers={"X-API-Key": "falsch"}).status_code == 401
+    # Identitäts-Header ohne Konto und ohne Master → 401
+    assert client.get("/briefings", headers={"X-API-Key": API_KEY, "X-Teacher-Id": "", "X-Teacher-Master": "0"}).status_code == 401
 
 
-def test_upload_requires_master(client, monkeypatch):
-    _mock_llm(monkeypatch, _llm_payload())
-    files = {"TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT)}
-    assert _upload(client, files, headers=_tutor_headers("UEG07")).status_code == 403
-    # Direkt mit API-Key ohne Identitäts-Header = Operator (Skript) → erlaubt
-    assert _upload(client, files, headers={"X-API-Key": API_KEY}).status_code == 202
-
-
-def test_upload_flow_visibility_docx_and_assessment(client, monkeypatch):
+def test_upload_by_tutor_visibility_by_uploader_docx_and_assessment(client, monkeypatch):
     _mock_llm(monkeypatch, _llm_payload())
     files = {
         "TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT),
         "TP1_UEG07_SG5.docx": _docx(["TP1-UEG07-SG5", "Baustein 1", B1_TEXT, "Baustein 2", B2_TEXT]),
-        "TP1_UEG08_SG1.pptx": _template_pptx(1, code="TP1-UEG08-SG1", b1=B1_TEXT, b2=B2_TEXT),
         "ohne_code.docx": _docx(["Baustein 1", B1_TEXT, "Baustein 2", B2_TEXT]),
         "kaputt.pdf": b"kein pdf",
     }
-    resp = _upload(client, files)
+    resp = _upload(client, files, headers=_tutor_headers("UEGL01"))
     assert resp.status_code == 202, resp.text
     body = resp.json()
-    assert body["status"] == "done" and body["total"] == 5 and body["processed"] == 5
-    assert body["briefed"] == 4 and body["failed"] == 1 and body["unassigned"] == 1
-    assert all("assessment" not in b for b in body["briefings"])
+    assert body["status"] == "done" and body["total"] == 4 and body["processed"] == 4
+    assert body["briefed"] == 2 and body["failed"] == 1 and body["unassigned"] == 1
+    assert body["tps"] == [1] and body["uploaded_by"] == "UEGL01"
+    assert all("assessment" not in b and "pending_submission" not in b for b in body["briefings"])
     by_name = {b["filename"]: b for b in body["briefings"]}
     assert by_name["TP1_UEG07_SG3.pptx"]["code"] == "TP1-UEG07-SG3"
+    assert by_name["TP1_UEG07_SG3.pptx"]["target_tp"] == 1     # vom Deckblatt, kein Auswahlfeld
     assert by_name["TP1_UEG07_SG3.pptx"]["formal"]["baustein1_within_limit"] is True
+    assert by_name["ohne_code.docx"]["status"] == "pending"      # Touchpoint unbekannt → wartet
     assert by_name["ohne_code.docx"]["needs_human_review"] is True
     assert by_name["kaputt.pdf"]["status"] == "extraction_failed"
 
-    # ÜGL UEG07 sieht nur die eigenen zwei Briefings
-    mine = client.get("/briefings", headers=_tutor_headers("UEG07")).json()
-    assert sorted(b["code"] for b in mine) == ["TP1-UEG07-SG3", "TP1-UEG07-SG5"]
-    assert client.get("/briefings", headers=_tutor_headers("UEG09")).json() == []
-    assert client.get("/briefings", headers=_tutor_headers("Tutor Ohne Nummer")).json() == []
-    # Master sieht alles (inkl. nicht zuordenbar + Extraktionsfehler)
+    # Zweiter Übungsgruppenleiter lädt eine andere Übungsgruppe hoch
+    other = _upload(client, {"TP1_UEG08_SG1.pptx": _template_pptx(1, code="TP1-UEG08-SG1", b1=B1_TEXT, b2=B2_TEXT)},
+                    headers=_tutor_headers("UEGL02")).json()
+    foreign = other["briefings"][0]["briefing_id"]
+
+    # Sichtbarkeit: jeder sieht nur seine eigenen Uploads, der Master alles
+    mine = client.get("/briefings", headers=_tutor_headers("UEGL01")).json()
+    assert len(mine) == 4 and {b["uploaded_by"] for b in mine} == {"UEGL01"}
+    assert [b["code"] for b in client.get("/briefings", headers=_tutor_headers("UEGL02")).json()] == ["TP1-UEG08-SG1"]
+    assert client.get("/briefings", headers=_tutor_headers("UEGL03")).json() == []
     assert len(client.get("/briefings", headers=_master_headers()).json()) == 5
+    assert len(client.get("/briefings?tutor=UEGL02", headers=_master_headers()).json()) == 1
+    assert client.get(f"/briefings/{foreign}", headers=_tutor_headers("UEGL01")).status_code == 404
+    assert client.get(f"/briefings/{foreign}", headers=_tutor_headers("UEGL02")).status_code == 200
 
-    # Übersicht: UEG07 hat 2 von 8, fehlende Stammgruppen gelistet
-    overview = client.get("/briefings/overview?tp=1", headers=_tutor_headers("UEG07")).json()
-    assert len(overview) == 1 and overview[0]["ueg"] == "UEG07"
-    assert overview[0]["missing_groups"] == [1, 2, 4, 6, 7, 8]
-
-    # Einzel-Briefing: fremde ÜGL bekommt 404, interne Einstufung nur Master
-    foreign = by_name["TP1_UEG08_SG1.pptx"]["briefing_id"]
-    assert client.get(f"/briefings/{foreign}", headers=_tutor_headers("UEG07")).status_code == 404
-    assert client.get(f"/briefings/{foreign}/assessment", headers=_tutor_headers("UEG08")).status_code == 403
+    # Interne Einstufung nur Master
+    assert client.get(f"/briefings/{foreign}/assessment", headers=_tutor_headers("UEGL02")).status_code == 403
     assessment = client.get(f"/briefings/{foreign}/assessment", headers=_master_headers()).json()
-    assert assessment["assessment"]["baustein1"]["kriterien"]
+    assert assessment["assessment"]["baustein1"]["kriterien"] and assessment["uploaded_by"] == "UEGL02"
 
-    # DOCX-Bundle für die eigene Übungsgruppe: echtes DOCX, ohne Punkte/Stufen
-    docx_resp = client.get("/briefings/docx?tp=1", headers=_tutor_headers("UEG07"))
+    # Übersicht: keine Annahme über die Anzahl Stammgruppen
+    overview = client.get("/briefings/overview?tp=1", headers=_tutor_headers("UEGL01")).json()
+    assert overview == [{"target_tp": 1, "ueg": "UEG07", "briefed_count": 2, "review_count": 0,
+                         "groups": [3, 5], "latest_uploaded_at": overview[0]["latest_uploaded_at"]}]
+
+    # DOCX-Bundle für eigene Uploads: echtes DOCX, ohne Punkte/Stufen, ohne "fehlende Gruppen"
+    docx_resp = client.get("/briefings/docx?tp=1", headers=_tutor_headers("UEGL01"))
     assert docx_resp.status_code == 200
     assert docx_resp.headers["content-type"].startswith("application/vnd.openxmlformats")
     assert "KI-Briefing_TP1_UEG07.docx" in docx_resp.headers["content-disposition"]
-    doc = Document(io.BytesIO(docx_resp.content))
-    text = "\n".join(p.text for p in doc.paragraphs) + "\n".join(
-        c.text for t in doc.tables for r in t.rows for c in r.cells
-    )
+    text = _docx_text(docx_resp.content)
     assert "Stammgruppe SG3" in text and "Stammgruppe SG5" in text
-    assert "Keine Abgabe eingegangen: SG1, SG2, SG4, SG6, SG7, SG8" in text
+    assert "Keine Abgabe eingegangen" not in text
     assert "B1: Die Gruppe hat sich" in text
+    assert "Beispiel-Rückfragen an die Gruppe" in text and "Q1: Was müsste eintreten" in text and "Q5: Wer trägt" in text
     lowered = text.lower()
     assert "tragfaehig" not in lowered and "niveau" not in lowered and "punkte von" not in lowered
     assert "Weil." not in text  # interne Kriterien-Begründung bleibt intern
-    # Master braucht ueg; fremde ÜGL bekommt für UEG08 nichts über tp-Filter hinaus
+    # Master braucht das Konto, dessen Dokumente er lädt
     assert client.get("/briefings/docx?tp=1", headers=_master_headers()).status_code == 422
-    assert client.get("/briefings/docx?tp=1&ueg=8", headers=_master_headers()).status_code == 200
+    assert client.get("/briefings/docx?tp=1&tutor=UEGL02", headers=_master_headers()).status_code == 200
+    assert client.get("/briefings/docx?tp=1", headers=_tutor_headers("UEGL03")).status_code == 404
     single = client.get(f"/briefings/{foreign}/docx", headers=_master_headers())
     assert single.status_code == 200 and "TP1-UEG08-SG1" in single.headers["content-disposition"]
+    assert client.get(f"/briefings/{foreign}/docx", headers=_tutor_headers("UEGL01")).status_code == 404
 
-    # Manuelle Zuordnung des Datensatzes ohne Code
-    unassigned = by_name["ohne_code.docx"]["briefing_id"]
-    assert client.patch(f"/briefings/{unassigned}", json={"ueg": "7", "sg": 2}, headers=_tutor_headers("UEG07")).status_code == 403
-    patched = client.patch(f"/briefings/{unassigned}", json={"ueg": "7", "sg": 2}, headers=_master_headers())
-    assert patched.status_code == 200 and patched.json()["code"] == "TP1-UEG07-SG2"
-    assert patched.json()["needs_human_review"] is False
-    mine = client.get("/briefings?tp=1", headers=_tutor_headers("UEG07")).json()
-    assert sorted(b["code"] for b in mine) == ["TP1-UEG07-SG2", "TP1-UEG07-SG3", "TP1-UEG07-SG5"]
+    # Download-Protokoll → Monitoring (nur Master)
+    assert client.get("/briefings/monitoring", headers=_tutor_headers("UEGL01")).status_code == 403
+    mon = client.get("/briefings/monitoring", headers=_master_headers()).json()
+    rows = {r["account"]: r for r in mon["accounts"]}
+    assert [r["account"] for r in mon["accounts"]][:27] == [f"UEGL{i:02d}" for i in range(0, 27)]
+    assert rows["UEGL01"]["upload_count"] == 4 and rows["UEGL01"]["review_open"] == 2
+    assert rows["UEGL01"]["last_download_at"] is not None
+    assert rows["UEGL02"]["upload_count"] == 1 and rows["UEGL02"]["last_download_at"] is None
+    assert rows["UEGL03"]["upload_count"] == 0 and rows["UEGL03"]["password_set"] is False
+    tp1 = next(t for t in rows["UEGL01"]["touchpoints"] if t["target_tp"] == 1)
+    assert tp1["last_download_briefing_at"] and tp1["last_download_feedback_at"] is None
+    assert sorted(g["code"] for g in tp1["groups"] if g["code"]) == ["TP1-UEG07-SG3", "TP1-UEG07-SG5"]
+    # Master-Download für ein Konto taucht beim Master auf, nicht beim Konto
+    assert rows["master"]["last_download_at"] is not None
 
 
-def test_tutor_with_multiple_uegs_sees_all_and_gets_zip(client, monkeypatch):
-    """Eine ÜGL führt mehrere Übungsgruppen: Kennung 'UEG07+UEG12'."""
-    import backend.briefings.routes as routes_module
+def test_pending_without_touchpoint_then_assignment_generates(client, monkeypatch):
+    calls = _mock_llm(monkeypatch, _llm_payload())
+    body = _upload(client, {"abgabe.docx": _docx(["Baustein 1", B1_TEXT, "Baustein 2", B2_TEXT])}).json()
+    rec = body["briefings"][0]
+    assert rec["status"] == "pending" and rec["target_tp"] == 0 and rec["briefing"] == {}
+    assert len(calls) == 0                                  # ohne Touchpoint kein LLM-Call
+    bid = rec["briefing_id"]
+    # Kein Briefing-Download für pending
+    assert client.get(f"/briefings/{bid}/docx", headers=_tutor_headers("UEGL01")).status_code == 404
+    # Fremder darf nicht zuordnen, Eigentümer schon
+    assert client.patch(f"/briefings/{bid}", json={"target_tp": 1, "ueg": "7", "sg": 2},
+                        headers=_tutor_headers("UEGL02")).status_code == 404
+    assert client.patch(f"/briefings/{bid}", json={}, headers=_tutor_headers("UEGL01")).status_code == 422
+    patched = client.patch(f"/briefings/{bid}", json={"target_tp": 1, "ueg": "7", "sg": 2},
+                           headers=_tutor_headers("UEGL01"))
+    assert patched.status_code == 200, patched.text
+    data = patched.json()
+    assert data["status"] == "briefed" and data["code"] == "TP1-UEG07-SG2" and data["code_source"] == "manual"
+    assert data["needs_human_review"] is False and data["briefing"]["baustein1"]["kernposition"]
+    assert data["feedback_status"] == "ok" and len(calls) == 2
+    assert client.get(f"/briefings/{bid}/docx", headers=_tutor_headers("UEGL01")).status_code == 200
 
+    # Nur Übungsgruppe/Stammgruppe nachtragen (Touchpoint war erkannt)
+    body = _upload(client, {"TP1_ohne_gruppe.docx": _docx(["Touchpoint 1", "Baustein 1", B1_TEXT, "Baustein 2", B2_TEXT])}).json()
+    rec = body["briefings"][0]
+    assert rec["status"] == "pending"    # Dateiname ohne vollständigen Code → auch Touchpoint fehlt
+    body = _upload(client, {"TP1_UEG07_SG7.docx": _docx(["Baustein 1", B1_TEXT, "Baustein 2", B2_TEXT])}).json()
+    rec = body["briefings"][0]
+    assert rec["status"] == "briefed" and rec["code"] == "TP1-UEG07-SG7" and rec["code_source"] == "filename"
+    fixed = client.patch(f"/briefings/{rec['briefing_id']}", json={"sg": 4}, headers=_tutor_headers("UEGL01")).json()
+    assert fixed["code"] == "TP1-UEG07-SG4" and fixed["target_tp"] == 1 and fixed["status"] == "briefed"
+    # Touchpoint nachträglich ändern → Hinweis + Prüfen, Briefing bleibt
+    changed = client.patch(f"/briefings/{rec['briefing_id']}", json={"target_tp": 2}, headers=_tutor_headers("UEGL01")).json()
+    assert changed["target_tp"] == 2 and changed["code"] == "TP2-UEG07-SG4" and changed["needs_human_review"] is True
+    assert "Touchpoint von 1 auf 2" in changed["review_reason"]
+
+
+def test_multiple_uegs_of_one_tutor_bundle_zip_and_feedback(client, monkeypatch):
     _mock_llm(monkeypatch, _llm_payload())
-    monkeypatch.setattr(routes_module, "feedback_released", lambda tp: True)
     files = {
         "TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT),
         "TP1_UEG12_SG1.pptx": _template_pptx(1, code="TP1-UEG12-SG1", b1=B1_TEXT, b2=B2_TEXT),
-        "TP1_UEG09_SG2.pptx": _template_pptx(1, code="TP1-UEG09-SG2", b1=B1_TEXT, b2=B2_TEXT),
     }
-    assert _upload(client, files).status_code == 202
-    multi = _tutor_headers("UEG07+UEG12")
-    assert parse_uegs("UEG07+UEG12") == ["UEG07", "UEG12"]
-    assert parse_uegs("7, 12") == ["UEG07", "UEG12"] and parse_uegs("master") == []
-
-    mine = client.get("/briefings?tp=1", headers=multi).json()
-    assert sorted(b["ueg"] for b in mine) == ["UEG07", "UEG12"]
-    assert [b["ueg"] for b in client.get("/briefings?tp=1&ueg=12", headers=multi).json()] == ["UEG12"]
-    overview = client.get("/briefings/overview?tp=1", headers=multi).json()
-    assert sorted(o["ueg"] for o in overview) == ["UEG07", "UEG12"]
-
-    # Ohne ueg: ZIP mit einem einheitlichen Briefing-DOCX je Übungsgruppe
-    bundle = client.get("/briefings/docx?tp=1", headers=multi)
+    assert _upload(client, files, headers=_tutor_headers("UEGL05")).status_code == 202
+    me = _tutor_headers("UEGL05")
+    assert sorted(b["ueg"] for b in client.get("/briefings?tp=1", headers=me).json()) == ["UEG07", "UEG12"]
+    # Ohne ueg: ZIP mit einem Briefing-DOCX je Übungsgruppe
+    bundle = client.get("/briefings/docx?tp=1", headers=me)
     assert bundle.status_code == 200 and bundle.headers["content-type"] == "application/zip"
-    names = sorted(zipfile.ZipFile(io.BytesIO(bundle.content)).namelist())
-    assert names == ["KI-Briefing_TP1_UEG07.docx", "KI-Briefing_TP1_UEG12.docx"]
-    # Mit ueg: einzelnes DOCX; fremde Übungsgruppe → 403
-    single = client.get("/briefings/docx?tp=1&ueg=UEG12", headers=multi)
+    assert sorted(zipfile.ZipFile(io.BytesIO(bundle.content)).namelist()) == [
+        "KI-Briefing_TP1_UEG07.docx", "KI-Briefing_TP1_UEG12.docx",
+    ]
+    single = client.get("/briefings/docx?tp=1&ueg=UEG12", headers=me)
     assert single.status_code == 200 and single.headers["content-type"].startswith("application/vnd")
-    assert client.get("/briefings/docx?tp=1&ueg=UEG09", headers=multi).status_code == 403
-    foreign_id = next(b["briefing_id"] for b in client.get("/briefings", headers=_master_headers()).json() if b["ueg"] == "UEG09")
-    assert client.get(f"/briefings/{foreign_id}", headers=multi).status_code == 404
-
+    assert client.get("/briefings/docx?tp=1&ueg=UEG09", headers=me).status_code == 404
     # Feedback-ZIP über beide Übungsgruppen, nach Übungsgruppe in Ordnern
-    fb = client.get("/briefings/feedback/zip?tp=1", headers=multi)
+    fb = client.get("/briefings/feedback/zip?tp=1", headers=me)
     assert fb.status_code == 200
     assert sorted(zipfile.ZipFile(io.BytesIO(fb.content)).namelist()) == [
         "UEG07/KI-Feedback_TP1-UEG07-SG3.docx", "UEG12/KI-Feedback_TP1-UEG12-SG1.docx",
     ]
-    # Einzelne Übungsgruppe (Kennung mit genau einer UEG) bleibt wie bisher: DOCX direkt
-    one = client.get("/briefings/docx?tp=1", headers=_tutor_headers("UEG07"))
-    assert one.status_code == 200 and one.headers["content-type"].startswith("application/vnd")
+    # Master lädt dieselben Dokumente über das Konto
+    assert client.get("/briefings/feedback/zip?tp=1&tutor=UEGL05", headers=_master_headers()).status_code == 200
+    assert client.get("/briefings/feedback/zip?tp=1", headers=_master_headers()).status_code == 422
 
 
-def test_reupload_same_group_latest_wins(client, monkeypatch):
+def test_reupload_same_group_latest_wins_per_tutor(client, monkeypatch):
     _mock_llm(monkeypatch, _llm_payload())
     files = {"TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT)}
     first = _upload(client, files).json()["briefings"][0]["briefing_id"]
     second = _upload(client, files).json()["briefings"][0]["briefing_id"]
-    listed = client.get("/briefings?tp=1", headers=_tutor_headers("UEG07")).json()
-    assert [b["briefing_id"] for b in listed] == [second]
-    assert first != second
+    listed = client.get("/briefings?tp=1", headers=_tutor_headers("UEGL01")).json()
+    assert [b["briefing_id"] for b in listed] == [second] and first != second
+    # Dieselbe Gruppe von einem anderen Konto: beide bleiben, der Master sieht beide
+    third = _upload(client, files, headers=_tutor_headers("UEGL02")).json()["briefings"][0]["briefing_id"]
+    assert [b["briefing_id"] for b in client.get("/briefings?tp=1", headers=_tutor_headers("UEGL02")).json()] == [third]
+    assert sorted(b["briefing_id"] for b in client.get("/briefings?tp=1", headers=_master_headers()).json()) == sorted([second, third])
 
 
-def test_upload_rejects_bad_tp_and_bad_zip(client, monkeypatch):
+def test_upload_rejects_bad_zip(client, monkeypatch):
     _mock_llm(monkeypatch, _llm_payload())
-    assert _upload(client, {"a.docx": _docx(["x"])}, tp=6).status_code == 422
     resp = client.post(
         "/briefings/upload",
         files={"file": ("x.zip", b"kein zip", "application/zip")},
-        data={"target_tp": "1"},
-        headers=_master_headers(),
+        headers=_tutor_headers("UEGL01"),
     )
     assert resp.status_code == 400
 
@@ -682,27 +743,29 @@ def test_async_upload_returns_running_batch_and_finishes(client, monkeypatch):
     # Hintergrund-Task braucht einen persistenten Event-Loop → TestClient als
     # Kontextmanager (ausserhalb des with-Blocks stirbt der Loop pro Request).
     with TestClient(app) as running:
-        resp = _upload(running, files, sync=False)
+        resp = _upload(running, files, sync=False, headers=_tutor_headers("UEGL07"))
         assert resp.status_code == 202
         body = resp.json()
         assert body["status"] in ("running", "done") and body["total"] == 1 and body["briefings"] == []
         batch_id = body["batch_id"]
         status = body
         for _ in range(100):
-            status = running.get(f"/briefings/batches/{batch_id}", headers=_master_headers()).json()
+            status = running.get(f"/briefings/batches/{batch_id}", headers=_tutor_headers("UEGL07")).json()
             if status["status"] == "done":
                 break
             time.sleep(0.05)
         assert status["status"] == "done" and status["processed"] == 1 and status["briefed"] == 1
-        assert status["stale"] is False
-        listed = running.get("/briefings/batches?tp=1", headers=_master_headers()).json()
-        assert [b["batch_id"] for b in listed] == [batch_id]
-        assert running.get("/briefings/batches", headers=_tutor_headers("UEG07")).status_code == 403
-        assert running.get("/briefings?tp=1", headers=_tutor_headers("UEG07")).json()[0]["code"] == "TP1-UEG07-SG3"
+        assert status["stale"] is False and status["tps"] == [1]
+        # Eigene Batches sichtbar, fremde nicht; Master sieht alle
+        assert [b["batch_id"] for b in running.get("/briefings/batches", headers=_tutor_headers("UEGL07")).json()] == [batch_id]
+        assert running.get("/briefings/batches", headers=_tutor_headers("UEGL08")).json() == []
+        assert running.get(f"/briefings/batches/{batch_id}", headers=_tutor_headers("UEGL08")).status_code == 404
+        assert [b["batch_id"] for b in running.get("/briefings/batches", headers=_master_headers()).json()] == [batch_id]
+        assert running.get("/briefings?tp=1", headers=_tutor_headers("UEGL07")).json()[0]["code"] == "TP1-UEG07-SG3"
 
 
 def test_stale_batch_flag():
-    batch = new_batch(batch_id="b", target_tp=1, total=3, uploaded_by=None, filename="x.zip")
+    batch = new_batch(batch_id="b", target_tp=0, total=3, uploaded_by=None, filename="x.zip")
     assert is_stale(batch) is False
     batch["updated_at"] = (naive_utcnow() - timedelta(hours=1)).isoformat()
     assert is_stale(batch) is True
@@ -713,13 +776,17 @@ def test_stale_batch_flag():
 def test_upload_token_auth(client, monkeypatch):
     _mock_llm(monkeypatch, _llm_payload())
     files = {"TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT)}
-    token = sign_upload_token(tutor="master", master=True)
+    # Jeder eingeloggte Übungsgruppenleiter bekommt ein Token
+    token = sign_upload_token(tutor="UEGL05", master=False)
     resp = _upload(client, files, headers={"X-Upload-Token": token})
-    assert resp.status_code == 202 and resp.json()["uploaded_by"] == "master"
-    # Nicht-Master-Token, manipuliertes Token, abgelaufenes Token, fehlendes Token
-    assert _upload(client, files, headers={"X-Upload-Token": sign_upload_token(tutor="UEG07", master=False)}).status_code == 401
+    assert resp.status_code == 202 and resp.json()["uploaded_by"] == "UEGL05"
+    assert client.get("/briefings", headers=_tutor_headers("UEGL05")).json()[0]["uploaded_by"] == "UEGL05"
+    master = sign_upload_token(tutor="master", master=True)
+    assert _upload(client, files, headers={"X-Upload-Token": master}).json()["uploaded_by"] == "master"
+    # Token ohne Konto, manipuliertes Token, abgelaufenes Token, fehlendes Token
+    assert _upload(client, files, headers={"X-Upload-Token": sign_upload_token(tutor="", master=False)}).status_code == 401
     assert _upload(client, files, headers={"X-Upload-Token": token[:-3] + "abc"}).status_code == 401
-    expired = sign_upload_token(tutor="master", master=True, ttl_seconds=-120)
+    expired = sign_upload_token(tutor="UEGL05", master=False, ttl_seconds=-120)
     assert _upload(client, files, headers={"X-Upload-Token": expired}).status_code == 401
     assert _upload(client, files, headers={"X-Nothing": "1"}).status_code == 401
     # Token nur auf der Upload-Route gültig — Lese-Routen verlangen den API-Key
@@ -731,8 +798,8 @@ def test_upload_token_auth(client, monkeypatch):
 
 def test_verify_upload_token_roundtrip(monkeypatch):
     monkeypatch.setenv("TOADAPT_API_KEY", API_KEY)
-    payload = verify_upload_token(sign_upload_token(tutor="master", master=True, jti="j-1"))
-    assert payload["tutor"] == "master" and payload["jti"] == "j-1"
+    payload = verify_upload_token(sign_upload_token(tutor="UEGL03", master=False, jti="j-1"))
+    assert payload["tutor"] == "UEGL03" and payload["jti"] == "j-1"
     with pytest.raises(UploadTokenError):
         verify_upload_token("kaputt")
     token = sign_upload_token(tutor="master", master=True)
@@ -742,23 +809,8 @@ def test_verify_upload_token_roundtrip(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Produkt 2: KI-Feedback (Freigabe erst nach dem Termin)
+# Produkt 2: KI-Feedback (sofort verfügbar — keine Sperre)
 # ---------------------------------------------------------------------------
-
-def test_feedback_gate_off_by_default(monkeypatch):
-    monkeypatch.delenv("FEEDBACK_RELEASE_GATE", raising=False)
-    assert feedback_released(1, today=date(2026, 9, 1)) is True
-    monkeypatch.setenv("FEEDBACK_RELEASE_GATE", "1")
-    assert feedback_released(1, today=date(2026, 9, 1)) is False
-
-
-def test_feedback_release_date_is_day_after_termin(monkeypatch):
-    monkeypatch.setenv("FEEDBACK_RELEASE_GATE", "1")
-    assert feedback_release_date(1) == date(2026, 10, 3)
-    assert feedback_released(1, today=date(2026, 10, 2)) is False
-    assert feedback_released(1, today=date(2026, 10, 3)) is True
-    assert feedback_release_date(9) is None and feedback_released(9) is False
-
 
 async def test_feedback_generator_valid_and_guardrail(monkeypatch):
     _mock_llm(monkeypatch, _llm_payload())
@@ -793,51 +845,43 @@ def test_feedback_prompt_contains_anchor_and_assessment():
     assert "Erläuterung: tragfaehig" in user
 
 
-def test_feedback_gating_and_downloads(client, monkeypatch):
-    import backend.briefings.routes as routes_module
-
+def test_feedback_downloads_immediately_available(client, monkeypatch):
     _mock_llm(monkeypatch, _llm_payload())
     files = {
         "TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT),
         "TP1_UEG07_SG5.pptx": _template_pptx(1, code="TP1-UEG07-SG5", b1=B1_TEXT, b2=B2_TEXT),
     }
-    # Vor dem Termin
-    monkeypatch.setattr(routes_module, "feedback_released", lambda tp: False)
     body = _upload(client, files).json()
     rec = body["briefings"][0]
-    assert rec["feedback_status"] == "ok" and rec["feedback_released"] is False
-    assert rec["feedback_available_from"] == "2026-10-03"
-    assert rec["feedback"]["baustein1"]["was_traegt"].startswith("F1")   # Master sieht Inhalt
+    assert rec["feedback_status"] == "ok" and rec["feedback"]["baustein1"]["was_traegt"].startswith("F1")
+    assert "feedback_released" not in rec and "feedback_available_from" not in rec
     bid = rec["briefing_id"]
-    mine = client.get("/briefings?tp=1", headers=_tutor_headers("UEG07")).json()
-    assert all(b["feedback"] == {} for b in mine)                          # ÜGL nicht vor Freigabe
-    assert client.get(f"/briefings/{bid}/feedback/docx", headers=_tutor_headers("UEG07")).status_code == 423
-    assert client.get("/briefings/feedback/zip?tp=1", headers=_tutor_headers("UEG07")).status_code == 423
-    assert client.get(f"/briefings/{bid}/feedback/docx?force=1", headers=_tutor_headers("UEG07")).status_code == 423
-    forced = client.get(f"/briefings/{bid}/feedback/docx?force=1", headers=_master_headers())
-    assert forced.status_code == 200                                        # Master-QS, geloggt
-
-    # Nach dem Termin
-    monkeypatch.setattr(routes_module, "feedback_released", lambda tp: True)
-    mine = client.get("/briefings?tp=1", headers=_tutor_headers("UEG07")).json()
-    assert all(b["feedback_released"] and b["feedback"]["feed_forward"] for b in mine)
-    single = client.get(f"/briefings/{bid}/feedback/docx", headers=_tutor_headers("UEG07"))
+    mine = client.get("/briefings?tp=1", headers=_tutor_headers("UEGL01")).json()
+    assert all(b["feedback"]["feed_forward"] for b in mine)
+    single = client.get(f"/briefings/{bid}/feedback/docx", headers=_tutor_headers("UEGL01"))
     assert single.status_code == 200 and "KI-Feedback_TP1-UEG07-SG3.docx" in single.headers["content-disposition"]
-    doc = Document(io.BytesIO(single.content))
-    text = "\n".join(p.text for p in doc.paragraphs)
+    text = _docx_text(single.content)
     assert "Stammgruppe SG3" in text and "Was trägt:" in text and "Nächster Schritt:" in text
     assert "Ausblick" in text and "In Touchpoint 2" in text
     lowered = text.lower()
     assert "tragfaehig" not in lowered and "niveau" not in lowered and "punkte von" not in lowered
     assert "Formale Vorprüfung" not in text and "Kernposition" not in text   # kein Briefing-Inhalt
 
-    bundle = client.get("/briefings/feedback/zip?tp=1", headers=_tutor_headers("UEG07"))
+    bundle = client.get("/briefings/feedback/zip?tp=1", headers=_tutor_headers("UEGL01"))
     assert bundle.status_code == 200 and bundle.headers["content-type"] == "application/zip"
     names = sorted(zipfile.ZipFile(io.BytesIO(bundle.content)).namelist())
     assert names == ["KI-Feedback_TP1-UEG07-SG3.docx", "KI-Feedback_TP1-UEG07-SG5.docx"]
-    assert client.get("/briefings/feedback/zip?tp=1", headers=_tutor_headers("UEG08")).status_code == 404
+    assert client.get(f"/briefings/{bid}/feedback/docx", headers=_tutor_headers("UEGL02")).status_code == 404
+    assert client.get("/briefings/feedback/zip?tp=1", headers=_tutor_headers("UEGL02")).status_code == 404
     assert client.get("/briefings/feedback/zip?tp=1", headers=_master_headers()).status_code == 422
-    assert client.get("/briefings/feedback/zip?tp=1&ueg=7", headers=_master_headers()).status_code == 200
+    assert client.get("/briefings/feedback/zip?tp=1&tutor=UEGL01", headers=_master_headers()).status_code == 200
+
+    # Download-Protokoll: Art und Umfang, keine Inhalte
+    events = download_log_module.download_log.load_all()
+    assert sorted((e["tutor"], e["kind"], e["scope"]) for e in events) == [
+        ("UEGL01", "feedback", "bundle"), ("UEGL01", "feedback", "single"), ("master", "feedback", "bundle"),
+    ]
+    assert all(set(e) <= {"download_id", "tutor", "target_tp", "kind", "scope", "code", "briefing_id", "at"} for e in events)
 
 
 def test_pilot_tutor_only_blocks_student_api_and_generator(client, monkeypatch):
@@ -847,7 +891,7 @@ def test_pilot_tutor_only_blocks_student_api_and_generator(client, monkeypatch):
     assert client.post("/admin/cases/generate", json={"industry": "x", "country": "y", "target_tp": 1},
                        headers=_master_headers()).status_code == 503
     # Tutor-Pipeline bleibt offen
-    assert client.get("/briefings", headers=_tutor_headers("UEG07")).status_code == 200
+    assert client.get("/briefings", headers=_tutor_headers("UEGL01")).status_code == 200
     monkeypatch.setenv("PILOT_TUTOR_ONLY", "0")
     assert client.get("/tp").status_code == 200
 

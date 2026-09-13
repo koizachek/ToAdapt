@@ -9,23 +9,12 @@ import { verifyTeacherSessionPayload, TEACHER_COOKIE } from '@/lib/teacherAuth'
 const BACKEND =
   process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-// Diese Backend-Pfade sind dem Master-Tutor vorbehalten (signiertes
-// Master-Flag in der Session). Das Backend prüft dasselbe noch einmal über
-// den Header X-Teacher-Master — der Proxy ist die erste, nicht die einzige
-// Verteidigungslinie.
-const MASTER_ONLY_PATHS = ['briefings/upload']
-
 async function proxy(request: NextRequest, path: string[]): Promise<NextResponse> {
   const token = request.cookies.get(TEACHER_COOKIE)?.value
   const session = await verifyTeacherSessionPayload(token)
   if (!session) {
     return NextResponse.json({ detail: 'Nicht autorisiert' }, { status: 401 })
   }
-  const joined = path.join('/')
-  if (MASTER_ONLY_PATHS.some(p => joined === p || joined.startsWith(p + '/')) && !session.master) {
-    return NextResponse.json({ detail: 'Nur für den Master-Tutor' }, { status: 403 })
-  }
-
   const apiKey = process.env.TOADAPT_API_KEY
   if (!apiKey) {
     return NextResponse.json({ detail: 'Backend-Auth nicht konfiguriert' }, { status: 503 })
@@ -46,10 +35,10 @@ async function proxy(request: NextRequest, path: string[]): Promise<NextResponse
   if (session.jti) {
     headers['X-Teacher-Session'] = session.jti
   }
-  // Verifizierte Tutor-Identität für die Sichtbarkeitsregeln des Backends
-  // (KI-Briefings: ÜGL sieht nur die eigene Übungsgruppe, Master alles).
-  // Kennung-Konvention: TEACHER_ACCESS_CODES-Schlüssel = Übungsgruppe(n),
-  // z.B. UEG07 oder UEG07+UEG12 (eine ÜGL kann mehrere Übungsgruppen führen).
+  // Verifizierte Identität für die Sichtbarkeitsregeln des Backends: Jeder
+  // Übungsgruppenleiter (Konto UEGL01–UEGL26) sieht nur, was er selbst
+  // hochgeladen hat; der Master (X-Teacher-Master=1) sieht alles und das
+  // Monitoring. Master-Routen prüft das Backend über diesen Header.
   headers['X-Teacher-Id'] = session.tutor
   headers['X-Teacher-Master'] = session.master ? '1' : '0'
 

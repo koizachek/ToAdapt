@@ -1,26 +1,34 @@
-"""Routen der KI-Briefings: Master-Upload, Abruf, DOCX-Download.
+"""Routen der KI-Briefings: Upload je Übungsgruppenleiter, Abruf, DOCX-Download, Monitoring.
 
-Auth-Kette: Router-weit ``require_api_key`` (fail-closed, 503 ohne Key) +
+Rollen (Owner-Entscheidung 2026-09-13):
+- Jeder eingeloggte Übungsgruppenleiter (Konto UEGL01–UEGL26) lädt eine
+  ZIP-Datei mit den Einreichungen SEINER Gruppen hoch und lädt die
+  erzeugten Briefings und Feedbacks herunter. Er sieht genau das, was er
+  selbst hochgeladen hat — die Zugehörigkeit entsteht durch den Upload,
+  nicht durch eine Namensregel.
+- Der Master darf dasselbe und sieht zusätzlich alles: Monitoring je Konto
+  (wer hat wann was hoch- und heruntergeladen), interne Einstufung, alle
+  Dokumente.
+- Touchpoint, Übungsgruppe und Stammgruppe kommen vom Deckblatt der Datei
+  (Code ``TPn-UEGxx-SGy``). Kein Auswahlfeld beim Upload. Ist etwas nicht
+  erkennbar, wird die Datei als "bitte zuordnen" markiert und der
+  Übungsgruppenleiter trägt die Angaben nach.
+
+Auth-Kette: Router-weit ``require_api_key`` (fail-closed) +
 ``reject_revoked_teacher_session``. Der Browser erreicht diese Routen nur
 über den Teacher-Proxy des Frontends, der den X-API-Key server-seitig
-ergänzt und die verifizierte Tutor-Identität als Header mitschickt:
+ergänzt und die verifizierte Identität als Header mitschickt:
+``X-Teacher-Id`` (Konto) und ``X-Teacher-Master`` (``1`` nur für den
+Master). Requests OHNE Identitäts-Header (Skripte direkt mit API-Key)
+gelten als Operator (= Master). Der Upload akzeptiert alternativ ein
+kurzlebiges Upload-Token (Direkt-Upload aus dem Browser, Vercel-Body-Limit).
 
-- ``X-Teacher-Id``     — Tutor-Kennung aus der signierten Session
-                         (Konvention: Kennung nennt die Übungsgruppe(n),
-                         z.B. ``UEG07`` oder ``UEG07+UEG12`` — eine ÜGL kann
-                         mehrere Übungsgruppen führen; ``parse_uegs``)
-- ``X-Teacher-Master`` — ``1`` nur für den Master-Tutor
-
-Sichtbarkeit: Der Master sieht alles (inkl. interner Einstufung). Eine
-reguläre ÜGL sieht nur die Briefings ihrer eigenen Übungsgruppen — und nie
-die interne Kriterien-Einstufung. Requests OHNE Identitäts-Header (Skripte
-direkt mit API-Key) gelten als Operator (= Master), analog zur
-jti-Sperrliste, deren Header ebenfalls nur der Proxy setzt.
-
-Es werden KEINE hochgeladenen Dateien persistiert — nur der extrahierte
-Text wird verdichtet und verworfen; gespeichert wird das Briefing, die
-formale Vorprüfung und die interne Einstufung. Mitgliedernamen vom
-Deckblatt werden nie übernommen.
+Es werden KEINE hochgeladenen Dateien persistiert. Nur der extrahierte Text
+wird verdichtet und verworfen; gespeichert werden Briefing, Feedback,
+formale Vorprüfung und interne Einstufung. Einzige Ausnahme: Ist der
+Touchpoint nicht erkennbar, bleibt der extrahierte Text (ohne Namen) bis
+zur Zuordnung im Datensatz, damit die Auswertung nachgeholt werden kann.
+Mitgliedernamen vom Deckblatt werden nie übernommen.
 """
 
 from __future__ import annotations
@@ -29,7 +37,7 @@ import asyncio
 import io
 import uuid
 import zipfile
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 import structlog
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
@@ -46,24 +54,22 @@ from backend.briefings.batches import (
 )
 from backend.briefings.docx_render import render_briefing_docx, render_feedback_docx
 from backend.briefings.extraction import (
+    ExtractedSubmission,
+    Kenndaten,
     ZipValidationError,
     build_code,
     extract_submission,
     iter_submission_entries,
     normalize_ueg,
-    parse_uegs,
 )
 from backend.briefings.formal import formal_checks
 from backend.briefings.generator import FeedbackGenerator
-from backend.briefings.rubrics import (
-    SUPPORTED_TPS,
-    BriefingRubric,
-    feedback_release_date,
-    feedback_released,
-    load_rubric,
-)
+from backend.briefings.rubrics import SUPPORTED_TPS, BriefingRubric, load_rubric
 from backend.briefings.upload_token import UPLOAD_TOKEN_HEADER, UploadTokenError, verify_upload_token
+from backend.config.tutor_accounts import MASTER_ACCOUNT, TUTOR_ACCOUNTS
 from backend.db.briefing_store import briefing_store
+from backend.db.download_log import download_log
+from backend.db.tutor_account_store import tutor_account_store
 from backend.llm import get_openrouter_key
 from backend.timeutils import naive_utcnow
 
@@ -77,12 +83,16 @@ router = APIRouter(
 
 MAX_UPLOAD_BYTES = 400 * 1024 * 1024   # ZIP-Rohgrösse (komprimiert)
 UPLOAD_CONCURRENCY = 8                  # gleichzeitig entpackte + verdichtete Dateien
-STAMMGRUPPEN = range(1, 9)
+OPERATOR_LABEL = "operator"             # Uploads/Downloads per Skript ohne Identitäts-Header
 
 TEACHER_ID_HEADER = "X-Teacher-Id"
 TEACHER_MASTER_HEADER = "X-Teacher-Master"
 
 DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+STATUS_PENDING = "pending"                       # Touchpoint nicht erkennbar → wartet auf Zuordnung
+PENDING_REASON = "Touchpoint nicht erkennbar — bitte zuordnen, dann wird die Auswertung erstellt."
+ASSIGN_REASON = "Übungsgruppe/Stammgruppe nicht erkennbar — bitte zuordnen."
 
 
 # ---------------------------------------------------------------------------
@@ -91,16 +101,17 @@ DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingm
 
 @dataclass
 class TeacherContext:
-    tutor_id: str | None
+    tutor_id: str | None      # Konto (UEGL05, master) oder None = Operator/Skript
     is_master: bool
-    uegs: list[str]     # eigene Übungsgruppen (normalisiert), leer = keine Zuordnung
 
     @property
-    def ueg(self) -> str:
-        return self.uegs[0] if self.uegs else ""
+    def label(self) -> str:
+        return self.tutor_id or OPERATOR_LABEL
 
-    def may_see(self, ueg: str | None) -> bool:
-        return self.is_master or (bool(ueg) and ueg in self.uegs)
+    def owns(self, record: dict) -> bool:
+        if self.is_master:
+            return True
+        return bool(self.tutor_id) and record.get("uploaded_by") == self.tutor_id
 
 
 async def teacher_context(
@@ -108,10 +119,12 @@ async def teacher_context(
     x_teacher_master: str | None = Header(default=None, alias=TEACHER_MASTER_HEADER),
 ) -> TeacherContext:
     if x_teacher_id is None and x_teacher_master is None:
-        return TeacherContext(tutor_id=None, is_master=True, uegs=[])
-    tutor_id = (x_teacher_id or "").strip()
+        return TeacherContext(tutor_id=None, is_master=True)
+    tutor_id = (x_teacher_id or "").strip() or None
     is_master = (x_teacher_master or "").strip().lower() in {"1", "true", "yes"}
-    return TeacherContext(tutor_id=tutor_id or None, is_master=is_master, uegs=parse_uegs(tutor_id))
+    if not is_master and not tutor_id:
+        raise HTTPException(status_code=401, detail="Tutor-Kennung fehlt")
+    return TeacherContext(tutor_id=tutor_id, is_master=is_master)
 
 
 def require_master(ctx: TeacherContext = Depends(teacher_context)) -> TeacherContext:
@@ -128,11 +141,10 @@ async def upload_auth(
 ) -> TeacherContext:
     """Upload-Route: X-API-Key (Proxy/Skripte) ODER kurzlebiges X-Upload-Token
     (Direkt-Upload aus dem Browser, weil Vercel Bodies auf 4,5 MB begrenzt).
-    Beide Wege enden in einem Master-Kontext — sonst 403."""
+    Jeder eingeloggte Übungsgruppenleiter darf hochladen."""
     if x_api_key is not None:
         await require_api_key(x_api_key)
-        ctx = await teacher_context(x_teacher_id, x_teacher_master)
-        return require_master(ctx)
+        return await teacher_context(x_teacher_id, x_teacher_master)
     try:
         payload = verify_upload_token(x_upload_token)
     except UploadTokenError as exc:
@@ -143,8 +155,11 @@ async def upload_auth(
     jti = str(payload.get("jti") or "")
     if jti and revoked_session_store.is_revoked(jti):
         raise HTTPException(status_code=401, detail="Sitzung wurde abgemeldet — bitte neu einloggen")
-    tutor = str(payload.get("tutor") or "") or None
-    return TeacherContext(tutor_id=tutor, is_master=True, uegs=parse_uegs(tutor))
+    tutor = str(payload.get("tutor") or "").strip() or None
+    is_master = payload.get("master") is True
+    if not tutor and not is_master:
+        raise HTTPException(status_code=401, detail="Upload-Token ohne Konto")
+    return TeacherContext(tutor_id=tutor, is_master=is_master)
 
 
 # Eigener Router für den Upload: KEIN router-weites require_api_key, weil der
@@ -165,24 +180,22 @@ class BriefingRecord(BaseModel):
     batch_id: str
     filename: str
     format: str = ""
-    target_tp: int
+    target_tp: int = 0                # 0 = Touchpoint nicht erkannt (pending)
     ueg: str = ""                     # "" = nicht zuordenbar → Review
     sg: int | None = None
     code: str | None = None
     code_source: str | None = None
-    status: str                       # "briefed" | "extraction_failed" | "no_content"
+    status: str                       # "briefed" | "pending" | "extraction_failed" | "no_content"
     uploaded_at: str
     generated_at: str | None = None
     uploaded_by: str | None = None
-    evaluation_status: str = "ok"     # "ok" | "technical_fallback" | "no_content" | "extraction_failed"
+    evaluation_status: str = "ok"     # "ok" | "technical_fallback" | "no_content" | "extraction_failed" | "pending"
     needs_human_review: bool = False
     review_reason: str | None = None
     guardrail_hits: list[str] = Field(default_factory=list)
     formal: dict = Field(default_factory=dict)
     briefing: dict = Field(default_factory=dict)
     assessment: dict = Field(default_factory=dict)   # intern — nur Master
-    # Produkt 2: KI-Feedback an die Stammgruppe — beim Upload erzeugt,
-    # aber erst nach dem Termin freigegeben (feedback_only_after_session).
     feedback: dict = Field(default_factory=dict)
     feedback_status: str = "pending"                 # ok | technical_fallback | no_content | pending
     feedback_guardrail_hits: list[str] = Field(default_factory=list)
@@ -190,16 +203,18 @@ class BriefingRecord(BaseModel):
     feedback_review_reason: str | None = None
     text_chars: int = 0
     source: str = "briefing_upload"
+    # Nur bei status == "pending": extrahierter Text (ohne Namen) bis zur
+    # Zuordnung des Touchpoints; wird nach der Auswertung gelöscht.
+    pending_submission: dict | None = None
 
 
 class BriefingPublic(BaseModel):
-    """Tutor-sichtbare Sicht: ohne interne Einstufung; Feedback-Inhalt nur
-    nach Freigabe (oder für den Master)."""
+    """Tutor-sichtbare Sicht: ohne interne Einstufung, ohne Zwischenspeicher."""
     briefing_id: str
     batch_id: str
     filename: str
     format: str = ""
-    target_tp: int
+    target_tp: int = 0
     ueg: str = ""
     sg: int | None = None
     code: str | None = None
@@ -219,15 +234,14 @@ class BriefingPublic(BaseModel):
     feedback_guardrail_hits: list[str] = Field(default_factory=list)
     feedback_needs_human_review: bool = False
     feedback_review_reason: str | None = None
-    feedback_released: bool = False
-    feedback_available_from: str | None = None
     text_chars: int = 0
     source: str = "briefing_upload"
 
 
 class BatchStatus(BaseModel):
     batch_id: str
-    target_tp: int
+    target_tp: int = 0                 # Historie; neu: Touchpoints stehen in ``tps``
+    tps: list[int] = Field(default_factory=list)
     status: str                        # running | done | failed
     filename: str = ""
     total: int = 0
@@ -251,8 +265,11 @@ class BriefingBatchResponse(BatchStatus):
 
 
 class AssignmentPatch(BaseModel):
-    ueg: str
-    sg: int = Field(ge=1, le=8)
+    """Deckblatt-Angaben verifizieren oder nachtragen. Alle Felder optional;
+    was fehlt, bleibt wie es ist."""
+    target_tp: int | None = Field(default=None, ge=1, le=5)
+    ueg: str | None = None
+    sg: int | None = Field(default=None, ge=1, le=99)
 
 
 class BriefingOverviewRow(BaseModel):
@@ -260,7 +277,7 @@ class BriefingOverviewRow(BaseModel):
     ueg: str
     briefed_count: int
     review_count: int
-    missing_groups: list[int]
+    groups: list[int]
     latest_uploaded_at: str | None = None
 
 
@@ -268,39 +285,9 @@ class BriefingOverviewRow(BaseModel):
 # Helfer
 # ---------------------------------------------------------------------------
 
-def _public(record: dict, ctx: TeacherContext | None = None) -> BriefingPublic:
+def _public(record: dict) -> BriefingPublic:
     data = {k: v for k, v in record.items() if k in BriefingPublic.model_fields}
-    tp = int(record.get("target_tp", 0) or 0)
-    released = feedback_released(tp)
-    release = feedback_release_date(tp)
-    data["feedback_released"] = released
-    data["feedback_available_from"] = release.isoformat() if release else None
-    # Feedback-Inhalt verlässt den Server erst nach dem Termin — Master
-    # sieht ihn jederzeit (Qualitätssicherung), verteilt aber nicht vorher.
-    if not released and not (ctx and ctx.is_master):
-        data["feedback"] = {}
     return BriefingPublic(**data)
-
-
-def _feedback_access(record: dict, ctx: TeacherContext, force: bool, *, ueg_label: str) -> None:
-    """423, solange das Feedback nicht freigegeben ist. Master darf mit
-    ``force=1`` vorher lesen (Qualitätssicherung) — wird geloggt."""
-    tp = int(record.get("target_tp", 0) or 0)
-    if feedback_released(tp):
-        return
-    if ctx.is_master and force:
-        logger.warning(
-            "feedback_release_forced", by=ctx.tutor_id, target_tp=tp, ueg=ueg_label,
-        )
-        return
-    release = feedback_release_date(tp)
-    raise HTTPException(
-        status_code=423,
-        detail=(
-            "Feedback erst nach dem Termin: freigegeben ab "
-            f"{release.strftime('%d.%m.%Y') if release else 'unbekannt'}."
-        ),
-    )
 
 
 def _feedback_ready(record: dict) -> bool:
@@ -308,13 +295,15 @@ def _feedback_ready(record: dict) -> bool:
 
 
 def _latest_per_group(records: list[dict]) -> list[dict]:
-    """Bei Mehrfach-Uploads derselben Stammgruppe gewinnt der neueste
-    Datensatz; nicht zuordenbare Datensätze bleiben alle erhalten."""
+    """Bei Mehrfach-Uploads derselben Stammgruppe durch DENSELBEN
+    Übungsgruppenleiter gewinnt der neueste Datensatz. Uploads verschiedener
+    Konten bleiben nebeneinander bestehen; nicht zuordenbare Datensätze
+    bleiben alle erhalten."""
     latest: dict[tuple, dict] = {}
     unassigned: list[dict] = []
     for r in records:
-        if r.get("ueg") and r.get("sg"):
-            key = (int(r.get("target_tp", 0)), r["ueg"], int(r["sg"]))
+        if r.get("target_tp") and r.get("ueg") and r.get("sg"):
+            key = (int(r["target_tp"]), r.get("uploaded_by"), r["ueg"], int(r["sg"]))
             if key not in latest or str(r.get("uploaded_at", "")) > str(latest[key].get("uploaded_at", "")):
                 latest[key] = r
         else:
@@ -322,23 +311,32 @@ def _latest_per_group(records: list[dict]) -> list[dict]:
     return list(latest.values()) + unassigned
 
 
-def _visible_records(ctx: TeacherContext, *, tp: int | None, ueg: str | None) -> list[dict]:
+def _tutor_filter_value(tutor: str | None) -> str | None:
+    """Query-Parameter ``tutor`` des Masters → gespeicherter uploaded_by
+    (``operator`` = Skript-Uploads ohne Konto, gespeichert als None)."""
+    value = (tutor or "").strip()
+    return None if value == OPERATOR_LABEL else value
+
+
+def _visible_records(ctx: TeacherContext, *, tp: int | None = None, tutor: str | None = None) -> list[dict]:
     records = briefing_store.load_all()
     if tp is not None:
-        records = [r for r in records if int(r.get("target_tp", 0)) == tp]
+        records = [r for r in records if int(r.get("target_tp", 0) or 0) == tp]
     if ctx.is_master:
-        if ueg:
-            wanted = normalize_ueg(ueg)
-            records = [r for r in records if r.get("ueg") == wanted]
+        if tutor:
+            wanted = _tutor_filter_value(tutor)
+            records = [r for r in records if r.get("uploaded_by") == wanted]
     else:
-        if not ctx.uegs:
-            return []
-        records = [r for r in records if r.get("ueg") in ctx.uegs]
-        if ueg:
-            wanted = normalize_ueg(ueg)
-            records = [r for r in records if r.get("ueg") == wanted]
+        records = [r for r in records if r.get("uploaded_by") == ctx.tutor_id]
     records = _latest_per_group(records)
-    records.sort(key=lambda r: (int(r.get("target_tp", 0)), r.get("ueg") or "~", int(r.get("sg") or 99)))
+    records.sort(
+        key=lambda r: (
+            int(r.get("target_tp", 0) or 0),
+            r.get("ueg") or "~",
+            int(r.get("sg") or 99),
+            str(r.get("filename", "")),
+        )
+    )
     return records
 
 
@@ -349,63 +347,121 @@ def _rubric_or_422(tp: int) -> BriefingRubric:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-def _bundle_targets(ctx: TeacherContext, ueg: str | None) -> list[str]:
-    """Übungsgruppen für einen Bundle-Download. Master: ``ueg`` Pflicht.
-    ÜGL: ohne ``ueg`` alle eigenen Übungsgruppen; mit ``ueg`` nur diese
-    (403, wenn fremd)."""
-    if ctx.is_master:
-        wanted = normalize_ueg(ueg or "")
-        if not wanted:
-            raise HTTPException(status_code=422, detail="ueg fehlt oder ist ungültig (z.B. UEG07)")
-        return [wanted]
-    if not ctx.uegs:
-        raise HTTPException(
-            status_code=403,
-            detail="Ihre Tutor-Kennung ist keiner Übungsgruppe zugeordnet (erwartet z.B. UEG07 oder UEG07+UEG12).",
-        )
-    if ueg:
-        wanted = normalize_ueg(ueg)
-        if wanted not in ctx.uegs:
-            raise HTTPException(status_code=403, detail="Diese Übungsgruppe gehört nicht zu Ihrer Kennung")
-        return [wanted]
-    return list(ctx.uegs)
+def _record_or_404(briefing_id: str, ctx: TeacherContext) -> dict:
+    record = briefing_store.get(briefing_id)
+    if not record or not ctx.owns(record):
+        raise HTTPException(status_code=404, detail="Briefing nicht gefunden")
+    return record
 
 
-def _missing_groups(records: list[dict]) -> list[int]:
-    present = {int(r["sg"]) for r in records if r.get("sg")}
-    return [n for n in STAMMGRUPPEN if n not in present]
+def _log_download(ctx: TeacherContext, *, tp: int, kind: str, scope: str, code: str | None = None,
+                  briefing_id: str | None = None) -> None:
+    try:
+        download_log.log(tutor=ctx.label, target_tp=tp, kind=kind, scope=scope, code=code, briefing_id=briefing_id)
+    except Exception as exc:  # pragma: no cover - Protokoll darf den Download nie verhindern
+        logger.warning("download_log_failed", error=str(exc))
+
+
+def _group_by_ueg(records: list[dict]) -> list[tuple[str, list[dict]]]:
+    groups: dict[str, list[dict]] = {}
+    for r in records:
+        if r.get("ueg"):
+            groups.setdefault(r["ueg"], []).append(r)
+    return sorted(groups.items())
 
 
 # ---------------------------------------------------------------------------
 # Verarbeitung eines Eintrags
 # ---------------------------------------------------------------------------
 
+def _extract(filename: str, data: bytes) -> ExtractedSubmission:
+    """Zwei Durchgänge: erst Kenndaten (Touchpoint) lesen, dann mit der
+    passenden Vorlagen-Boilerplate des erkannten Touchpoints extrahieren."""
+    sub = extract_submission(filename, data, None)
+    tp = sub.kenndaten.tp
+    if tp in SUPPORTED_TPS:
+        sub = extract_submission(filename, data, tp)
+    return sub
+
+
+def _submission_from_dict(payload: dict) -> ExtractedSubmission:
+    kd = Kenndaten(**(payload.get("kenndaten") or {}))
+    fields = {k: v for k, v in payload.items() if k != "kenndaten"}
+    return ExtractedSubmission(kenndaten=kd, **fields)
+
+
+async def _generate_into(
+    record: dict,
+    *,
+    sub: ExtractedSubmission,
+    rubric: BriefingRubric,
+    generator: FeedbackGenerator,
+) -> dict:
+    """Führt Briefing + Feedback für einen Datensatz aus (Upload oder
+    nachgeholte Zuordnung) und schreibt die Ergebnisfelder in ``record``."""
+    kd = sub.kenndaten
+    tp = rubric.tp
+    result = await generator.generate(briefing_id=record["briefing_id"], rubric=rubric, sub=sub)
+    status = "no_content" if result["evaluation_status"] == "no_content" else "briefed"
+    feedback = await generator.generate_feedback(
+        briefing_id=record["briefing_id"], rubric=rubric, sub=sub,
+        assessment=result["assessment"] if result["evaluation_status"] == "ok" else None,
+    )
+    assigned = bool(kd.ueg and kd.sg)
+    record.update(
+        format=sub.format,
+        target_tp=tp,
+        ueg=kd.ueg,
+        sg=kd.sg,
+        code=(build_code(tp, kd.ueg, kd.sg) if assigned else None),
+        code_source=kd.source or None,
+        status=status,
+        generated_at=naive_utcnow().isoformat(),
+        evaluation_status=result["evaluation_status"],
+        needs_human_review=bool(result["needs_human_review"]) or not assigned,
+        review_reason=result.get("review_reason") or (None if assigned else ASSIGN_REASON),
+        guardrail_hits=list(result.get("guardrail_hits", [])),
+        formal=formal_checks(sub, rubric, tp),
+        briefing=result["briefing"],
+        assessment=result["assessment"],
+        feedback=feedback["feedback"],
+        feedback_status=feedback["feedback_status"],
+        feedback_guardrail_hits=list(feedback.get("feedback_guardrail_hits", [])),
+        feedback_needs_human_review=bool(feedback.get("feedback_needs_human_review")),
+        feedback_review_reason=feedback.get("feedback_review_reason"),
+        text_chars=sub.baustein1_chars + sub.baustein2_chars,
+        pending_submission=None,
+    )
+    return record
+
+
 async def _process_entry(
     *,
     generator: FeedbackGenerator,
-    rubric: BriefingRubric,
+    rubrics: dict[int, BriefingRubric],
     batch_id: str,
-    target_tp: int,
     filename: str,
     data: bytes,
     uploaded_by: str | None,
 ) -> BriefingRecord:
     briefing_id = str(uuid.uuid4())
     uploaded_at = naive_utcnow().isoformat()
+    base = dict(
+        briefing_id=briefing_id,
+        batch_id=batch_id,
+        filename=filename,
+        format=filename.rsplit(".", 1)[-1].lower(),
+        uploaded_at=uploaded_at,
+        uploaded_by=uploaded_by,
+    )
 
     try:
-        sub = await asyncio.to_thread(extract_submission, filename, data, target_tp)
+        sub = await asyncio.to_thread(_extract, filename, data)
     except ValueError as exc:
         logger.warning("briefing_extraction_failed", filename=filename, error=str(exc))
         return BriefingRecord(
-            briefing_id=briefing_id,
-            batch_id=batch_id,
-            filename=filename,
-            format=filename.rsplit(".", 1)[-1].lower(),
-            target_tp=target_tp,
+            **base,
             status="extraction_failed",
-            uploaded_at=uploaded_at,
-            uploaded_by=uploaded_by,
             evaluation_status="extraction_failed",
             needs_human_review=True,
             review_reason=str(exc),
@@ -413,67 +469,45 @@ async def _process_entry(
         )
 
     kd = sub.kenndaten
-    result = await generator.generate(briefing_id=briefing_id, rubric=rubric, sub=sub)
-    status = "no_content" if result["evaluation_status"] == "no_content" else "briefed"
-    # Produkt 2 gleich mit erzeugen (zweiter Call, eigener gecachter
-    # System-Prompt); die interne Einstufung dient als Konsistenzhilfe.
-    feedback = await generator.generate_feedback(
-        briefing_id=briefing_id, rubric=rubric, sub=sub,
-        assessment=result["assessment"] if result["evaluation_status"] == "ok" else None,
-    )
+    if kd.tp not in SUPPORTED_TPS:
+        # Ohne Touchpoint keine Rubric → Auswertung erst nach der Zuordnung.
+        return BriefingRecord(
+            **{**base, "format": sub.format},
+            ueg=kd.ueg,
+            sg=kd.sg,
+            code_source=kd.source or None,
+            status=STATUS_PENDING,
+            evaluation_status="pending",
+            needs_human_review=True,
+            review_reason=PENDING_REASON,
+            formal={"filename": filename, "format": sub.format, "notes": list(sub.notes)},
+            text_chars=sub.baustein1_chars + sub.baustein2_chars,
+            pending_submission=asdict(sub),
+        )
 
-    return BriefingRecord(
-        feedback=feedback["feedback"],
-        feedback_status=feedback["feedback_status"],
-        feedback_guardrail_hits=list(feedback.get("feedback_guardrail_hits", [])),
-        feedback_needs_human_review=bool(feedback.get("feedback_needs_human_review")),
-        feedback_review_reason=feedback.get("feedback_review_reason"),
-        briefing_id=briefing_id,
-        batch_id=batch_id,
-        filename=filename,
-        format=sub.format,
-        target_tp=target_tp,
-        ueg=kd.ueg,
-        sg=kd.sg,
-        code=(build_code(target_tp, kd.ueg, kd.sg) if kd.ueg and kd.sg else None),
-        code_source=kd.source or None,
-        status=status,
-        uploaded_at=uploaded_at,
-        generated_at=naive_utcnow().isoformat(),
-        uploaded_by=uploaded_by,
-        evaluation_status=result["evaluation_status"],
-        needs_human_review=bool(result["needs_human_review"]) or not (kd.ueg and kd.sg),
-        review_reason=result.get("review_reason")
-        or (None if (kd.ueg and kd.sg) else "Übungsgruppe/Stammgruppe nicht erkennbar — bitte zuordnen."),
-        guardrail_hits=list(result.get("guardrail_hits", [])),
-        formal=formal_checks(sub, rubric, target_tp),
-        briefing=result["briefing"],
-        assessment=result["assessment"],
-        text_chars=sub.baustein1_chars + sub.baustein2_chars,
-    )
+    rubric = rubrics.setdefault(kd.tp, load_rubric(kd.tp))
+    record = dict(base, status="briefed")
+    await _generate_into(record, sub=sub, rubric=rubric, generator=generator)
+    return BriefingRecord(**record)
 
 
 # ---------------------------------------------------------------------------
-# Routen
+# Routen: Upload und Batches
 # ---------------------------------------------------------------------------
 
 @upload_router.post("/upload", response_model=BriefingBatchResponse, status_code=202)
 async def upload_submissions(
     file: UploadFile = File(...),
-    target_tp: int = Form(...),
     sync: bool = Form(default=False),
     ctx: TeacherContext = Depends(upload_auth),
 ):
-    """Master-Upload: ZIP mit Stammgruppen-Abgaben (PPTX/DOCX/PDF) → je
-    Datei ein Briefing. Speichert nur Briefing + Einstufung, nie Dateien.
+    """Upload einer ZIP-Datei mit Einreichungen (PPTX/DOCX/PDF) → je Datei ein
+    Briefing und ein Feedback. Touchpoint, Übungsgruppe und Stammgruppe werden
+    vom Deckblatt gelesen. Speichert nur die Auswertung, nie die Dateien.
 
     Standard ist asynchron: Antwort 202 mit Batch-Status, Verarbeitung im
     Hintergrund (Fortschritt über GET /briefings/batches/{batch_id}).
     ``sync=1`` wartet auf das Ergebnis (Tests, Skripte, kleine Batches)."""
-    if target_tp not in SUPPORTED_TPS:
-        raise HTTPException(status_code=422, detail="target_tp muss 1–5 sein")
-    rubric = _rubric_or_422(target_tp)
-
     api_key = get_openrouter_key()
     if not api_key:
         raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
@@ -489,21 +523,22 @@ async def upload_submissions(
     del data
 
     generator = FeedbackGenerator(api_key=api_key)
+    rubrics: dict[int, BriefingRubric] = {}
     batch_id = str(uuid.uuid4())
     batch = new_batch(
         batch_id=batch_id,
-        target_tp=target_tp,
+        target_tp=0,
         total=len(entries),
         uploaded_by=ctx.tutor_id,
         filename=file.filename or "",
     )
+    batch["tps"] = []
     await asyncio.to_thread(batch_store.save, batch)
     logger.info(
         "briefing_batch_started",
         batch_id=batch_id,
-        target_tp=target_tp,
         total=len(entries),
-        uploaded_by=ctx.tutor_id,
+        uploaded_by=ctx.label,
         sync=sync,
     )
 
@@ -512,15 +547,17 @@ async def upload_submissions(
     async def _process(filename: str, payload: bytes) -> dict:
         record = await _process_entry(
             generator=generator,
-            rubric=rubric,
+            rubrics=rubrics,
             batch_id=batch_id,
-            target_tp=target_tp,
             filename=filename,
             data=payload,
             uploaded_by=ctx.tutor_id,
         )
         dumped = record.model_dump()
         records.append(dumped)
+        tp = int(dumped.get("target_tp") or 0)
+        if tp and tp not in batch["tps"]:
+            batch["tps"] = sorted([*batch["tps"], tp])
         return dumped
 
     coro = run_batch(
@@ -533,51 +570,145 @@ async def upload_submissions(
     if sync:
         await coro
         records.sort(key=lambda r: str(r.get("filename", "")))
-        return BriefingBatchResponse(**with_stale_flag(batch), briefings=[_public(r, ctx) for r in records])
+        return BriefingBatchResponse(**with_stale_flag(batch), briefings=[_public(r) for r in records])
 
     start_background(coro)
     return BriefingBatchResponse(**with_stale_flag(batch))
 
 
+def _visible_batches(ctx: TeacherContext, tutor: str | None = None) -> list[dict]:
+    batches = [with_stale_flag(b) for b in batch_store.load_all()]
+    if ctx.is_master:
+        if tutor:
+            wanted = _tutor_filter_value(tutor)
+            batches = [b for b in batches if b.get("uploaded_by") == wanted]
+    else:
+        batches = [b for b in batches if b.get("uploaded_by") == ctx.tutor_id]
+    for b in batches:
+        b.setdefault("tps", [b["target_tp"]] if b.get("target_tp") else [])
+    batches.sort(key=lambda b: str(b.get("started_at", "")), reverse=True)
+    return batches
+
+
 @router.get("/batches", response_model=list[BatchStatus])
 async def list_batches(
-    tp: int | None = Query(default=None, ge=1, le=5),
-    ctx: TeacherContext = Depends(require_master),
+    tutor: str | None = Query(default=None),
+    ctx: TeacherContext = Depends(teacher_context),
 ):
-    """Upload-Batches (neueste zuerst) — nur Master."""
-    batches = [with_stale_flag(b) for b in batch_store.load_all()]
-    if tp is not None:
-        batches = [b for b in batches if int(b.get("target_tp", 0)) == tp]
-    batches.sort(key=lambda b: str(b.get("started_at", "")), reverse=True)
-    return [BatchStatus(**b) for b in batches]
+    """Upload-Batches (neueste zuerst): eigene; Master alle (``tutor`` filtert)."""
+    return [BatchStatus(**b) for b in _visible_batches(ctx, tutor)]
 
 
 @router.get("/batches/{batch_id}", response_model=BatchStatus)
-async def get_batch(batch_id: str, ctx: TeacherContext = Depends(require_master)):
+async def get_batch(batch_id: str, ctx: TeacherContext = Depends(teacher_context)):
     batch = batch_store.get(batch_id)
-    if not batch:
+    if not batch or not ctx.owns(batch):
         raise HTTPException(status_code=404, detail="Batch nicht gefunden")
-    return BatchStatus(**with_stale_flag(batch))
+    out = with_stale_flag(batch)
+    out.setdefault("tps", [out["target_tp"]] if out.get("target_tp") else [])
+    return BatchStatus(**out)
 
+
+# ---------------------------------------------------------------------------
+# Routen: Monitoring (Master)
+# ---------------------------------------------------------------------------
+
+@router.get("/monitoring")
+async def monitoring(ctx: TeacherContext = Depends(require_master)):
+    """Je Konto UEGL01–UEGL26 (plus master/operator, falls sie hochgeladen
+    haben): Uploads je Touchpoint mit Gruppen und Status, letzter Upload,
+    letzter Download je Art, offene Prüffälle, Kontostatus (Passwort gesetzt,
+    Zurücksetzen angefragt)."""
+    records = _latest_per_group(briefing_store.load_all())
+    downloads = download_log.load_all()
+    accounts = {a["account"]: tutor_account_store.public_view(a) for a in tutor_account_store.list_all()}
+
+    def _label(value: str | None) -> str:
+        return value or OPERATOR_LABEL
+
+    uploaders = list(TUTOR_ACCOUNTS)
+    for extra in sorted({_label(r.get("uploaded_by")) for r in records} | {_label(d.get("tutor")) for d in downloads}):
+        if extra not in uploaders:
+            uploaders.append(extra)
+
+    rows = []
+    for account in uploaders:
+        own = [r for r in records if _label(r.get("uploaded_by")) == account]
+        own_downloads = [d for d in downloads if _label(d.get("tutor")) == account]
+        per_tp: dict[int, dict] = {}
+        for r in own:
+            tp = int(r.get("target_tp") or 0)
+            entry = per_tp.setdefault(tp, {
+                "target_tp": tp, "count": 0, "briefed": 0, "review": 0,
+                "latest_uploaded_at": None, "last_download_briefing_at": None,
+                "last_download_feedback_at": None, "groups": [],
+            })
+            entry["count"] += 1
+            entry["briefed"] += int(r.get("status") == "briefed")
+            entry["review"] += int(bool(r.get("needs_human_review")))
+            entry["latest_uploaded_at"] = max(entry["latest_uploaded_at"] or "", str(r.get("uploaded_at", ""))) or None
+            entry["groups"].append({
+                "briefing_id": r["briefing_id"],
+                "code": r.get("code"),
+                "ueg": r.get("ueg") or "",
+                "sg": r.get("sg"),
+                "status": r.get("status"),
+                "evaluation_status": r.get("evaluation_status"),
+                "needs_human_review": bool(r.get("needs_human_review")),
+                "uploaded_at": r.get("uploaded_at"),
+                "filename": r.get("filename"),
+            })
+        for d in own_downloads:
+            tp = int(d.get("target_tp") or 0)
+            entry = per_tp.setdefault(tp, {
+                "target_tp": tp, "count": 0, "briefed": 0, "review": 0,
+                "latest_uploaded_at": None, "last_download_briefing_at": None,
+                "last_download_feedback_at": None, "groups": [],
+            })
+            key = "last_download_feedback_at" if d.get("kind") == "feedback" else "last_download_briefing_at"
+            entry[key] = max(entry[key] or "", str(d.get("at", ""))) or None
+        for entry in per_tp.values():
+            entry["groups"].sort(key=lambda g: (g["ueg"] or "~", g["sg"] or 99))
+        rows.append({
+            "account": account,
+            "is_tutor_account": account in TUTOR_ACCOUNTS,
+            "is_master": account == MASTER_ACCOUNT,
+            **(accounts.get(account) or {
+                "password_set": None, "password_set_at": None, "last_login_at": None,
+                "reset_requested_at": None, "reset_code_active": False, "reset_code_expires_at": None,
+            }),
+            "upload_count": len(own),
+            "review_open": sum(1 for r in own if r.get("needs_human_review")),
+            "latest_uploaded_at": max((str(r.get("uploaded_at", "")) for r in own), default=None),
+            "last_download_at": max((str(d.get("at", "")) for d in own_downloads), default=None),
+            "touchpoints": [per_tp[k] for k in sorted(per_tp)],
+        })
+    return {"generated_at": naive_utcnow().isoformat(), "accounts": rows}
+
+
+# ---------------------------------------------------------------------------
+# Routen: Übersicht, Downloads, Einzelabruf
+# ---------------------------------------------------------------------------
 
 @router.get("/overview", response_model=list[BriefingOverviewRow])
 async def briefing_overview(
     tp: int | None = Query(default=None, ge=1, le=5),
+    tutor: str | None = Query(default=None),
     ctx: TeacherContext = Depends(teacher_context),
 ):
-    """Je Touchpoint und Übungsgruppe: wie viele Briefings liegen vor,
-    welche Stammgruppen fehlen. ÜGL sehen nur die eigene Übungsgruppe."""
-    records = _visible_records(ctx, tp=tp, ueg=None)
+    """Je Touchpoint und Übungsgruppe: wie viele Briefings liegen vor, welche
+    Stammgruppen sind dabei. Nur eigene Uploads; Master mit ``tutor``-Filter."""
+    records = _visible_records(ctx, tp=tp, tutor=tutor)
     groups: dict[tuple[int, str], list[dict]] = {}
     for r in records:
-        groups.setdefault((int(r.get("target_tp", 0)), r.get("ueg") or ""), []).append(r)
+        groups.setdefault((int(r.get("target_tp", 0) or 0), r.get("ueg") or ""), []).append(r)
     rows = [
         BriefingOverviewRow(
             target_tp=key[0],
             ueg=key[1],
             briefed_count=sum(1 for r in items if r.get("status") == "briefed"),
             review_count=sum(1 for r in items if r.get("needs_human_review")),
-            missing_groups=_missing_groups(items) if key[1] else [],
+            groups=sorted({int(r["sg"]) for r in items if r.get("sg")}),
             latest_uploaded_at=max((str(r.get("uploaded_at", "")) for r in items), default=None),
         )
         for key, items in groups.items()
@@ -586,28 +717,38 @@ async def briefing_overview(
     return rows
 
 
+def _bundle_records(ctx: TeacherContext, *, tp: int, tutor: str | None, ueg: str | None) -> list[dict]:
+    if ctx.is_master and not tutor:
+        raise HTTPException(status_code=422, detail="tutor fehlt (Konto, dessen Dokumente heruntergeladen werden)")
+    records = [r for r in _visible_records(ctx, tp=tp, tutor=tutor) if r.get("ueg")]
+    if ueg:
+        wanted = normalize_ueg(ueg)
+        if not wanted:
+            raise HTTPException(status_code=422, detail="ueg ungültig (z.B. UEG07)")
+        records = [r for r in records if r.get("ueg") == wanted]
+    return records
+
+
 @router.get("/docx")
 async def download_briefing_bundle(
     tp: int = Query(..., ge=1, le=5),
     ueg: str | None = Query(default=None),
+    tutor: str | None = Query(default=None),
     ctx: TeacherContext = Depends(teacher_context),
 ):
-    """Briefing-Dokument je Übungsgruppe für einen Touchpoint (einheitliches
-    DOCX mit allen Stammgruppen). ÜGL mit mehreren Übungsgruppen und ohne
-    ``ueg``: ZIP mit einem DOCX je Übungsgruppe. Master: ``ueg`` Pflicht."""
+    """Briefing-Dokument je Übungsgruppe für einen Touchpoint (DOCX mit allen
+    Stammgruppen). Bei mehreren Übungsgruppen ohne ``ueg``: ZIP mit einem
+    DOCX je Übungsgruppe. Master lädt mit ``tutor`` die Dokumente eines Kontos."""
     rubric = _rubric_or_422(tp)
-    targets = _bundle_targets(ctx, ueg)
-    documents: list[tuple[str, list[dict]]] = []
-    for target in targets:
-        records = _visible_records(ctx, tp=tp, ueg=target)
-        if records:
-            documents.append((target, records))
+    documents = _group_by_ueg(_bundle_records(ctx, tp=tp, tutor=tutor, ueg=ueg))
     if not documents:
-        raise HTTPException(status_code=404, detail="Keine Briefings für diese Übungsgruppe(n)")
+        raise HTTPException(status_code=404, detail="Keine Briefings für diesen Touchpoint")
+    owner = (tutor or ctx.label) if ctx.is_master else ctx.label
 
     def _render(target: str, records: list[dict]) -> bytes:
-        return render_briefing_docx(records, rubric=rubric, ueg=target, missing_groups=_missing_groups(records))
+        return render_briefing_docx(records, rubric=rubric, ueg=target)
 
+    _log_download(ctx, tp=tp, kind="briefing", scope="bundle", code="+".join(u for u, _ in documents))
     if len(documents) == 1:
         target, records = documents[0]
         payload = await asyncio.to_thread(_render, target, records)
@@ -628,7 +769,7 @@ async def download_briefing_bundle(
     return Response(
         content=payload,
         media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="KI-Briefings_TP{tp}_{ctx.tutor_id or "UEG"}.zip"'},
+        headers={"Content-Disposition": f'attachment; filename="KI-Briefings_TP{tp}_{owner}.zip"'},
     )
 
 
@@ -636,33 +777,30 @@ async def download_briefing_bundle(
 async def download_feedback_bundle(
     tp: int = Query(..., ge=1, le=5),
     ueg: str | None = Query(default=None),
-    force: bool = Query(default=False),
+    tutor: str | None = Query(default=None),
     ctx: TeacherContext = Depends(teacher_context),
 ):
-    """ZIP mit einem Feedback-DOCX je Stammgruppe einer Übungsgruppe — zur
-    Weitergabe durch die ÜGL (z.B. über Canvas). Erst nach dem Termin."""
+    """ZIP mit einem Feedback-DOCX je Stammgruppe — zur Weitergabe durch den
+    Übungsgruppenleiter (z.B. über Canvas)."""
     rubric = _rubric_or_422(tp)
-    targets = _bundle_targets(ctx, ueg)
-    records = [
-        r for target in targets
-        for r in _visible_records(ctx, tp=tp, ueg=target)
-        if _feedback_ready(r) and r.get("sg")
-    ]
+    records = [r for r in _bundle_records(ctx, tp=tp, tutor=tutor, ueg=ueg) if _feedback_ready(r) and r.get("sg")]
     if not records:
-        raise HTTPException(status_code=404, detail="Keine Feedbacks für diese Übungsgruppe(n)")
-    _feedback_access(records[0], ctx, force, ueg_label="+".join(targets))
+        raise HTTPException(status_code=404, detail="Keine Feedbacks für diesen Touchpoint")
+    uegs = sorted({r["ueg"] for r in records})
+    owner = (tutor or ctx.label) if ctx.is_master else ctx.label
 
     def _build() -> bytes:
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
             for record in records:
-                folder = f"{record.get('ueg')}/" if len(targets) > 1 else ""
+                folder = f"{record.get('ueg')}/" if len(uegs) > 1 else ""
                 name = f"{folder}KI-Feedback_{record.get('code') or record['briefing_id'][:8]}.docx"
                 archive.writestr(name, render_feedback_docx(record, rubric=rubric))
         return buffer.getvalue()
 
+    _log_download(ctx, tp=tp, kind="feedback", scope="bundle", code="+".join(uegs))
     payload = await asyncio.to_thread(_build)
-    label = targets[0] if len(targets) == 1 else (ctx.tutor_id or "UEG")
+    label = uegs[0] if len(uegs) == 1 else owner
     return Response(
         content=payload,
         media_type="application/zip",
@@ -673,37 +811,28 @@ async def download_feedback_bundle(
 @router.get("", response_model=list[BriefingPublic])
 async def list_briefings(
     tp: int | None = Query(default=None, ge=1, le=5),
-    ueg: str | None = Query(default=None),
+    tutor: str | None = Query(default=None),
     ctx: TeacherContext = Depends(teacher_context),
 ):
-    """Briefings (tutor-sichtbare Sicht). ÜGL: nur die eigene Übungsgruppe."""
-    return [_public(r, ctx) for r in _visible_records(ctx, tp=tp, ueg=ueg)]
+    """Briefings (tutor-sichtbare Sicht): eigene Uploads; Master alle
+    (``tutor`` filtert auf ein Konto)."""
+    return [_public(r) for r in _visible_records(ctx, tp=tp, tutor=tutor)]
 
 
 @router.get("/{briefing_id}", response_model=BriefingPublic)
 async def get_briefing(briefing_id: str, ctx: TeacherContext = Depends(teacher_context)):
-    record = briefing_store.get(briefing_id)
-    if not record:
-        raise HTTPException(status_code=404, detail="Briefing nicht gefunden")
-    if not ctx.may_see(record.get("ueg")):
-        raise HTTPException(status_code=404, detail="Briefing nicht gefunden")
-    return _public(record, ctx)
+    return _public(_record_or_404(briefing_id, ctx))
 
 
 @router.get("/{briefing_id}/feedback/docx")
-async def download_feedback(
-    briefing_id: str,
-    force: bool = Query(default=False),
-    ctx: TeacherContext = Depends(teacher_context),
-):
-    """Feedback-DOCX EINER Stammgruppe — erst nach dem Termin (423 vorher)."""
-    record = briefing_store.get(briefing_id)
-    if not record or not ctx.may_see(record.get("ueg")):
-        raise HTTPException(status_code=404, detail="Briefing nicht gefunden")
+async def download_feedback(briefing_id: str, ctx: TeacherContext = Depends(teacher_context)):
+    """Feedback-DOCX EINER Stammgruppe."""
+    record = _record_or_404(briefing_id, ctx)
     if not _feedback_ready(record):
         raise HTTPException(status_code=404, detail="Für diese Abgabe liegt kein Feedback vor")
-    _feedback_access(record, ctx, force, ueg_label=str(record.get("ueg") or ""))
-    rubric = _rubric_or_422(int(record.get("target_tp", 0)))
+    tp = int(record.get("target_tp", 0) or 0)
+    rubric = _rubric_or_422(tp)
+    _log_download(ctx, tp=tp, kind="feedback", scope="single", code=record.get("code"), briefing_id=briefing_id)
     payload = await asyncio.to_thread(render_feedback_docx, record, rubric=rubric)
     label = record.get("code") or briefing_id[:8]
     return Response(
@@ -725,6 +854,7 @@ async def get_assessment(briefing_id: str, ctx: TeacherContext = Depends(require
         "ueg": record.get("ueg"),
         "sg": record.get("sg"),
         "code": record.get("code"),
+        "uploaded_by": record.get("uploaded_by"),
         "evaluation_status": record.get("evaluation_status"),
         "assessment": record.get("assessment", {}),
     }
@@ -732,10 +862,12 @@ async def get_assessment(briefing_id: str, ctx: TeacherContext = Depends(require
 
 @router.get("/{briefing_id}/docx")
 async def download_single_briefing(briefing_id: str, ctx: TeacherContext = Depends(teacher_context)):
-    record = briefing_store.get(briefing_id)
-    if not record or not ctx.may_see(record.get("ueg")):
-        raise HTTPException(status_code=404, detail="Briefing nicht gefunden")
-    rubric = _rubric_or_422(int(record.get("target_tp", 0)))
+    record = _record_or_404(briefing_id, ctx)
+    if record.get("status") != "briefed":
+        raise HTTPException(status_code=404, detail="Für diese Abgabe liegt kein Briefing vor")
+    tp = int(record.get("target_tp", 0) or 0)
+    rubric = _rubric_or_422(tp)
+    _log_download(ctx, tp=tp, kind="briefing", scope="single", code=record.get("code"), briefing_id=briefing_id)
     payload = await asyncio.to_thread(
         render_briefing_docx, [record], rubric=rubric, ueg=record.get("ueg") or ""
     )
@@ -749,31 +881,57 @@ async def download_single_briefing(briefing_id: str, ctx: TeacherContext = Depen
 
 @router.patch("/{briefing_id}", response_model=BriefingPublic)
 async def patch_assignment(
-    briefing_id: str, patch: AssignmentPatch, ctx: TeacherContext = Depends(require_master)
+    briefing_id: str, patch: AssignmentPatch, ctx: TeacherContext = Depends(teacher_context)
 ):
-    """Zuordnung Übungsgruppe/Stammgruppe nachtragen oder korrigieren —
-    das Briefing selbst bleibt unverändert."""
-    record = briefing_store.get(briefing_id)
-    if not record:
-        raise HTTPException(status_code=404, detail="Briefing nicht gefunden")
-    ueg = normalize_ueg(patch.ueg)
-    if not ueg:
-        raise HTTPException(status_code=422, detail="Übungsgruppe ungültig (erwartet z.B. UEG07)")
-    tp = int(record.get("target_tp", 0))
-    record["ueg"] = ueg
-    record["sg"] = patch.sg
-    record["code"] = build_code(tp, ueg, patch.sg)
-    record["code_source"] = "manual"
-    formal = dict(record.get("formal") or {})
-    formal["code"] = record["code"]
-    formal["code_valid"] = True
-    formal["code_matches_tp"] = True
-    record["formal"] = formal
-    if record.get("review_reason", "") and "nicht erkennbar" in str(record.get("review_reason")):
-        record["review_reason"] = None
-        record["needs_human_review"] = bool(record.get("guardrail_hits")) or (
-            record.get("evaluation_status") not in ("ok",)
-        )
+    """Deckblatt-Angaben (Touchpoint, Übungsgruppe, Stammgruppe) verifizieren
+    oder nachtragen — für eigene Uploads. Wartet die Auswertung noch auf den
+    Touchpoint (``pending``), wird sie nach der Zuordnung erstellt."""
+    record = _record_or_404(briefing_id, ctx)
+    if record.get("status") == "extraction_failed":
+        raise HTTPException(status_code=409, detail="Datei war nicht lesbar — bitte erneut hochladen")
+    if patch.target_tp is None and patch.ueg is None and patch.sg is None:
+        raise HTTPException(status_code=422, detail="Nichts zu ändern")
+
+    old_tp = int(record.get("target_tp", 0) or 0)
+    tp = patch.target_tp or old_tp
+    ueg = record.get("ueg") or ""
+    if patch.ueg is not None:
+        ueg = normalize_ueg(patch.ueg)
+        if not ueg:
+            raise HTTPException(status_code=422, detail="Übungsgruppe ungültig (erwartet z.B. UEG07)")
+    sg = patch.sg if patch.sg is not None else record.get("sg")
+    assigned = bool(tp and ueg and sg)
+
+    record.update(target_tp=tp, ueg=ueg, sg=sg, code=(build_code(tp, ueg, int(sg)) if assigned else None),
+                  code_source="manual")
+
+    if record.get("status") == STATUS_PENDING and tp in SUPPORTED_TPS:
+        api_key = get_openrouter_key()
+        if not api_key:
+            raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
+        sub = _submission_from_dict(record.get("pending_submission") or {})
+        sub.kenndaten.tp, sub.kenndaten.ueg, sub.kenndaten.sg = tp, ueg, sg
+        sub.kenndaten.source = "manual"
+        rubric = _rubric_or_422(tp)
+        await _generate_into(record, sub=sub, rubric=rubric, generator=FeedbackGenerator(api_key=api_key))
+        record["code_source"] = "manual"
+    else:
+        formal = dict(record.get("formal") or {})
+        formal.update(code=record["code"], code_valid=assigned, code_matches_tp=True)
+        notes = [n for n in formal.get("notes", []) if "Touchpoint" not in n or "hochgeladen" not in n]
+        if old_tp and tp != old_tp and record.get("status") == "briefed":
+            notes.append(f"Touchpoint von {old_tp} auf {tp} geändert — die Auswertung wurde mit der Rubric von Touchpoint {old_tp} erstellt.")
+            record["needs_human_review"] = True
+            record["review_reason"] = notes[-1]
+        formal["notes"] = notes
+        record["formal"] = formal
+        if assigned and record.get("review_reason") in (ASSIGN_REASON, PENDING_REASON):
+            record["review_reason"] = None
+            record["needs_human_review"] = bool(record.get("guardrail_hits")) or record.get("evaluation_status") != "ok"
+        if not assigned:
+            record["needs_human_review"] = True
+            record["review_reason"] = record.get("review_reason") or ASSIGN_REASON
+
     await asyncio.to_thread(briefing_store.save, record)
-    logger.info("briefing_assigned", briefing_id=briefing_id, ueg=ueg, sg=patch.sg, by=ctx.tutor_id)
-    return _public(record, ctx)
+    logger.info("briefing_assigned", briefing_id=briefing_id, target_tp=tp, ueg=ueg, sg=sg, by=ctx.label)
+    return _public(record)

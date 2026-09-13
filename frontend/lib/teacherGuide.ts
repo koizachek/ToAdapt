@@ -13,6 +13,7 @@ export interface TeacherGuideContent {
   pageTitle: string
   pageIntro: string
   dashboard: GuideSection
+  login: GuideSection
   briefings: GuideSection
   admin: GuideSection
   hint: string
@@ -23,7 +24,7 @@ export const TEACHER_GUIDE: Record<Locale, TeacherGuideContent> = {
   de: {
     pageEyebrow: 'Tutor-Hilfe',
     pageTitle: 'Anleitung',
-    pageIntro: 'Alles Wichtige für die Arbeit mit To:Adapt — dauerhaft hier abrufbar. Zusätzlich erklären die ?-Symbole direkt an den Ansichten jedes Feld.',
+    pageIntro: 'Alles Wichtige für die Arbeit mit To:Adapt, Schritt für Schritt — dauerhaft hier abrufbar. Zusätzlich erklären die ?-Symbole direkt an den Ansichten jede Funktion.',
     dashboard: {
       title: 'Dashboard: Gruppen verstehen in 60 Sekunden',
       steps: [
@@ -34,14 +35,25 @@ export const TEACHER_GUIDE: Record<Locale, TeacherGuideContent> = {
         'Alle Zahlen stammen aus der individuellen Vorbereitung im Tool, nicht aus der Gruppenabgabe.',
       ],
     },
-    briefings: {
-      title: 'Briefings: Touchpoint vorbereiten in fünf Minuten',
+    login: {
+      title: 'Anmelden und Passwort',
       steps: [
-        'Touchpoint wählen, dann „Briefing-Dokument herunterladen" — ein DOCX mit allen Stammgruppen Ihrer Übungsgruppe (Ihre Tutor-Kennung nennt Ihre Übungsgruppen, z.B. UEG07 oder UEG07+UEG12; bei mehreren gibt es je Übungsgruppe ein Dokument und einen Sammel-Download als ZIP).',
-        'Je Stammgruppe und Baustein: Kernposition, tragende Argumente, dünne Stellen. Die dünnen Stellen sind als Rückfragen formuliert — daraus ziehen Sie Ihre Spannungslinie.',
-        'Die formale Vorprüfung (Zeichengrenzen, Code, Dateiname) wird nur gemeldet, nie bewertet. Es gibt keine Punkte und keine Musterlösung: Jede Wahl ist zulässig, beurteilt wird, ob die Begründung trägt.',
-        '„Bitte prüfen" heisst: Die Automatik war unsicher oder hat einen Textteil zurückgehalten — lesen Sie diese Abgabe direkt.',
-        'Fehlende Stammgruppen stehen im Kopf des Dokuments. Das Feedback an die Gruppen entsteht erst nach dem Termin.',
+        'Ihr Konto heisst UEGL01 bis UEGL26 — die Kursleitung hat es Ihnen mitgeteilt. Gross- oder Kleinschreibung spielt keine Rolle.',
+        'Beim allerersten Login wählen Sie Ihr Passwort direkt im Anmeldeformular (mindestens 6 Zeichen) und bestätigen es danach einmal. Ab dann gilt es. Nur Sie kennen es; Ihr Browser darf es sich merken.',
+        'Passwort vergessen? Klicken Sie unter dem Anmeldeformular auf „Passwort vergessen?“ und wählen Sie Ihr Konto. Die Kursleitung sieht Ihre Anfrage und schickt Ihnen einen Einmalcode per E-Mail.',
+        'Mit dem Einmalcode melden Sie sich einmal an (Code als Passwort eingeben) und legen dann sofort ein neues Passwort fest. Danach ist der Code ungültig.',
+        'Nach 12 Stunden werden Sie automatisch abgemeldet. Zum Abmelden vorher: Reiter „Abmelden“ oben rechts.',
+      ],
+    },
+    briefings: {
+      title: 'Briefings: Touchpoint vorbereiten in vier Schritten',
+      steps: [
+        'Hochladen: Packen Sie alle Einreichungen Ihrer Gruppen (PPTX aus der offiziellen Vorlage, ersatzweise DOCX/PDF) in EINE ZIP-Datei und laden Sie sie oben hoch. Touchpoint, Übungsgruppe und Stammgruppe liest das System vom Deckblatt — Sie wählen nichts aus.',
+        'Warten: Die Seite zeigt „Verarbeitung läuft: 3 von 16 Dateien“. Sie dürfen die Seite schliessen und später zurückkommen. Pro Datei dauert es etwa eine halbe Minute.',
+        'Prüfen: Unter „Bitte zuordnen“ stehen Dateien, deren Deckblatt nicht lesbar war — tragen Sie Touchpoint, Übungsgruppe und Stammgruppe ein und speichern Sie. Bei jeder Auswertung können Sie die erkannten Angaben mit „Angaben ändern“ korrigieren. Ein rotes Ausrufezeichen erscheint, wenn die Gruppen eines Touchpoints von Ihren früheren Uploads abweichen — kurz kontrollieren, ob eine Datei vertauscht ist.',
+        'Herunterladen: Je Übungsgruppe „Briefing-Dokument (Word)“ — ein Abschnitt je Stammgruppe: Kernposition, tragende Argumente, dünne Stellen als Rückfragen, Einschätzung in Prosa. Dazu „Feedback für die Stammgruppen (ZIP)“ — ein Word-Dokument je Gruppe, das Sie weitergeben, zum Beispiel über Canvas.',
+        'Die formale Vorprüfung (Zeichengrenzen, Code, Dateiname) wird nur gemeldet, nie bewertet. Es gibt keine Punkte und keine Musterlösung: Jede Wahl ist zulässig, beurteilt wird, ob die Begründung trägt. „Bitte prüfen“ heisst: Die Automatik war unsicher — lesen Sie diese Abgabe direkt.',
+        'Nochmals hochladen ist jederzeit möglich; die neueste Auswertung je Stammgruppe zählt. Abgabedateien und Mitgliedernamen werden nie gespeichert.',
       ],
     },
     admin: {
@@ -71,14 +83,25 @@ export const TEACHER_GUIDE: Record<Locale, TeacherGuideContent> = {
         'All numbers come from individual preparation in the tool, not from the group submission.',
       ],
     },
-    briefings: {
-      title: 'Briefings: prepare a touchpoint in five minutes',
+    login: {
+      title: 'Signing in and your password',
       steps: [
-        'Choose the touchpoint, then "Download briefing document" — one DOCX with all home groups of your tutorial group (your tutor ID names your tutorial groups, e.g. UEG07 or UEG07+UEG12; with several you get one document per group and a combined ZIP download).',
-        'Per home group and building block: core position, supporting arguments, thin spots. The thin spots are phrased as follow-up questions — that is where your line of tension comes from.',
-        'The formal pre-check (character limits, code, filename) is reported, never graded. There are no points and no model solution: any choice is admissible; only the reasoning is judged.',
-        '"Please check" means the automation was unsure or withheld part of the text — read that submission directly.',
-        'Missing home groups are listed at the top of the document. Feedback to the groups is created only after the session.',
+        'Your account is UEGL01 to UEGL26 — the course lead gave it to you. Upper or lower case does not matter.',
+        'On your very first login you choose your password right in the sign-in form (at least 6 characters) and confirm it once afterwards. From then on it applies. Only you know it; your browser may remember it.',
+        'Forgot your password? Click “Forgot your password?” below the sign-in form and choose your account. The course lead sees your request and e-mails you a one-time code.',
+        'Sign in once with the one-time code (enter it as the password) and immediately set a new password. Afterwards the code is invalid.',
+        'You are signed out automatically after 12 hours. To sign out earlier: “Sign out” at the top right.',
+      ],
+    },
+    briefings: {
+      title: 'Briefings: prepare a touchpoint in four steps',
+      steps: [
+        'Upload: put all submissions of your groups (PPTX from the official template, or DOCX/PDF) into ONE ZIP file and upload it at the top. The system reads touchpoint, tutorial group and home group from the cover sheet — you select nothing.',
+        'Wait: the page shows “Processing: 3 of 16 files”. You may close the page and come back later. Each file takes about half a minute.',
+        'Check: under “Please assign” are files whose cover sheet was unreadable — enter touchpoint, tutorial group and home group and save. For every result you can correct the detected details with “Change details”. A red warning appears when the groups of a touchpoint differ from your earlier uploads — check briefly whether a file was mixed up.',
+        'Download: per tutorial group “Briefing document (Word)” — one section per home group: core position, supporting arguments, thin spots as follow-up questions, a prose assessment. Plus “Feedback for the home groups (ZIP)” — one Word document per group to pass on, e.g. via Canvas.',
+        'The formal pre-check (character limits, code, filename) is reported, never graded. There are no points and no model solution: any choice is admissible; only the reasoning is judged. “Please check” means the automation was unsure — read that submission directly.',
+        'You can upload again at any time; the latest result per home group counts. Submission files and member names are never stored.',
       ],
     },
     admin: {

@@ -3,13 +3,14 @@
 Vercel begrenzt Request-Bodies von Serverless-/Route-Handlern auf 4,5 MB —
 ein Semester-ZIP mit hunderten PPTX-Abgaben passt nicht durch den
 Teacher-Proxy. Deshalb holt sich der Browser beim Frontend ein signiertes,
-kurzlebiges Token (nur mit gültiger Master-Session) und schickt das ZIP
+kurzlebiges Token (nur mit gültiger Tutor-Session) und schickt das ZIP
 direkt an Railway (``POST /briefings/upload`` mit ``X-Upload-Token``).
 
 Signatur: HMAC-SHA256 über die Base64url-Payload, Schlüssel = TOADAPT_API_KEY
 (kennen beide Seiten bereits; kein zusätzliches Secret nötig). Payload:
 ``{"exp": <unix>, "tutor": "...", "master": true, "jti": "..."}``. Das Token
-ersetzt NUR auf der Upload-Route den X-API-Key; es ist auf ``master`` und
+ersetzt NUR auf der Upload-Route den X-API-Key; es gilt für jeden
+eingeloggten Übungsgruppenleiter (Konto in ``tutor``) und den Master, ist auf
 eine Lebensdauer von höchstens MAX_TTL_SECONDS beschränkt und respektiert
 die jti-Sperrliste (Logout).
 """
@@ -66,7 +67,7 @@ def sign_upload_token(*, tutor: str, master: bool, jti: str | None = None, ttl_s
 
 
 def verify_upload_token(token: str | None) -> dict:
-    """Prüft Signatur, Ablauf und Master-Flag; liefert die Payload oder wirft
+    """Prüft Signatur, Ablauf und Konto; liefert die Payload oder wirft
     UploadTokenError."""
     if not token or "." not in token:
         raise UploadTokenError("Upload-Token fehlt")
@@ -81,6 +82,6 @@ def verify_upload_token(token: str | None) -> dict:
     exp = int(payload.get("exp", 0) or 0)
     if exp <= 0 or exp > int(time.time()) + MAX_TTL_SECONDS or exp < int(time.time()):
         raise UploadTokenError("Upload-Token abgelaufen")
-    if payload.get("master") is not True:
-        raise UploadTokenError("Nur für den Master-Tutor")
+    if not str(payload.get("tutor") or "").strip() and payload.get("master") is not True:
+        raise UploadTokenError("Upload-Token ohne Konto")
     return payload

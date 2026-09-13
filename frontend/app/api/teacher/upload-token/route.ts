@@ -7,9 +7,9 @@ import { verifyTeacherSessionPayload, TEACHER_COOKIE } from '@/lib/teacherAuth'
 // hunderten PPTX-Abgaben passt nicht durch den Teacher-Proxy.
 //
 // Signatur identisch zu backend/briefings/upload_token.py: HMAC-SHA256 über
-// die Base64url-Payload, Schlüssel = TOADAPT_API_KEY. Nur der Master-Tutor
-// (signiertes Master-Flag in der Session) bekommt ein Token; es gilt nur für
-// POST /briefings/upload und läuft nach TTL_SECONDS ab.
+// die Base64url-Payload, Schlüssel = TOADAPT_API_KEY. Jeder eingeloggte
+// Übungsgruppenleiter (und der Master) bekommt ein Token mit seinem Konto; es
+// gilt nur für POST /briefings/upload und läuft nach TTL_SECONDS ab.
 
 const TTL_SECONDS = 15 * 60
 
@@ -40,9 +40,6 @@ export async function POST(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ detail: 'Nicht autorisiert' }, { status: 401 })
   }
-  if (!session.master) {
-    return NextResponse.json({ detail: 'Nur für den Master-Tutor' }, { status: 403 })
-  }
   const apiKey = process.env.TOADAPT_API_KEY
   if (!apiKey) {
     return NextResponse.json({ detail: 'Backend-Auth nicht konfiguriert' }, { status: 503 })
@@ -52,7 +49,7 @@ export async function POST(request: NextRequest) {
   const payload = JSON.stringify({
     exp,
     tutor: session.tutor,
-    master: true,
+    master: session.master,
     jti: session.jti ?? crypto.randomUUID(),
   })
   const body = toBase64Url(new TextEncoder().encode(payload))
