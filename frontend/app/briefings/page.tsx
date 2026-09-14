@@ -161,8 +161,8 @@ const TEXT = {
     running: (p: number, t: number) => `Verarbeitung läuft: ${p} von ${t} Dateien fertig. Sie dürfen die Seite schliessen.`,
     done: (b: BatchStatus) => `Fertig: ${b.briefed} ausgewertet · ${b.rejected ?? 0} abgelehnt · ${b.failed} nicht lesbar · ${b.review} bitte prüfen`,
     stale: 'Die Verarbeitung ist seit über 30 Minuten stehen geblieben — vermutlich durch einen Neustart abgebrochen. Bitte erneut hochladen; die neueste Auswertung je Stammgruppe zählt.',
-    batches: 'Ihre letzten Uploads',
-    helpBatches: 'Jede Zeile ist ein Upload: Zeitpunkt, Dateiname, Stand. „done“ heisst fertig.',
+    batches: 'Ihr letzter Upload',
+    helpBatches: 'Ihr letzter Upload: Zeitpunkt, Dateiname, Stand. „done“ heisst fertig.',
     errorGeneric: 'Upload fehlgeschlagen — bitte erneut versuchen.',
     // Konsistenz
     mismatchTitle: 'Bitte prüfen: Gruppen weichen von früheren Touchpoints ab',
@@ -265,8 +265,8 @@ const TEXT = {
     running: (p: number, t: number) => `Processing: ${p} of ${t} files done. You may close this page.`,
     done: (b: BatchStatus) => `Done: ${b.briefed} evaluated · ${b.rejected ?? 0} rejected · ${b.failed} unreadable · ${b.review} to check`,
     stale: 'Processing has stalled for over 30 minutes — probably interrupted by a restart. Please upload again; the latest result per home group counts.',
-    batches: 'Your recent uploads',
-    helpBatches: 'Each line is one upload: time, file name, state. “done” means finished.',
+    batches: 'Your last upload',
+    helpBatches: 'Your last upload: time, file name, state. “done” means finished.',
     errorGeneric: 'Upload failed — please try again.',
     mismatchTitle: 'Please check: groups differ from earlier touchpoints',
     mismatchNew: (tp: number, groups: string[]) => `Touchpoint ${tp}: new ${groups.join(', ')}`,
@@ -894,7 +894,7 @@ export default function BriefingsPage() {
             <div>
               <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--muted)' }}>{text.batches}<HelpHint text={text.helpBatches} /></p>
               <ul className="text-xs flex flex-col gap-1" style={{ color: 'var(--muted)' }}>
-                {batches.slice(0, 5).map(b => (
+                {batches.slice(0, 1).map(b => (
                   <li key={b.batch_id} className="font-mono">
                     {fmtTime(b.started_at)} · {b.filename || b.batch_id.slice(0, 8)} · {b.tps.length ? b.tps.map(n => `TP${n}`).join('+') : '–'} · {b.status}
                     {b.stale ? ' (stale)' : ''} · {b.processed}/{b.total} · {text.done(b)}
