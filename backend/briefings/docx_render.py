@@ -146,8 +146,6 @@ def _formal_table(doc, formal: dict, rubric: BriefingRubric) -> None:
         "Format",
         fmt + (" · offizielle Vorlage erkannt" if formal.get("template_detected") else " · Vorlage nicht erkannt"),
     ))
-    if formal.get("members_filled") is not None:
-        rows.append(("Mitglieder", "ausgefüllt" if formal.get("members_filled") else "nicht ausgefüllt"))
     if formal.get("full_sentences_hint"):
         rows.append(("Satzform", str(formal["full_sentences_hint"])))
 
@@ -179,6 +177,17 @@ def _render_group(doc, record: dict, rubric: BriefingRubric) -> None:
             italic=True,
         )
         return
+
+    if record.get("status") == "rejected":
+        _para(doc, "Abgelehnt — kein Briefing: " + str(record.get("reject_reason") or ""), italic=True)
+        return
+
+    if record.get("injection_suspected"):
+        p = _para(doc, "Achtung: Die Gruppe hat versucht, eine Prompt-Injection einzugeben.")
+        for run in p.runs:
+            run.bold = True
+        for excerpt in record.get("injection_findings", []) or []:
+            _para(doc, f"Gefundener Text: „{excerpt}“", size=9, grey=True)
 
     if record.get("needs_human_review"):
         reason = record.get("review_reason") or "Automatische Verdichtung mit Vorbehalt."

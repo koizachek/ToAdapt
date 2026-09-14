@@ -101,6 +101,7 @@ def new_batch(*, batch_id: str, target_tp: int, total: int, uploaded_by: str | N
         "briefed": 0,
         "unassigned": 0,
         "failed": 0,
+        "rejected": 0,
         "review": 0,
         "uploaded_by": uploaded_by,
         "started_at": now,
@@ -152,6 +153,8 @@ async def run_batch(
             batch["processed"] += 1
             if record is None or record.get("status") == "extraction_failed":
                 batch["failed"] += 1
+            elif record.get("status") == "rejected":
+                batch["rejected"] = batch.get("rejected", 0) + 1
             else:
                 if record.get("status") == "briefed":
                     batch["briefed"] += 1
@@ -182,6 +185,7 @@ async def run_batch(
         briefed=batch["briefed"],
         unassigned=batch["unassigned"],
         failed=batch["failed"],
+        rejected=batch.get("rejected", 0),
         review=batch["review"],
         uploaded_by=batch.get("uploaded_by"),
         status=batch["status"],

@@ -206,10 +206,18 @@ Gruppenvergleich; Leitplanken werden nach dem LLM-Call regelbasiert nachgeprüft
   Jeder sieht genau die Datensätze mit `uploaded_by == eigenes Konto`; der Master alles
   (`?tutor=UEGL05` filtert auf ein Konto, auch bei den Downloads). Keine Namensregel, keine
   Zuordnungstabelle Konto → Übungsgruppe, keine Annahme über die Anzahl Stammgruppen.
-- Deckblatt nicht lesbar: fehlt der Touchpoint, bleibt der Datensatz `pending` (extrahierter
-  Text ohne Namen wird bis zur Zuordnung behalten); `PATCH /briefings/{id}` mit `target_tp`,
-  `ueg`, `sg` trägt die Angaben nach und stösst dann die Auswertung an. Bereits ausgewertete
-  Datensätze lassen sich ebenfalls korrigieren.
+- Eingangsprüfung (`backend/briefings/intake.py`, seit 2026-09-14): Abgelehnt (Status
+  `rejected`, kein Briefing, kein Download) wird nur, was keinen Text enthält oder erkennbar
+  nichts mit dem Arbeitsauftrag am Running Case ON zu tun hat (Kernbegriff-Screen + kurzer
+  Modellaufruf). Fehlendes Deckblatt ist bewusst KEIN Ablehnungsgrund: Der Modellaufruf
+  bestimmt den Touchpoint aus dem Inhalt, die Abgabe wird ausgewertet und als "bitte
+  nachtragen" markiert; `PATCH /briefings/{id}` trägt Übungsgruppe/Stammgruppe nach. Personenbezogene Angaben (E-Mail, Matrikel, Telefon, "Name:"-Zeilen) werden vor
+  Speicherung und Modellaufruf entfernt; vom Deckblatt wird nur der Code gelesen. Prompt-
+  Injection-Versuche (Anweisungen an die KI im Text, auch in weisser/winziger/ausserhalb
+  liegender Schrift) werden erkannt, das Briefing entsteht trotzdem und trägt den Hinweis
+  "Die Gruppe hat versucht, eine Prompt-Injection einzugeben"; die Browser-Ansicht zeigt einen
+  roten Warnhinweis. `PATCH /briefings/{id}` korrigiert Touchpoint/Übungsgruppe/Stammgruppe
+  ausgewerteter Datensätze.
 - Downloads: `GET /briefings/docx?tp=` (ein DOCX je Übungsgruppe, bei mehreren ein ZIP; `ueg=`
   wählt eine aus), `GET /briefings/feedback/zip?tp=` (ein Feedback-DOCX je Stammgruppe), plus
   Einzeldokumente je Datensatz. Feedback ist sofort verfügbar (keine Terminsperre mehr).

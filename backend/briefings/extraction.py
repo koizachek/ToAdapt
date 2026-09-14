@@ -68,7 +68,6 @@ class Kenndaten:
     sg: int | None = None    # 1–8
     code: str = ""           # "TP1-UEG07-SG3"
     source: str = ""         # "kenndaten" | "text" | "filename" | ""
-    members_filled: bool | None = None
 
 
 @dataclass
@@ -83,6 +82,11 @@ class ExtractedSubmission:
     slide_count: int | None = None
     template_detected: bool = False
     notes: list[str] = field(default_factory=list)
+    # Versteckter Text in PPTX (weiss, winzig, ausserhalb der Folie) — wird
+    # NICHT in die Bausteine übernommen, sondern nur gemeldet (Prompt-Injection).
+    hidden_text: list[dict] = field(default_factory=list)
+    # Labels entfernter personenbezogener Angaben (E-Mail, Matrikel, Namenszeile).
+    pii_hits: list[str] = field(default_factory=list)
 
     @property
     def has_content(self) -> bool:
@@ -121,7 +125,8 @@ def build_code(tp: int, ueg: str, sg: int) -> str:
 
 
 def _norm(text: str) -> str:
-    return re.sub(r"\s+", " ", text.replace("\x0b", " ")).strip().lower()
+    text = text.replace("\x0b", " ").replace("·", "-").replace("–", "-").replace("—", "-")
+    return re.sub(r"\s+", " ", text).strip().lower()
 
 
 def count_chars(text: str) -> int:
@@ -284,15 +289,76 @@ def _is_pptx_boilerplate(shape, text: str, boilerplate: set[str]) -> bool:
     return n in boilerplate or n.startswith(_PLACEHOLDER_PREFIXES) or bool(re.fullmatch(r"\d{1,2}", n))
 
 
-def _slide_content(slide, boilerplate: set[str]) -> str:
+HIDDEN_FONT_PT = 6          # kleiner = praktisch unsichtbar
+_LIGHT_RGB_MIN = 0xF0        # alle Kanäle ≥ F0 = (fast) weiss
+
+
+def _hidden_reason(shape, slide_w: int | None, slide_h: int | None) -> str | None:
+    """Warum ein Shape für Lesende unsichtbar ist — oder None."""
+    try:
+        left, top = shape.left, shape.top
+        width, height = shape.width, shape.height
+        if slide_w and slide_h and left is not None and top is not None:
+            if left + (width or 0) <= 0 or top + (height or 0) <= 0 or left >= slide_w or top >= slide_h:
+                return "ausserhalb der Folie"
+    except Exception:
+        pass
+    if not getattr(shape, "has_text_frame", False):
+        return None
+    try:
+        runs = [r for p in shape.text_frame.paragraphs for r in p.runs if r.text.strip()]
+    except Exception:
+        return None
+    if not runs:
+        return None
+    tiny = white = 0
+    for run in runs:
+        try:
+            if run.font.size is not None and run.font.size.pt < HIDDEN_FONT_PT:
+                tiny += 1
+        except Exception:
+            pass
+        try:
+            rgb = run.font.color.rgb if run.font.color and run.font.color.type is not None else None
+            if rgb is not None and all(int(str(rgb)[i:i + 2], 16) >= _LIGHT_RGB_MIN for i in (0, 2, 4)):
+                white += 1
+        except Exception:
+            pass
+    if tiny == len(runs):
+        return "winzige Schrift"
+    if white == len(runs) and not _has_dark_fill(shape) and not getattr(shape, "is_placeholder", False):
+        return "weisse Schrift"
+    return None
+
+
+def _has_dark_fill(shape) -> bool:
+    """Weisse Schrift auf dunkler Fläche ist sichtbar (Vorlagen-Kopfzeilen)."""
+    try:
+        fill = shape.fill
+        if fill.type != 1:                     # MSO_FILL.SOLID
+            return False
+        rgb = str(fill.fore_color.rgb)
+        channels = [int(rgb[i:i + 2], 16) for i in (0, 2, 4)]
+        return sum(channels) / 3 < 0x90
+    except Exception:
+        return False
+
+
+def _slide_content(slide, boilerplate: set[str], hidden_out: list[dict] | None = None,
+                   slide_w: int | None = None, slide_h: int | None = None) -> str:
     parts: list[str] = []
     for shape in slide.shapes:
+        reason = _hidden_reason(shape, slide_w, slide_h) if hidden_out is not None else None
         for _, text in _shape_texts(shape):
             if _is_pptx_boilerplate(shape, text, boilerplate):
                 continue
             cleaned = _strip_boilerplate_lines(text, boilerplate)
-            if cleaned:
-                parts.append(cleaned)
+            if not cleaned:
+                continue
+            if reason:
+                hidden_out.append({"grund": reason, "text": re.sub(r"\s+", " ", cleaned)[:160]})
+                continue
+            parts.append(cleaned)
     return "\n".join(parts).strip()
 
 
@@ -305,9 +371,8 @@ def _kenndaten_from_pptx(slide, filename: str) -> tuple[Kenndaten, bool]:
             fields[name] = shape.text_frame.text.strip()
     template = bool(fields)
     kd = Kenndaten()
-    if "KENN_NAMEN" in fields:
-        kd.members_filled = _norm(fields["KENN_NAMEN"]) not in {_norm(v) for v in _EMPTY_FIELD}
-
+    # Vom Deckblatt wird AUSSCHLIESSLICH der Code gelesen. Das Namensfeld
+    # (KENN_NAMEN) wird nicht angefasst — keine personenbezogenen Daten.
     parsed = parse_code(fields.get("KENN_CODE", ""))
     if parsed:
         kd.tp, kd.ueg, kd.sg = parsed
@@ -360,8 +425,9 @@ def extract_pptx(filename: str, data: bytes, expected_tp: int | None = None) -> 
     )
 
     if len(slides) >= 3:
-        sub.baustein1 = _slide_content(slides[1], boilerplate)
-        sub.baustein2 = _slide_content(slides[2], boilerplate)
+        w, h = prs.slide_width, prs.slide_height
+        sub.baustein1 = _slide_content(slides[1], boilerplate, sub.hidden_text, w, h)
+        sub.baustein2 = _slide_content(slides[2], boilerplate, sub.hidden_text, w, h)
         if len(slides) > 3:
             sub.notes.append(f"Abgabe hat {len(slides)} Folien (Vorlage: 3); nur Folie 2 und 3 wurden gelesen.")
     else:
@@ -482,13 +548,50 @@ def _from_flat_text(
     return sub
 
 
+# ---------------------------------------------------------------------------
+# Personenbezogene Daten (Owner-Entscheidung 2026-09-14): E-Mail-Adressen,
+# Matrikelnummern, Telefonnummern und Zeilen wie "Name: …" verschwinden aus
+# dem Baustein-Text, BEVOR er gespeichert oder an ein Modell geschickt wird.
+# ---------------------------------------------------------------------------
+
+_PII_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    ("email", re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", re.IGNORECASE)),
+    ("matrikel", re.compile(r"\b\d{2}[-. ]\d{3}[-. ]\d{3}\b")),            # HSG-Format 12-345-678
+    ("matrikel", re.compile(r"\bmatrikel(?:nummer|nr\.?)?\s*[:#]?\s*\d{6,9}\b", re.IGNORECASE)),
+    ("telefon", re.compile(r"(?<!\d)(?:\+\d{2}|0)\s?\d{2}\s?\d{3}\s?\d{2}\s?\d{2}(?!\d)")),
+]
+_PII_LINE = re.compile(
+    r"^\s*(?:name[n]?|vorname|nachname|mitglied(?:er)?|teilnehmer(?:in|innen)?|student(?:in|innen)?|"
+    r"matrikel(?:nummer|nr\.?)?|e-?mail|telefon|tel\.?)\s*[:：]",
+    re.IGNORECASE,
+)
+
+
+def scrub_personal_data(text: str) -> tuple[str, list[str]]:
+    """Entfernt personenbezogene Angaben; Rückgabe (Text, Labels der Funde)."""
+    hits: set[str] = set()
+    kept: list[str] = []
+    for line in (text or "").splitlines():
+        if _PII_LINE.match(line):
+            hits.add("namenszeile")
+            continue
+        cleaned = line
+        for label, pattern in _PII_PATTERNS:
+            if pattern.search(cleaned):
+                hits.add(label)
+                cleaned = pattern.sub("[entfernt]", cleaned)
+        kept.append(cleaned)
+    return "\n".join(kept).strip(), sorted(hits)
+
+
 def _finalize(sub: ExtractedSubmission) -> None:
     for key in ("baustein1", "baustein2"):
-        text = getattr(sub, key)
+        text, hits = scrub_personal_data(getattr(sub, key))
+        sub.pii_hits = sorted(set(sub.pii_hits) | set(hits))
         if len(text) > MAX_BAUSTEIN_CHARS:
             sub.notes.append(f"{key}: Text auf {MAX_BAUSTEIN_CHARS} Zeichen gekürzt.")
             text = text[:MAX_BAUSTEIN_CHARS]
-            setattr(sub, key, text)
+        setattr(sub, key, text)                      # bereinigt UND ggf. gekürzt — immer zurückschreiben
         setattr(sub, f"{key}_chars", count_chars(text))
 
 

@@ -51,7 +51,6 @@ def formal_checks(sub: ExtractedSubmission, rubric: BriefingRubric, target_tp: i
         "code_valid": bool(code) and bool(rubric.code_regex.fullmatch(code)),
         "code_matches_tp": (kd.tp == target_tp) if kd.tp else True,
         "filename_valid": bool(rubric.filename_regex.fullmatch(sub.filename)),
-        "members_filled": kd.members_filled,
         "notes": list(sub.notes),
     }
     hints = [

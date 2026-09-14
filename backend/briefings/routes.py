@@ -25,19 +25,24 @@ kurzlebiges Upload-Token (Direkt-Upload aus dem Browser, Vercel-Body-Limit).
 
 Es werden KEINE hochgeladenen Dateien persistiert. Nur der extrahierte Text
 wird verdichtet und verworfen; gespeichert werden Briefing, Feedback,
-formale Vorprüfung und interne Einstufung. Einzige Ausnahme: Ist der
-Touchpoint nicht erkennbar, bleibt der extrahierte Text (ohne Namen) bis
-zur Zuordnung im Datensatz, damit die Auswertung nachgeholt werden kann.
-Mitgliedernamen vom Deckblatt werden nie übernommen.
+formale Vorprüfung und interne Einstufung. Vom Deckblatt wird nur der Code
+gelesen; personenbezogene Angaben im Text werden vor allem Weiteren entfernt.
+
+Eingangsprüfung (backend/briefings/intake.py, Owner-Entscheidung 2026-09-14):
+Nur echte Abgaben werden ausgewertet — Deckblatt-Code vollständig, Bausteine
+vorhanden, Bezug zum Running Case ON (Kernbegriffe + kurzer Modellaufruf).
+Alles andere wird mit Grund abgelehnt (Status ``rejected``, kein Briefing).
+Prompt-Injection-Versuche werden erkannt und im Briefing ausgewiesen.
 """
 
 from __future__ import annotations
 
 import asyncio
 import io
+import re
 import uuid
 import zipfile
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 import structlog
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
@@ -55,7 +60,6 @@ from backend.briefings.batches import (
 from backend.briefings.docx_render import render_briefing_docx, render_feedback_docx
 from backend.briefings.extraction import (
     ExtractedSubmission,
-    Kenndaten,
     ZipValidationError,
     build_code,
     extract_submission,
@@ -64,6 +68,13 @@ from backend.briefings.extraction import (
 )
 from backend.briefings.formal import formal_checks
 from backend.briefings.generator import FeedbackGenerator
+from backend.briefings.intake import (
+    INJECTION_NOTE,
+    TopicClassifier,
+    injection_findings,
+    topic_screen,
+    validate_submission,
+)
 from backend.briefings.rubrics import SUPPORTED_TPS, BriefingRubric, load_rubric
 from backend.briefings.upload_token import UPLOAD_TOKEN_HEADER, UploadTokenError, verify_upload_token
 from backend.config.tutor_accounts import MASTER_ACCOUNT, TUTOR_ACCOUNTS
@@ -90,9 +101,7 @@ TEACHER_MASTER_HEADER = "X-Teacher-Master"
 
 DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
-STATUS_PENDING = "pending"                       # Touchpoint nicht erkennbar → wartet auf Zuordnung
-PENDING_REASON = "Touchpoint nicht erkennbar — bitte zuordnen, dann wird die Auswertung erstellt."
-ASSIGN_REASON = "Übungsgruppe/Stammgruppe nicht erkennbar — bitte zuordnen."
+STATUS_REJECTED = "rejected"                     # keine echte Abgabe → kein Briefing
 
 
 # ---------------------------------------------------------------------------
@@ -180,16 +189,16 @@ class BriefingRecord(BaseModel):
     batch_id: str
     filename: str
     format: str = ""
-    target_tp: int = 0                # 0 = Touchpoint nicht erkannt (pending)
-    ueg: str = ""                     # "" = nicht zuordenbar → Review
+    target_tp: int = 0                # 0 = Touchpoint nicht erkannt (nur bei abgelehnten Dateien)
+    ueg: str = ""
     sg: int | None = None
     code: str | None = None
     code_source: str | None = None
-    status: str                       # "briefed" | "pending" | "extraction_failed" | "no_content"
+    status: str                       # "briefed" | "rejected" | "extraction_failed" | "no_content"
     uploaded_at: str
     generated_at: str | None = None
     uploaded_by: str | None = None
-    evaluation_status: str = "ok"     # "ok" | "technical_fallback" | "no_content" | "extraction_failed" | "pending"
+    evaluation_status: str = "ok"     # "ok" | "technical_fallback" | "no_content" | "extraction_failed" | "rejected"
     needs_human_review: bool = False
     review_reason: str | None = None
     guardrail_hits: list[str] = Field(default_factory=list)
@@ -203,13 +212,16 @@ class BriefingRecord(BaseModel):
     feedback_review_reason: str | None = None
     text_chars: int = 0
     source: str = "briefing_upload"
-    # Nur bei status == "pending": extrahierter Text (ohne Namen) bis zur
-    # Zuordnung des Touchpoints; wird nach der Auswertung gelöscht.
-    pending_submission: dict | None = None
+    # Eingangsprüfung
+    reject_reason: str | None = None                 # nur bei status == "rejected"
+    topic_reason: str | None = None                  # Begründung der Themenprüfung
+    pii_removed: list[str] = Field(default_factory=list)   # Labels entfernter Angaben (email, matrikel, …)
+    injection_suspected: bool = False
+    injection_findings: list[str] = Field(default_factory=list)
 
 
 class BriefingPublic(BaseModel):
-    """Tutor-sichtbare Sicht: ohne interne Einstufung, ohne Zwischenspeicher."""
+    """Tutor-sichtbare Sicht: ohne interne Einstufung."""
     briefing_id: str
     batch_id: str
     filename: str
@@ -236,6 +248,11 @@ class BriefingPublic(BaseModel):
     feedback_review_reason: str | None = None
     text_chars: int = 0
     source: str = "briefing_upload"
+    reject_reason: str | None = None
+    topic_reason: str | None = None
+    pii_removed: list[str] = Field(default_factory=list)
+    injection_suspected: bool = False
+    injection_findings: list[str] = Field(default_factory=list)
 
 
 class BatchStatus(BaseModel):
@@ -249,6 +266,7 @@ class BatchStatus(BaseModel):
     briefed: int = 0
     unassigned: int = 0
     failed: int = 0
+    rejected: int = 0
     review: int = 0
     uploaded_by: str | None = None
     started_at: str | None = None
@@ -384,12 +402,6 @@ def _extract(filename: str, data: bytes) -> ExtractedSubmission:
     return sub
 
 
-def _submission_from_dict(payload: dict) -> ExtractedSubmission:
-    kd = Kenndaten(**(payload.get("kenndaten") or {}))
-    fields = {k: v for k, v in payload.items() if k != "kenndaten"}
-    return ExtractedSubmission(kenndaten=kd, **fields)
-
-
 async def _generate_into(
     record: dict,
     *,
@@ -397,8 +409,8 @@ async def _generate_into(
     rubric: BriefingRubric,
     generator: FeedbackGenerator,
 ) -> dict:
-    """Führt Briefing + Feedback für einen Datensatz aus (Upload oder
-    nachgeholte Zuordnung) und schreibt die Ergebnisfelder in ``record``."""
+    """Führt Briefing + Feedback für einen Datensatz aus und schreibt die
+    Ergebnisfelder in ``record``."""
     kd = sub.kenndaten
     tp = rubric.tp
     result = await generator.generate(briefing_id=record["briefing_id"], rubric=rubric, sub=sub)
@@ -408,6 +420,11 @@ async def _generate_into(
         assessment=result["assessment"] if result["evaluation_status"] == "ok" else None,
     )
     assigned = bool(kd.ueg and kd.sg)
+    injection = bool(record.get("injection_suspected"))
+    needs_review = bool(result["needs_human_review"]) or injection or not assigned
+    review_reason = result.get("review_reason")
+    if injection:
+        review_reason = INJECTION_NOTE + (f" {review_reason}" if review_reason else "")
     record.update(
         format=sub.format,
         target_tp=tp,
@@ -418,8 +435,8 @@ async def _generate_into(
         status=status,
         generated_at=naive_utcnow().isoformat(),
         evaluation_status=result["evaluation_status"],
-        needs_human_review=bool(result["needs_human_review"]) or not assigned,
-        review_reason=result.get("review_reason") or (None if assigned else ASSIGN_REASON),
+        needs_human_review=needs_review,
+        review_reason=review_reason,
         guardrail_hits=list(result.get("guardrail_hits", [])),
         formal=formal_checks(sub, rubric, tp),
         briefing=result["briefing"],
@@ -430,14 +447,34 @@ async def _generate_into(
         feedback_needs_human_review=bool(feedback.get("feedback_needs_human_review")),
         feedback_review_reason=feedback.get("feedback_review_reason"),
         text_chars=sub.baustein1_chars + sub.baustein2_chars,
-        pending_submission=None,
     )
     return record
+
+
+def _rejected(base: dict, sub: ExtractedSubmission | None, reason: str) -> BriefingRecord:
+    kd = sub.kenndaten if sub else None
+    return BriefingRecord(
+        **{**base, "format": sub.format if sub else base["format"]},
+        target_tp=(kd.tp if kd and kd.tp in SUPPORTED_TPS else 0),
+        ueg=(kd.ueg if kd else ""),
+        sg=(kd.sg if kd else None),
+        code=(build_code(kd.tp, kd.ueg, kd.sg) if kd and kd.tp in SUPPORTED_TPS and kd.ueg and kd.sg else None),
+        code_source=(kd.source or None) if kd else None,
+        status=STATUS_REJECTED,
+        evaluation_status="rejected",
+        needs_human_review=False,
+        reject_reason=reason,
+        formal={"filename": base["filename"], "format": sub.format if sub else base["format"],
+                "notes": list(sub.notes) if sub else []},
+        pii_removed=list(sub.pii_hits) if sub else [],
+        text_chars=(sub.baustein1_chars + sub.baustein2_chars) if sub else 0,
+    )
 
 
 async def _process_entry(
     *,
     generator: FeedbackGenerator,
+    topic_classifier: TopicClassifier,
     rubrics: dict[int, BriefingRubric],
     batch_id: str,
     filename: str,
@@ -468,26 +505,59 @@ async def _process_entry(
             formal={"filename": filename},
         )
 
-    kd = sub.kenndaten
-    if kd.tp not in SUPPORTED_TPS:
-        # Ohne Touchpoint keine Rubric → Auswertung erst nach der Zuordnung.
-        return BriefingRecord(
-            **{**base, "format": sub.format},
-            ueg=kd.ueg,
-            sg=kd.sg,
-            code_source=kd.source or None,
-            status=STATUS_PENDING,
-            evaluation_status="pending",
-            needs_human_review=True,
-            review_reason=PENDING_REASON,
-            formal={"filename": filename, "format": sub.format, "notes": list(sub.notes)},
-            text_chars=sub.baustein1_chars + sub.baustein2_chars,
-            pending_submission=asdict(sub),
-        )
+    # 1. Formale Eingangsprüfung: nur leere Dateien werden abgelehnt; fehlendes
+    #    Deckblatt oder fehlende Marker geben Hinweise (nachtragen statt ablehnen)
+    decision = validate_submission(sub)
+    if not decision.accepted:
+        logger.info("briefing_rejected", filename=filename, reason=decision.reason, uploaded_by=uploaded_by)
+        return _rejected(base, sub, decision.reason or "Keine Abgabe.")
+    intake_notes = list(decision.notes)
 
-    rubric = rubrics.setdefault(kd.tp, load_rubric(kd.tp))
-    record = dict(base, status="briefed")
+    # 2. Themenprüfung: Kernbegriffe (kostenlos), dann kurzer Modellaufruf, der
+    #    bei fehlendem Deckblatt auch den Touchpoint bestimmt
+    combined = f"{sub.baustein1}\n{sub.baustein2}"
+    passed, hits = topic_screen(combined)
+    if not passed:
+        logger.info("briefing_rejected", filename=filename, reason="topic_screen", hits=hits, uploaded_by=uploaded_by)
+        return _rejected(base, sub, "Kein Bezug zum Running Case ON erkennbar — der Text enthält keine Kernbegriffe des Falls.")
+    for tp_n in SUPPORTED_TPS:
+        rubrics.setdefault(tp_n, load_rubric(tp_n))
+    topic = await topic_classifier.check(rubrics, sub)
+    if topic.on_topic is False:
+        logger.info("briefing_rejected", filename=filename, reason="topic_classifier", uploaded_by=uploaded_by)
+        return _rejected(base, sub, "Kein Bezug zum Arbeitsauftrag am Running Case ON: " + (topic.reason or "laut Themenprüfung."))
+    if topic.tp not in SUPPORTED_TPS:
+        logger.info("briefing_rejected", filename=filename, reason="tp_unknown", uploaded_by=uploaded_by)
+        return _rejected(base, sub, "Touchpoint nicht bestimmbar — weder Deckblatt-Code noch Inhalt lassen erkennen, zu welchem Touchpoint die Abgabe gehört.")
+    if sub.kenndaten.tp not in SUPPORTED_TPS:
+        sub.kenndaten.tp = topic.tp
+        sub.kenndaten.source = sub.kenndaten.source or "inhalt"
+        intake_notes.append(f"Touchpoint {topic.tp} aus dem Inhalt bestimmt.")
+    rubric = rubrics[topic.tp]
+    topic_reason = topic.reason
+    on_topic = topic.on_topic
+
+    # 3. Prompt-Injection: Muster im Text + versteckter Text (Text bleibt, Hinweis ins Briefing)
+    findings = injection_findings(sub)
+    if findings:
+        logger.warning("briefing_injection_suspected", filename=filename, uploaded_by=uploaded_by, findings=len(findings))
+
+    record = dict(
+        base,
+        status="briefed",
+        topic_reason=topic_reason or None,
+        pii_removed=list(sub.pii_hits),
+        injection_suspected=bool(findings),
+        injection_findings=findings,
+    )
     await _generate_into(record, sub=sub, rubric=rubric, generator=generator)
+    extra = list(intake_notes)
+    if on_topic is None:
+        extra.insert(0, topic_reason or "Themenprüfung nicht möglich.")
+    if extra:
+        record["needs_human_review"] = True
+        record["review_reason"] = " ".join([*extra, record.get("review_reason") or ""]).strip()
+        record["formal"]["notes"] = [*intake_notes, *record["formal"].get("notes", [])]
     return BriefingRecord(**record)
 
 
@@ -523,6 +593,7 @@ async def upload_submissions(
     del data
 
     generator = FeedbackGenerator(api_key=api_key)
+    topic_classifier = TopicClassifier(api_key=api_key)
     rubrics: dict[int, BriefingRubric] = {}
     batch_id = str(uuid.uuid4())
     batch = new_batch(
@@ -547,6 +618,7 @@ async def upload_submissions(
     async def _process(filename: str, payload: bytes) -> dict:
         record = await _process_entry(
             generator=generator,
+            topic_classifier=topic_classifier,
             rubrics=rubrics,
             batch_id=batch_id,
             filename=filename,
@@ -655,6 +727,8 @@ async def monitoring(ctx: TeacherContext = Depends(require_master)):
                 "status": r.get("status"),
                 "evaluation_status": r.get("evaluation_status"),
                 "needs_human_review": bool(r.get("needs_human_review")),
+                "injection_suspected": bool(r.get("injection_suspected")),
+                "reject_reason": r.get("reject_reason"),
                 "uploaded_at": r.get("uploaded_at"),
                 "filename": r.get("filename"),
             })
@@ -679,6 +753,8 @@ async def monitoring(ctx: TeacherContext = Depends(require_master)):
             }),
             "upload_count": len(own),
             "review_open": sum(1 for r in own if r.get("needs_human_review")),
+            "rejected": sum(1 for r in own if r.get("status") == STATUS_REJECTED),
+            "injection_suspected": sum(1 for r in own if r.get("injection_suspected")),
             "latest_uploaded_at": max((str(r.get("uploaded_at", "")) for r in own), default=None),
             "last_download_at": max((str(d.get("at", "")) for d in own_downloads), default=None),
             "touchpoints": [per_tp[k] for k in sorted(per_tp)],
@@ -720,7 +796,7 @@ async def briefing_overview(
 def _bundle_records(ctx: TeacherContext, *, tp: int, tutor: str | None, ueg: str | None) -> list[dict]:
     if ctx.is_master and not tutor:
         raise HTTPException(status_code=422, detail="tutor fehlt (Konto, dessen Dokumente heruntergeladen werden)")
-    records = [r for r in _visible_records(ctx, tp=tp, tutor=tutor) if r.get("ueg")]
+    records = [r for r in _visible_records(ctx, tp=tp, tutor=tutor) if r.get("ueg") and r.get("status") == "briefed"]
     if ueg:
         wanted = normalize_ueg(ueg)
         if not wanted:
@@ -883,12 +959,13 @@ async def download_single_briefing(briefing_id: str, ctx: TeacherContext = Depen
 async def patch_assignment(
     briefing_id: str, patch: AssignmentPatch, ctx: TeacherContext = Depends(teacher_context)
 ):
-    """Deckblatt-Angaben (Touchpoint, Übungsgruppe, Stammgruppe) verifizieren
-    oder nachtragen — für eigene Uploads. Wartet die Auswertung noch auf den
-    Touchpoint (``pending``), wird sie nach der Zuordnung erstellt."""
+    """Deckblatt-Angaben (Touchpoint, Übungsgruppe, Stammgruppe) einer
+    ausgewerteten Abgabe verifizieren oder korrigieren — für eigene Uploads.
+    Abgelehnte oder unlesbare Dateien werden nicht korrigiert, sondern mit
+    korrigiertem Deckblatt erneut hochgeladen."""
     record = _record_or_404(briefing_id, ctx)
-    if record.get("status") == "extraction_failed":
-        raise HTTPException(status_code=409, detail="Datei war nicht lesbar — bitte erneut hochladen")
+    if record.get("status") in ("extraction_failed", STATUS_REJECTED):
+        raise HTTPException(status_code=409, detail="Diese Datei wurde nicht ausgewertet — bitte korrigiert erneut hochladen")
     if patch.target_tp is None and patch.ueg is None and patch.sg is None:
         raise HTTPException(status_code=422, detail="Nichts zu ändern")
 
@@ -900,37 +977,26 @@ async def patch_assignment(
         if not ueg:
             raise HTTPException(status_code=422, detail="Übungsgruppe ungültig (erwartet z.B. UEG07)")
     sg = patch.sg if patch.sg is not None else record.get("sg")
-    assigned = bool(tp and ueg and sg)
+    if not (tp and ueg and sg):
+        raise HTTPException(status_code=422, detail="Touchpoint, Übungsgruppe und Stammgruppe müssen gesetzt sein")
 
-    record.update(target_tp=tp, ueg=ueg, sg=sg, code=(build_code(tp, ueg, int(sg)) if assigned else None),
-                  code_source="manual")
-
-    if record.get("status") == STATUS_PENDING and tp in SUPPORTED_TPS:
-        api_key = get_openrouter_key()
-        if not api_key:
-            raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
-        sub = _submission_from_dict(record.get("pending_submission") or {})
-        sub.kenndaten.tp, sub.kenndaten.ueg, sub.kenndaten.sg = tp, ueg, sg
-        sub.kenndaten.source = "manual"
-        rubric = _rubric_or_422(tp)
-        await _generate_into(record, sub=sub, rubric=rubric, generator=FeedbackGenerator(api_key=api_key))
-        record["code_source"] = "manual"
-    else:
-        formal = dict(record.get("formal") or {})
-        formal.update(code=record["code"], code_valid=assigned, code_matches_tp=True)
-        notes = [n for n in formal.get("notes", []) if "Touchpoint" not in n or "hochgeladen" not in n]
-        if old_tp and tp != old_tp and record.get("status") == "briefed":
-            notes.append(f"Touchpoint von {old_tp} auf {tp} geändert — die Auswertung wurde mit der Rubric von Touchpoint {old_tp} erstellt.")
-            record["needs_human_review"] = True
-            record["review_reason"] = notes[-1]
-        formal["notes"] = notes
-        record["formal"] = formal
-        if assigned and record.get("review_reason") in (ASSIGN_REASON, PENDING_REASON):
-            record["review_reason"] = None
-            record["needs_human_review"] = bool(record.get("guardrail_hits")) or record.get("evaluation_status") != "ok"
-        if not assigned:
-            record["needs_human_review"] = True
-            record["review_reason"] = record.get("review_reason") or ASSIGN_REASON
+    record.update(target_tp=tp, ueg=ueg, sg=sg, code=build_code(tp, ueg, int(sg)), code_source="manual")
+    formal = dict(record.get("formal") or {})
+    formal.update(code=record["code"], code_valid=True, code_matches_tp=True)
+    notes = [n for n in formal.get("notes", []) if "Touchpoint" not in n or "hochgeladen" not in n]
+    if old_tp and tp != old_tp:
+        notes.append(f"Touchpoint von {old_tp} auf {tp} geändert — die Auswertung wurde mit der Rubric von Touchpoint {old_tp} erstellt.")
+        record["needs_human_review"] = True
+        record["review_reason"] = notes[-1]
+    intake_marks = ("Deckblatt-Code unvollständig", "aus dem Inhalt bestimmt")
+    formal["notes"] = [n for n in notes if not any(m in n for m in intake_marks)]
+    record["formal"] = formal
+    if record.get("review_reason") and not (old_tp and tp != old_tp):
+        # Nachtrage-Hinweise sind mit der Bestätigung erledigt; andere Gründe bleiben.
+        sentences = re.split(r"(?<=\.)\s+", record["review_reason"])
+        rest = " ".join(x for x in sentences if not any(m in x for m in intake_marks)).strip()
+        record["review_reason"] = rest or None
+        record["needs_human_review"] = bool(rest)
 
     await asyncio.to_thread(briefing_store.save, record)
     logger.info("briefing_assigned", briefing_id=briefing_id, target_tp=tp, ueg=ueg, sg=sg, by=ctx.label)

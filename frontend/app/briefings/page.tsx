@@ -72,6 +72,10 @@ interface BriefingRecord {
   feedback_status: string
   feedback_needs_human_review: boolean
   feedback_review_reason: string | null
+  reject_reason: string | null
+  pii_removed: string[]
+  injection_suspected: boolean
+  injection_findings: string[]
 }
 
 interface BatchStatus {
@@ -84,6 +88,7 @@ interface BatchStatus {
   briefed: number
   unassigned: number
   failed: number
+  rejected: number
   review: number
   uploaded_by: string | null
   started_at: string | null
@@ -99,6 +104,8 @@ interface MonitoringGroup {
   sg: number | null
   status: string
   needs_human_review: boolean
+  injection_suspected: boolean
+  reject_reason: string | null
   uploaded_at: string | null
   filename: string | null
 }
@@ -126,6 +133,8 @@ interface MonitoringRow {
   reset_code_expires_at: string | null
   upload_count: number
   review_open: number
+  rejected: number
+  injection_suspected: number
   latest_uploaded_at: string | null
   last_download_at: string | null
   touchpoints: MonitoringTp[]
@@ -150,7 +159,7 @@ const TEXT = {
     upload: 'Hochladen und auswerten',
     uploading: 'Upload läuft…',
     running: (p: number, t: number) => `Verarbeitung läuft: ${p} von ${t} Dateien fertig. Sie dürfen die Seite schliessen.`,
-    done: (b: BatchStatus) => `Fertig: ${b.briefed} ausgewertet · ${b.unassigned} bitte zuordnen · ${b.failed} nicht lesbar · ${b.review} bitte prüfen`,
+    done: (b: BatchStatus) => `Fertig: ${b.briefed} ausgewertet · ${b.rejected ?? 0} abgelehnt · ${b.failed} nicht lesbar · ${b.review} bitte prüfen`,
     stale: 'Die Verarbeitung ist seit über 30 Minuten stehen geblieben — vermutlich durch einen Neustart abgebrochen. Bitte erneut hochladen; die neueste Auswertung je Stammgruppe zählt.',
     batches: 'Ihre letzten Uploads',
     helpBatches: 'Jede Zeile ist ein Upload: Zeitpunkt, Dateiname, Stand. „done“ heisst fertig.',
@@ -160,10 +169,17 @@ const TEXT = {
     mismatchNew: (tp: number, groups: string[]) => `Touchpoint ${tp}: neu dabei ${groups.join(', ')}`,
     mismatchMissing: (tp: number, groups: string[]) => `Touchpoint ${tp}: nicht mehr dabei ${groups.join(', ')}`,
     helpMismatch: 'Im Vergleich zu Ihren früheren Uploads sind hier andere Gruppennummern erkannt worden. Das kann richtig sein — oder eine Datei ist vertauscht oder ein Deckblatt falsch ausgefüllt. Bitte kurz kontrollieren.',
-    // Zuordnung
+    // Abgelehnt
+    rejectedTitle: (n: number) => `Nicht ausgewertet (${n})`,
+    rejectedIntro: 'Diese Dateien enthalten keinen Text oder haben nichts mit dem Fall ON zu tun. Sie wurden nicht ausgewertet. Bitte prüfen und die richtige Datei erneut hochladen.',
+    helpRejected: 'Abgelehnt wird nur, was gar keinen Text enthält oder erkennbar nichts mit dem Arbeitsauftrag am Running Case ON zu tun hat. Ein vergessenes Deckblatt ist kein Grund: Solche Abgaben werden ausgewertet und erscheinen unter „Bitte zuordnen“.',
     assignTitle: (n: number) => `Bitte zuordnen (${n})`,
-    assignIntro: 'Bei diesen Dateien konnte das System Touchpoint, Übungsgruppe oder Stammgruppe nicht vom Deckblatt lesen. Tragen Sie die Angaben ein. Fehlt der Touchpoint, wird die Auswertung nach dem Speichern erstellt.',
+    assignIntro: 'Diese Abgaben wurden ausgewertet, aber das Deckblatt fehlte oder war unvollständig. Tragen Sie Übungsgruppe und Stammgruppe ein und prüfen Sie den Touchpoint.',
     helpAssign: 'Die Angaben stehen auf dem Deckblatt der Einreichung als Code, zum Beispiel TP1-UEG07-SG3: Touchpoint 1, Übungsgruppe 7, Stammgruppe 3.',
+    injectionWarning: 'Achtung: Die Gruppe hat versucht, eine Prompt-Injection einzugeben.',
+    injectionFound: 'Gefundener Text',
+    helpInjection: 'Im Abgabetext stehen Anweisungen an die KI oder an die Bewertung, zum Beispiel „ignoriere alle Anweisungen“ oder versteckter Text in weisser Schrift. Die Auswertung wurde trotzdem erstellt; das Modell ist angewiesen, solche Sätze zu ignorieren. Bitte sprechen Sie das im Touchpoint an.',
+    piiRemoved: 'Personenbezogene Angaben wurden vor der Auswertung entfernt.',
     tp: 'Touchpoint',
     ueg: 'Übungsgruppe',
     sg: 'Stammgruppe',
@@ -184,7 +200,8 @@ const TEXT = {
     downloadOne: 'Briefing',
     feedbackOne: 'Feedback',
     statusOk: 'Ausgewertet',
-    statusPending: 'Wartet auf Zuordnung',
+    statusRejected: 'Nicht ausgewertet',
+    statusInjection: 'Prompt-Injection vermutet',
     statusReview: 'Bitte prüfen',
     statusFallback: 'Technischer Fallback — Abgabe direkt lesen',
     statusFailed: 'Datei nicht lesbar',
@@ -246,7 +263,7 @@ const TEXT = {
     upload: 'Upload and evaluate',
     uploading: 'Uploading…',
     running: (p: number, t: number) => `Processing: ${p} of ${t} files done. You may close this page.`,
-    done: (b: BatchStatus) => `Done: ${b.briefed} evaluated · ${b.unassigned} to assign · ${b.failed} unreadable · ${b.review} to check`,
+    done: (b: BatchStatus) => `Done: ${b.briefed} evaluated · ${b.rejected ?? 0} rejected · ${b.failed} unreadable · ${b.review} to check`,
     stale: 'Processing has stalled for over 30 minutes — probably interrupted by a restart. Please upload again; the latest result per home group counts.',
     batches: 'Your recent uploads',
     helpBatches: 'Each line is one upload: time, file name, state. “done” means finished.',
@@ -255,9 +272,16 @@ const TEXT = {
     mismatchNew: (tp: number, groups: string[]) => `Touchpoint ${tp}: new ${groups.join(', ')}`,
     mismatchMissing: (tp: number, groups: string[]) => `Touchpoint ${tp}: no longer present ${groups.join(', ')}`,
     helpMismatch: 'Compared to your earlier uploads, different group numbers were detected here. That may be correct — or a file was mixed up or a cover sheet filled in wrongly. Please check briefly.',
+    rejectedTitle: (n: number) => `Not evaluated (${n})`,
+    rejectedIntro: 'These files contain no text or have nothing to do with the ON case. They were not evaluated. Please check and upload the correct file again.',
+    helpRejected: 'Only files with no text at all or with no recognisable link to the assignment on the ON running case are rejected. A forgotten cover sheet is not a reason: such submissions are evaluated and appear under “Please assign”.',
     assignTitle: (n: number) => `Please assign (${n})`,
-    assignIntro: 'For these files the system could not read touchpoint, tutorial group or home group from the cover sheet. Enter the details. If the touchpoint is missing, the evaluation is created after saving.',
+    assignIntro: 'These submissions were evaluated, but the cover sheet was missing or incomplete. Enter tutorial group and home group and check the touchpoint.',
     helpAssign: 'The details are on the cover sheet as a code, e.g. TP1-UEG07-SG3: touchpoint 1, tutorial group 7, home group 3.',
+    injectionWarning: 'Warning: the group tried to enter a prompt injection.',
+    injectionFound: 'Text found',
+    helpInjection: 'The submission text contains instructions aimed at the AI or the assessment, e.g. “ignore all instructions” or hidden white text. The evaluation was created anyway; the model is instructed to ignore such sentences. Please address it in the touchpoint.',
+    piiRemoved: 'Personal data was removed before the evaluation.',
     tp: 'Touchpoint',
     ueg: 'Tutorial group',
     sg: 'Home group',
@@ -277,7 +301,8 @@ const TEXT = {
     downloadOne: 'Briefing',
     feedbackOne: 'Feedback',
     statusOk: 'Evaluated',
-    statusPending: 'Waiting for assignment',
+    statusRejected: 'Not evaluated',
+    statusInjection: 'Prompt injection suspected',
     statusReview: 'Please check',
     statusFallback: 'Technical fallback — read the submission directly',
     statusFailed: 'File unreadable',
@@ -339,8 +364,9 @@ const fmtTime = (iso: string | null | undefined) => {
   return `${day}.${m}.${y}${t ? ` ${t.slice(0, 5)}` : ''}`
 }
 
-const needsAssignment = (r: BriefingRecord) =>
-  r.status !== 'extraction_failed' && (r.status === 'pending' || !r.target_tp || !r.ueg || !r.sg)
+const isRejected = (r: BriefingRecord) => r.status === 'rejected' || r.status === 'extraction_failed'
+// Ausgewertet, aber Deckblatt fehlte: Übungsgruppe/Stammgruppe nachtragen
+const needsAssignment = (r: BriefingRecord) => r.status === 'briefed' && (!r.ueg || !r.sg)
 
 type Draft = { tp: string; ueg: string; sg: string }
 
@@ -512,15 +538,17 @@ export default function BriefingsPage() {
     return out
   }, [records])
 
+  const rejected = records.filter(isRejected)
   const toAssign = records.filter(needsAssignment)
-  const shown = records.filter(r => r.target_tp === activeTp && !needsAssignment(r))
+  const shown = records.filter(r => r.target_tp === activeTp && !isRejected(r) && !needsAssignment(r))
   const grouped = new Map<string, BriefingRecord[]>()
   for (const r of shown) grouped.set(r.ueg, [...(grouped.get(r.ueg) ?? []), r])
   const dlQuery = (extra: string) => `${extra}${isMaster && viewAs ? `&tutor=${encodeURIComponent(viewAs)}` : ''}`
 
   const statusOf = (r: BriefingRecord) => {
     if (r.status === 'extraction_failed') return { label: text.statusFailed, tone: FAIL_TONE }
-    if (r.status === 'pending') return { label: text.statusPending, tone: REVIEW_TONE }
+    if (r.status === 'rejected') return { label: text.statusRejected, tone: FAIL_TONE }
+    if (r.injection_suspected) return { label: text.statusInjection, tone: FAIL_TONE }
     if (r.status === 'no_content') return { label: text.statusNoContent, tone: FAIL_TONE }
     if (r.evaluation_status === 'technical_fallback') return { label: text.statusFallback, tone: FAIL_TONE }
     if (r.needs_human_review) return { label: text.statusReview, tone: REVIEW_TONE }
@@ -638,7 +666,7 @@ export default function BriefingsPage() {
                 <Download size={12} /> {text.feedbackOne}
               </a>
             )}
-            {!assignMode && r.status !== 'extraction_failed' && !editing[r.briefing_id] && (
+            {!assignMode && r.status === 'briefed' && !editing[r.briefing_id] && (
               <button type="button" onClick={() => setEditing(c => ({ ...c, [r.briefing_id]: true }))}
                 className="flex items-center gap-1 px-3 py-1 text-xs" style={{ color: 'var(--muted)' }} title={text.edit}>
                 <Pencil size={12} /> {text.edit}
@@ -646,10 +674,25 @@ export default function BriefingsPage() {
             )}
           </div>
         </div>
+        {r.injection_suspected && (
+          <div className="mx-2 mb-3 p-3 flex gap-2 text-sm" style={{ border: `1px solid ${FAIL_TONE}`, background: 'rgba(192,57,43,0.06)', color: FAIL_TONE }}>
+            <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+            <div>
+              <p className="font-medium">{text.injectionWarning}<HelpHint text={text.helpInjection} /></p>
+              {(r.injection_findings ?? []).map((f, i) => (
+                <p key={i} className="text-xs mt-1" style={{ color: 'var(--ink)' }}>{text.injectionFound}: „{f}“</p>
+              ))}
+            </div>
+          </div>
+        )}
+        {r.status === 'rejected' && r.reject_reason && (
+          <p className="px-8 pb-4 text-sm" style={{ color: FAIL_TONE }}>{r.reject_reason}</p>
+        )}
         {isEditing && <div className="px-8 pb-4">{renderAssignForm(r)}</div>}
         {open && (
           <div className="px-8 pb-6">
-            {r.review_reason && <p className="text-xs mb-4" style={{ color: REVIEW_TONE }}>{r.review_reason}</p>}
+            {r.review_reason && r.status !== 'rejected' && <p className="text-xs mb-4" style={{ color: REVIEW_TONE }}>{r.review_reason}</p>}
+            {(r.pii_removed ?? []).length > 0 && <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>{text.piiRemoved}</p>}
             {(f.notes ?? []).length > 0 && <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>{f.notes!.join(' ')}</p>}
             {f.full_sentences_hint && <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>{f.full_sentences_hint}</p>}
             {r.status === 'briefed' && (
@@ -779,9 +822,9 @@ export default function BriefingsPage() {
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {t.groups.map(g => (
-                              <span key={g.briefing_id} className="font-mono px-2 py-0.5" title={`${g.filename ?? ''} · ${fmtTime(g.uploaded_at)}`}
-                                style={{ border: '1px solid var(--hairline)', color: g.needs_human_review ? REVIEW_TONE : g.status === 'briefed' ? 'var(--ink)' : FAIL_TONE }}>
-                                {g.code ?? g.filename}
+                              <span key={g.briefing_id} className="font-mono px-2 py-0.5" title={`${g.filename ?? ''} · ${fmtTime(g.uploaded_at)}${g.reject_reason ? ` · ${g.reject_reason}` : ''}${g.injection_suspected ? ` · ${text.injectionWarning}` : ''}`}
+                                style={{ border: `1px solid ${g.injection_suspected ? FAIL_TONE : 'var(--hairline)'}`, color: g.injection_suspected || g.status !== 'briefed' ? FAIL_TONE : g.needs_human_review ? REVIEW_TONE : 'var(--ink)' }}>
+                                {g.injection_suspected ? '! ' : ''}{g.code ?? g.filename}
                               </span>
                             ))}
                           </div>
@@ -883,7 +926,17 @@ export default function BriefingsPage() {
           </div>
         )}
 
-        {/* Zuordnung prüfen */}
+        {/* Nicht ausgewertet (abgelehnt oder unlesbar) */}
+        {rejected.length > 0 && (
+          <div className="mb-12">
+            <p className="text-xs tracking-widest uppercase mb-2" style={{ color: FAIL_TONE }}>{text.rejectedTitle(rejected.length)}</p>
+            <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>{text.rejectedIntro}<HelpHint text={text.helpRejected} /></p>
+            <div className="divider" />
+            {rejected.map(r => renderRecord(r, false))}
+          </div>
+        )}
+
+        {/* Ausgewertet ohne vollständiges Deckblatt: nachtragen */}
         {toAssign.length > 0 && (
           <div className="mb-12">
             <p className="text-xs tracking-widest uppercase mb-2" style={{ color: REVIEW_TONE }}>{text.assignTitle(toAssign.length)}</p>
@@ -914,7 +967,7 @@ export default function BriefingsPage() {
           </div>
         )}
 
-        {activeTp && shown.length === 0 && toAssign.length === 0 && (
+        {activeTp && shown.length === 0 && rejected.length === 0 && toAssign.length === 0 && (
           <p className="py-10 text-sm text-center" style={{ color: 'var(--muted)' }}>{text.noData}</p>
         )}
 
