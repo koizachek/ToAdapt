@@ -325,11 +325,11 @@ class BriefingGenerator:
         # scripts/compare_briefing_models.py); Default = OPENROUTER_MODEL.
         self.client = OpenRouterClient(api_key=api_key, model=model)
 
-    async def _call(self, *, system: str, messages: list[dict[str, str]]) -> str:
+    async def _call(self, *, system: str, messages: list[dict[str, str]], max_tokens: int = BRIEFING_MAX_TOKENS) -> str:
         return await self.client.complete(
             system=system,
             messages=messages,
-            max_tokens=BRIEFING_MAX_TOKENS,
+            max_tokens=max_tokens,
             cache_system=True,
         )
 
@@ -354,7 +354,17 @@ class BriefingGenerator:
         try:
             data = parse_evaluation_payload(text)
         except ValueError:
-            logger.warning("briefing_json_parse_failed", briefing_id=briefing_id, raw_preview=text[:300])
+            logger.warning("briefing_json_parse_failed", briefing_id=briefing_id, raw_preview=text[:300], raw_tail=text[-200:])
+            # Häufigste Ursache: Antwort am Token-Limit abgeschnitten → einmal
+            # mit doppeltem Budget neu erzeugen, erst danach Reparatur.
+            try:
+                retried = await self._call(system=system, messages=[{"role": "user", "content": user}],
+                                           max_tokens=BRIEFING_MAX_TOKENS * 2)
+                data = parse_evaluation_payload(retried)
+                text = retried
+            except Exception:
+                data = None
+        if data is None:
             try:
                 repaired = await self._call(
                     system=system,

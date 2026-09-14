@@ -29,7 +29,7 @@ formale Vorprüfung und interne Einstufung. Vom Deckblatt wird nur der Code
 gelesen; personenbezogene Angaben im Text werden vor allem Weiteren entfernt.
 
 Eingangsprüfung (backend/briefings/intake.py, Owner-Entscheidung 2026-09-14):
-Nur echte Abgaben werden ausgewertet — Deckblatt-Code vollständig, Bausteine
+Nur echte Abgaben werden ausgewertet — Deckblatt-Angaben vollständig, Bausteine
 vorhanden, Bezug zum Running Case ON (Kernbegriffe + kurzer Modellaufruf).
 Alles andere wird mit Grund abgelehnt (Status ``rejected``, kein Briefing).
 Prompt-Injection-Versuche werden erkannt und im Briefing ausgewiesen.
@@ -528,7 +528,7 @@ async def _process_entry(
         return _rejected(base, sub, "Kein Bezug zum Arbeitsauftrag am Running Case ON: " + (topic.reason or "laut Themenprüfung."))
     if topic.tp not in SUPPORTED_TPS:
         logger.info("briefing_rejected", filename=filename, reason="tp_unknown", uploaded_by=uploaded_by)
-        return _rejected(base, sub, "Touchpoint nicht bestimmbar — weder Deckblatt-Code noch Inhalt lassen erkennen, zu welchem Touchpoint die Abgabe gehört.")
+        return _rejected(base, sub, "Touchpoint nicht bestimmbar — weder Deckblatt noch Inhalt lassen erkennen, zu welchem Touchpoint die Abgabe gehört.")
     if sub.kenndaten.tp not in SUPPORTED_TPS:
         sub.kenndaten.tp = topic.tp
         sub.kenndaten.source = sub.kenndaten.source or "inhalt"
@@ -988,7 +988,7 @@ async def patch_assignment(
         notes.append(f"Touchpoint von {old_tp} auf {tp} geändert — die Auswertung wurde mit der Rubric von Touchpoint {old_tp} erstellt.")
         record["needs_human_review"] = True
         record["review_reason"] = notes[-1]
-    intake_marks = ("Deckblatt-Code unvollständig", "aus dem Inhalt bestimmt")
+    intake_marks = ("Auf dem Deckblatt fehlen", "aus dem Inhalt bestimmt")
     formal["notes"] = [n for n in notes if not any(m in n for m in intake_marks)]
     record["formal"] = formal
     if record.get("review_reason") and not (old_tp and tp != old_tp):

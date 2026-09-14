@@ -225,15 +225,43 @@ def extract_json_candidates(text: str) -> list[str]:
     return candidates
 
 
+_TRAILING_COMMA = re.compile(r",\s*([}\]])")
+
+
+def _lenient_json(candidate: str) -> str:
+    """Häufige Modell-Fehler, die kein Inhalt sind: nachgestellte Kommas vor
+    } oder ], rohe Zeilenumbrüche innerhalb von Strings."""
+    fixed = _TRAILING_COMMA.sub(r"\1", candidate)
+    out, in_string, escape = [], False, False
+    for ch in fixed:
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+            elif ch == "\n":
+                out.append("\\n")
+                continue
+        elif ch == '"':
+            in_string = True
+        out.append(ch)
+    return "".join(out)
+
+
 def parse_evaluation_payload(text: str) -> dict:
-    """Erster Kandidat, der als JSON-Objekt parst, gewinnt."""
-    for candidate in extract_json_candidates(text):
-        try:
-            data = json.loads(candidate)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(data, dict):
-            return data
+    """Erster Kandidat, der als JSON-Objekt parst, gewinnt — erst strikt,
+    dann mit toleranter Reparatur (nachgestellte Kommas, rohe Umbrüche)."""
+    candidates = extract_json_candidates(text)
+    for strict in (True, False):
+        for candidate in candidates:
+            try:
+                data = json.loads(candidate if strict else _lenient_json(candidate))
+            except json.JSONDecodeError:
+                continue
+            if isinstance(data, dict):
+                return data
     raise ValueError("LLM evaluation response was not valid JSON")
 
 

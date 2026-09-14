@@ -131,21 +131,18 @@ def _formal_table(doc, formal: dict, rubric: BriefingRubric) -> None:
         limit = int(formal.get(f"{key}_max", rubric.max_chars(key)) or 0)
         status = "innerhalb der Grenze" if chars <= limit else f"über der Grenze (+{chars - limit})"
         rows.append((label, f"{chars:,} von {limit:,} Zeichen · {status}".replace(",", "'")))
-    code = formal.get("code") or "nicht erkennbar"
-    code_note = "gültig" if formal.get("code_valid") else "nicht im vorgegebenen Format"
-    if formal.get("code") and not formal.get("code_matches_tp", True):
-        code_note += ", Touchpoint im Code weicht ab"
-    rows.append(("Code", f"{code} · {code_note}"))
-    rows.append((
-        "Dateiname",
-        f"{formal.get('filename', '')} · "
-        + ("entspricht dem Muster" if formal.get("filename_valid") else "weicht vom Muster ab"),
-    ))
+    code = formal.get("code") or ""
+    if code:
+        parts = code.split("-")
+        label = f"Touchpoint {parts[0][2:]} · Übungsgruppe {parts[1][3:]} · Stammgruppe {parts[2][2:]}" if len(parts) == 3 else code
+        if not formal.get("code_matches_tp", True):
+            label += " · Touchpoint auf dem Deckblatt weicht ab"
+    else:
+        label = "auf dem Deckblatt nicht erkennbar — bitte nachtragen"
+    rows.append(("Gruppe", label))
+    rows.append(("Dateiname", str(formal.get("filename", ""))))
     fmt = str(formal.get("format", "")).upper()
-    rows.append((
-        "Format",
-        fmt + (" · offizielle Vorlage erkannt" if formal.get("template_detected") else " · Vorlage nicht erkannt"),
-    ))
+    rows.append(("Format", fmt + (" · offizielle Vorlage" if formal.get("template_detected") else "")))
     if formal.get("full_sentences_hint"):
         rows.append(("Satzform", str(formal["full_sentences_hint"])))
 

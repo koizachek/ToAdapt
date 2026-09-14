@@ -584,7 +584,7 @@ def test_upload_by_tutor_visibility_by_uploader_docx_and_assessment(client, monk
     assert by_name["ohne_code.docx"]["status"] == "briefed"      # kein Deckblatt → trotzdem ausgewertet
     assert by_name["ohne_code.docx"]["target_tp"] == 1 and by_name["ohne_code.docx"]["code"] is None
     assert by_name["ohne_code.docx"]["needs_human_review"] is True
-    assert "Deckblatt-Code unvollständig" in by_name["ohne_code.docx"]["review_reason"]
+    assert "Auf dem Deckblatt fehlen" in by_name["ohne_code.docx"]["review_reason"]
     assert "Touchpoint 1 aus dem Inhalt bestimmt" in by_name["ohne_code.docx"]["review_reason"]
     assert by_name["kaputt.pdf"]["status"] == "extraction_failed"
 

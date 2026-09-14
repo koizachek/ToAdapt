@@ -28,7 +28,7 @@ from openai import AsyncOpenAI
 logger = structlog.get_logger(__name__)
 
 OPENROUTER_BASE_URL = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-DEFAULT_OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "mistralai/mistral-large-2512")
+DEFAULT_OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "").strip() or "mistralai/mistral-large-2512"
 
 LLM_TIMEOUT_SECONDS = float(os.environ.get("LLM_TIMEOUT_SECONDS", "60"))
 LLM_MAX_RETRIES = int(os.environ.get("LLM_MAX_RETRIES", "2"))
@@ -163,12 +163,18 @@ class OpenRouterClient:
 
         served_model = getattr(response, "model", None) or self.model
         usage = getattr(response, "usage", None)
+        finish_reason = getattr(response.choices[0], "finish_reason", None) if response.choices else None
+        if finish_reason == "length":
+            # Antwort am max_tokens-Limit abgeschnitten → JSON-Antworten sind
+            # dann unvollständig; Aufrufer (Generator) wiederholt mit mehr Budget.
+            logger.warning("llm_output_truncated", model=self.model, max_tokens=max_tokens)
         if usage is not None:
             details = getattr(usage, "prompt_tokens_details", None)
             logger.info(
                 "llm_call_completed",
                 model=self.model,
                 served_model=served_model,
+                finish_reason=finish_reason,
                 fallback_used=bool(fallbacks) and served_model != self.model,
                 prompt_tokens=getattr(usage, "prompt_tokens", None),
                 completion_tokens=getattr(usage, "completion_tokens", None),

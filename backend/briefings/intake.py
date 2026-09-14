@@ -8,7 +8,7 @@ Drei Prüfungen, in dieser Reihenfolge:
    Vom Deckblatt liest die Extraktion ohnehin nur den Code.
 
 2. Nur echte Abgaben (``validate_submission`` + ``topic_screen`` +
-   ``TopicClassifier``): Deckblatt-Code vollständig (Touchpoint, Übungsgruppe,
+   ``TopicClassifier``): Deckblatt-Angaben (Touchpoint, Übungsgruppe,
    Stammgruppe), Bausteine erkennbar, Text vorhanden, Kernbegriffe des
    Running Case ON vorhanden, und ein kurzer Modellaufruf bestätigt, dass der
    Text den Arbeitsauftrag des Touchpoints bearbeitet. Sonst wird die Datei
@@ -69,8 +69,7 @@ def validate_submission(sub: ExtractedSubmission) -> IntakeDecision:
     kd = sub.kenndaten
     if kd.tp not in SUPPORTED_TPS or not kd.ueg or not kd.sg:
         notes.append(
-            "Deckblatt-Code unvollständig (erwartet TPn-UEGxx-SGy) — Touchpoint, Übungsgruppe und "
-            "Stammgruppe bitte prüfen und nachtragen."
+            "Auf dem Deckblatt fehlen Touchpoint, Übungsgruppe oder Stammgruppe — bitte prüfen und nachtragen."
         )
     if sub.format in ("docx", "pdf") and any("Marker gefunden" in n for n in sub.notes):
         notes.append("Keine 'Baustein 1'/'Baustein 2'-Abschnitte erkannt — der gesamte Text wurde als Baustein 1 gelesen.")

@@ -59,8 +59,6 @@ def formal_checks(sub: ExtractedSubmission, rubric: BriefingRubric, target_tp: i
     result["full_sentences_hint"] = " ".join(hints) if hints else None
     if kd.tp and kd.tp != target_tp:
         result["notes"].append(
-            f"Der Code nennt Touchpoint {kd.tp}, hochgeladen wurde für Touchpoint {target_tp}."
+            f"Das Deckblatt nennt Touchpoint {kd.tp}, ausgewertet wurde für Touchpoint {target_tp}."
         )
-    if not sub.template_detected and sub.format == "pptx":
-        result["notes"].append("Die Kenndaten-Felder der offiziellen Vorlage wurden nicht gefunden.")
     return result
