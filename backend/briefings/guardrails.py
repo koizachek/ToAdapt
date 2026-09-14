@@ -47,9 +47,15 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 ]
 
 
+_MD_EMPHASIS = re.compile(r"(\*{1,2}|_{1,2})(?=\S)(.+?)(?<=\S)\1")
+
+
 def sanitize_swiss(text: str) -> str:
-    """Schweizer Standarddeutsch: ß → ss."""
-    return (text or "").replace("ß", "ss").replace("ẞ", "SS")
+    """Schweizer Standarddeutsch: ß → ss. Entfernt ausserdem Markdown-
+    Hervorhebungen (*kursiv*, **fett**), die manche Modelle trotz JSON-Vorgabe
+    setzen — im DOCX stünden sonst Sternchen im Text."""
+    cleaned = (text or "").replace("ß", "ss").replace("ẞ", "SS")
+    return _MD_EMPHASIS.sub(r"\2", cleaned)
 
 
 def check_briefing_text(text: str) -> list[str]:

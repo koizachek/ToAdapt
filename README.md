@@ -70,7 +70,7 @@ Dozent → POST /admin/cases/generate  (Branche, Land, TP-Ziel)
 |-------|-------------|
 | Frontend | Next.js, Tailwind, Vercel |
 | Backend | Python 3.11+, FastAPI, Pydantic v2 |
-| LLM | Anthropic API (claude-sonnet-4-6) |
+| LLM | OpenRouter, Default `mistralai/mistral-large-2512` (EU; Modellvergleich 2026-09-13 in `docs/beispiele/modellvergleich/`) |
 | Case Pool | JSON-Dateien (pool/) |
 | Scoring Storage | JSON (db/submissions/) |
 | Experiment Logging | Optional MongoDB (`MONGODB_URI`) |

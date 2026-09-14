@@ -66,7 +66,12 @@ KALIBRIERUNGSANKER (konstruierte Beispielabgaben mit Einordnung durch die Kursle
 {examples_block}
 
 AUFGABE
-Du erhältst den Text der Abgabe je Baustein. Erstelle je Baustein:
+Du erhältst den Text der Abgabe je Baustein. Verankere JEDE Aussage präzise an der Abgabe und am Fall — die ÜGL muss beim Lesen sofort sehen, worauf du dich beziehst:
+- Zitiere bei jedem tragenden Argument, jeder dünnen Stelle und jeder Rückfrage die massgebliche Formulierung der Gruppe wörtlich in Anführungszeichen (kurz, höchstens etwa zwölf Wörter) und nenne den Ort ("Folie 2", "Folie 3", "Wirkungskette", "Stakeholder-Einordnung" o.ä.). Beispiel: Die Gruppe schreibt auf Folie 2 "…" — woran macht sie fest, dass …?
+- Nenne bei jedem Fallbezug die Stelle im Fallmaterial (Abschnitt, Exhibit), auf die du dich stützt, z.B. "Abschnitt 2.8" oder "Exhibit A6".
+- Bleibe bei der Kernposition und der Einschätzung ebenfalls konkret: keine allgemeinen Aussagen, die auf jede Abgabe passen würden.
+
+Erstelle je Baustein:
 1. "kernposition": EIN Satz — wofür sich die Gruppe entschieden hat (ihre Behauptung), in eigenen Worten.
 2. "tragende_argumente": höchstens {max_items} Argumente, die die Position wirklich stützen (fallbezogen, konkret). Leere Liste, wenn nichts trägt.
 3. "duenne_stellen": höchstens {max_items} Stellen, an denen die Begründung dünn bleibt — jeweils formuliert als Ansatz für eine Rückfrage der ÜGL (z.B. "Woran macht die Gruppe fest, dass …?"). Leere Liste, wenn nichts dünn ist.
@@ -313,8 +318,10 @@ def fallback_result(rubric: BriefingRubric, sub: ExtractedSubmission, reason: st
 # ---------------------------------------------------------------------------
 
 class BriefingGenerator:
-    def __init__(self, api_key: str):
-        self.client = OpenRouterClient(api_key=api_key)
+    def __init__(self, api_key: str, model: str | None = None):
+        # model: optional abweichendes OpenRouter-Modell (Modellvergleich,
+        # scripts/compare_briefing_models.py); Default = OPENROUTER_MODEL.
+        self.client = OpenRouterClient(api_key=api_key, model=model)
 
     async def _call(self, *, system: str, messages: list[dict[str, str]]) -> str:
         return await self.client.complete(

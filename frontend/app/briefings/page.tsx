@@ -173,7 +173,7 @@ const TEXT = {
     cancel: 'Abbrechen',
     // Liste
     tpLabel: 'Touchpoint',
-    helpTp: 'Wählen Sie den Touchpoint, dessen Briefings Sie sehen möchten. Angezeigt werden nur Touchpoints, für die Sie etwas hochgeladen haben.',
+    helpTp: 'Jeder Reiter zeigt einen Touchpoint. Der neueste steht links und ist beim Öffnen ausgewählt. Angezeigt werden nur Touchpoints, für die Sie etwas hochgeladen haben.',
     noData: 'Für diesen Touchpoint liegen noch keine Auswertungen vor. Laden Sie oben eine ZIP-Datei hoch.',
     noDataAtAll: 'Sie haben noch nichts hochgeladen. Laden Sie oben eine ZIP-Datei mit den Einreichungen Ihrer Gruppen hoch.',
     groupCount: (n: number) => `${n} Stammgruppe${n === 1 ? '' : 'n'} hochgeladen`,
@@ -266,7 +266,7 @@ const TEXT = {
     edit: 'Change details',
     cancel: 'Cancel',
     tpLabel: 'Touchpoint',
-    helpTp: 'Choose the touchpoint whose briefings you want to see. Only touchpoints you uploaded for are shown.',
+    helpTp: 'Each tab shows one touchpoint. The newest is on the left and selected when you open the page. Only touchpoints you uploaded for are shown.',
     noData: 'No results for this touchpoint yet. Upload a ZIP file above.',
     noDataAtAll: 'You have not uploaded anything yet. Upload a ZIP file with the submissions of your groups above.',
     groupCount: (n: number) => `${n} home group${n === 1 ? '' : 's'} uploaded`,
@@ -481,12 +481,13 @@ export default function BriefingsPage() {
     }
   }
 
-  // Touchpoints, für die etwas vorliegt; aktiver TP = neuester vorhandener
+  // Touchpoints als Reiter: nur die, für die etwas vorliegt; der neueste
+  // steht links und ist beim Öffnen aktiv (Owner-Entscheidung 2026-09-13).
   const availableTps = useMemo(
-    () => TPS.filter(n => records.some(r => r.target_tp === n)),
+    () => TPS.filter(n => records.some(r => r.target_tp === n)).sort((a, b) => b - a),
     [records],
   )
-  const activeTp = tp && availableTps.includes(tp) ? tp : availableTps[availableTps.length - 1] ?? null
+  const activeTp = tp && availableTps.includes(tp) ? tp : availableTps[0] ?? null
 
   // Konsistenz über Touchpoints: welche Gruppen sind neu/fehlen gegenüber früheren TPs?
   const mismatches = useMemo(() => {
