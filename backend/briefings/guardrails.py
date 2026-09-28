@@ -33,7 +33,7 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("points", re.compile(r"\b\d+([.,]\d+)?\s*(?:von\s*\d+\s*)?punkte?\b", re.IGNORECASE)),
     ("points", re.compile(r"\bpunktzahl\b|\bpunktevergabe\b|\bpunktabzug\b", re.IGNORECASE)),
     ("points", re.compile(r"\b(erh(ä|ae)lt|erhalten|erreicht|bekommt|bekommen|vergeben|verdient|kostet)\s+(\w+\s+){0,3}punkte?\b", re.IGNORECASE)),
-    ("grades", re.compile(r"\bnote[n]?\b|\bbenotung\b|\bnotenstufe|\bbewertungsstufe", re.IGNORECASE)),
+    ("grades", re.compile(r"\bbenotung\b|\bnotenstufe|\bbewertungsstufe", re.IGNORECASE)),
     ("scale", re.compile(r"\b(stufe|level|niveau)\s*[:=]?\s*([1-5]\b|ueberzeugend|überzeugend|tragf(ä|ae)hig|ansatzweise)", re.IGNORECASE)),
     ("scale", re.compile(r"\b(ueberzeugend|überzeugend|tragf(ä|ae)hig|ansatzweise)\s*/\s*(ueberzeugend|überzeugend|tragf(ä|ae)hig|ansatzweise)", re.IGNORECASE)),
     ("model_solution", re.compile(r"\bmusterl(ö|oe)sung", re.IGNORECASE)),
@@ -73,10 +73,19 @@ def sanitize_swiss(text: str) -> str:
     return _MD_EMPHASIS.sub(r"\2", cleaned)
 
 
-def check_briefing_text(text: str) -> list[str]:
+# Nur für deutsche Texte: "Note(n)" ist im Deutschen eine Bewertung, im
+# Englischen ("dynamics note in Exhibit A5") ein legitimes Wort — Fehlalarm im
+# Kalibrierlauf 2026-09-28.
+_PATTERNS_DE_ONLY: list[tuple[str, re.Pattern[str]]] = [
+    ("grades", re.compile(r"\bnote[n]?\b", re.IGNORECASE)),
+]
+
+
+def check_briefing_text(text: str, language: str = "de") -> list[str]:
     """Liefert die Labels aller verletzten Leitplanken (leer = sauber)."""
     hits: list[str] = []
-    for label, pattern in _PATTERNS:
+    patterns = _PATTERNS + (_PATTERNS_DE_ONLY if language != "en" else [])
+    for label, pattern in patterns:
         if pattern.search(text or "") and label not in hits:
             hits.append(label)
     return hits
@@ -98,7 +107,7 @@ def apply_guardrails(value: str | list[str], language: str = "de") -> tuple[str 
             hits.extend(h for h in item_hits if h not in hits)
         return out, hits
     text = sanitize_swiss(str(value))
-    hits = check_briefing_text(text)
+    hits = check_briefing_text(text, language)
     if hits:
         return _PLACEHOLDERS.get(language, GUARDRAIL_PLACEHOLDER), hits
     return text, []

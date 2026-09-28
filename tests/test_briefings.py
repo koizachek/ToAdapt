@@ -1062,8 +1062,10 @@ async def test_english_guardrails_and_placeholders(monkeypatch):
         ("Level: convincing.", "scale"),
     ]:
         assert label in guardrails.check_briefing_text(text), text
-    for text in ("The argument holds and is sound.", "The group points to Exhibit A5.", "Two points from Section 2.5."):
-        assert guardrails.check_briefing_text(text) == [], text
+    for text in ("The argument holds and is sound.", "The group points to Exhibit A5.", "Two points from Section 2.5.",
+                 "The dynamics note in Exhibit A5 is overlooked."):
+        assert guardrails.check_briefing_text(text, "en") == [], text
+    assert guardrails.check_briefing_text("Die Gruppe verdient eine gute Note.", "de") == ["grades"]
 
     rubric = load_rubric(1, "en")
     payload = json.loads(_llm_payload())
