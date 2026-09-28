@@ -1,6 +1,6 @@
-"""Leitplanken-Nachprüfung für KI-Briefings (und später KI-Feedback).
+"""Leitplanken-Nachprüfung für KI-Briefings.
 
-Die Rubrics der Kursleitung schreiben für beide KI-Produkte vor:
+Die Rubrics der Kursleitung schreiben vor:
 no_points_or_grades, no_model_solution, no_group_comparison,
 swiss_standard_german_ss (ss statt ß). Das LLM wird per Prompt darauf
 verpflichtet; diese Nachprüfung ist die zweite Verteidigungslinie (gleiche
@@ -18,9 +18,9 @@ from __future__ import annotations
 
 import re
 
-GUARDRAIL_PLACEHOLDER = (
-    "[Von der Leitplanken-Prüfung zurückgehalten — bitte die Abgabe direkt lesen.]"
-)
+from backend.briefings.i18n import GUARDRAIL_PLACEHOLDER as _PLACEHOLDERS
+
+GUARDRAIL_PLACEHOLDER = _PLACEHOLDERS["de"]
 
 # (label, pattern) — Labels landen im Log und im Datensatz (guardrail_hits).
 _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
@@ -44,6 +44,21 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("group_comparison", re.compile(r"\b(andere|übrigen|uebrigen|restlichen|anderen)\s+(stamm)?gruppen?\b", re.IGNORECASE)),
     ("group_comparison", re.compile(r"\bim vergleich (zu|mit) (den |der )?(anderen|übrigen|uebrigen)?\s*(stamm)?gruppen?\b", re.IGNORECASE)),
     ("group_comparison", re.compile(r"\b(als|wie) (die )?(stamm)?gruppe\s+(SG\s?)?[1-8]\b", re.IGNORECASE)),
+    # Englische Briefings (seit 2026-09-28) — dieselben Leitplanken, englische Formulierungen.
+    ("points", re.compile(r"\b\d+([.,]\d+)?\s*(?:(?:out\s+)?of\s*\d+\s*)?points?\b", re.IGNORECASE)),
+    ("points", re.compile(r"\b(scores?|scoring|earns?|earned|receives?|received|gets|awarded|deserves?)\s+(\w+\s+){0,3}points?\b", re.IGNORECASE)),
+    ("points", re.compile(r"\bpoint\s+deduction\b|\bpoints?\s+total\b", re.IGNORECASE)),
+    ("grades", re.compile(r"\bgrad(e|es|ed|ing)\b|\bmark(s|ed)?\s+(of|as)\b", re.IGNORECASE)),
+    ("scale", re.compile(r"\b(level|tier|rating)\s*[:=]?\s*([1-5]\b|convincing|sound|rudimentary|ueberzeugend|tragfaehig|ansatzweise)", re.IGNORECASE)),
+    ("scale", re.compile(r"\b(convincing|sound|rudimentary)\s*/\s*(convincing|sound|rudimentary)\b", re.IGNORECASE)),
+    ("model_solution", re.compile(r"\bmodel\s+(solution|answer)", re.IGNORECASE)),
+    ("model_solution", re.compile(r"\bthe\s+(right|correct)\s+(answer|decision|choice|solution|stakeholder|challenge|strategy|option|channel|price)", re.IGNORECASE)),
+    ("model_solution", re.compile(r"\bshould\s+have\s+(chosen|decided|picked|selected|gone\s+for|opted)", re.IGNORECASE)),
+    ("model_solution", re.compile(r"\bwould\s+have\s+been\s+(better|more\s+correct|the\s+right)", re.IGNORECASE)),
+    ("model_solution", re.compile(r"\b(wrong|incorrect)\s+(choice|decision|answer|stakeholder|strategy)", re.IGNORECASE)),
+    ("group_comparison", re.compile(r"\b(other|remaining)\s+(home\s+)?groups?\b", re.IGNORECASE)),
+    ("group_comparison", re.compile(r"\bcompared\s+(to|with)\s+(the\s+)?(other\s+)?(home\s+)?groups?\b", re.IGNORECASE)),
+    ("group_comparison", re.compile(r"\b(than|like)\s+(home\s+)?group\s+(SG\s?)?[1-8]\b", re.IGNORECASE)),
 ]
 
 
@@ -67,8 +82,9 @@ def check_briefing_text(text: str) -> list[str]:
     return hits
 
 
-def apply_guardrails(value: str | list[str]) -> tuple[str | list[str], list[str]]:
-    """Wendet ss-Regel an und ersetzt Treffer durch den Platzhalter.
+def apply_guardrails(value: str | list[str], language: str = "de") -> tuple[str | list[str], list[str]]:
+    """Wendet ss-Regel an und ersetzt Treffer durch den Platzhalter (in der
+    Sprache des Briefings). Die deutschen und englischen Muster gelten immer.
 
     Rückgabe (bereinigter Wert, Trefferlabels). Listen werden elementweise
     geprüft — ein sauberes Argument überlebt, ein verletzendes wird ersetzt.
@@ -77,12 +93,12 @@ def apply_guardrails(value: str | list[str]) -> tuple[str | list[str], list[str]
         out: list[str] = []
         hits: list[str] = []
         for item in value:
-            cleaned, item_hits = apply_guardrails(str(item))
+            cleaned, item_hits = apply_guardrails(str(item), language)
             out.append(str(cleaned))
             hits.extend(h for h in item_hits if h not in hits)
         return out, hits
     text = sanitize_swiss(str(value))
     hits = check_briefing_text(text)
     if hits:
-        return GUARDRAIL_PLACEHOLDER, hits
+        return _PLACEHOLDERS.get(language, GUARDRAIL_PLACEHOLDER), hits
     return text, []

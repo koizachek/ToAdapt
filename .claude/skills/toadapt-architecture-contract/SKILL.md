@@ -171,7 +171,7 @@ approve, reject, retire) verlangen den API-Key.
 | Dashboard-Ergebnisse | `backend/db/dashboard_store.py` | `dashboard_results` | JSON in `backend/db/submissions/` (write-through) |
 | Case-Pool | `backend/cases/manager.py` | `cases` | JSON in `backend/cases/pool/` (write-through; Mongo gewinnt bei gleicher case_id) |
 | Forschungs-Events | `backend/db/experiment_logger.py` | `experiment_events` | **keiner** — Events werden ohne Mongo verworfen (nur Warn-Log) |
-| KI-Briefings + KI-Feedback je Stammgruppen-Abgabe (seit 2026-09-02, ersetzt `group_uploads`) | `backend/db/briefing_store.py` | `briefings` (`MONGODB_BRIEFINGS_COLLECTION`) | JSON in `backend/db/briefings/` (write-through); die Abgabedateien und Mitgliedernamen werden NIE persistiert — nur Briefing, Feedback, formale Vorprüfung, interne Einstufung |
+| KI-Briefings je Stammgruppen-Abgabe (seit 2026-09-02, ersetzt `group_uploads`) | `backend/db/briefing_store.py` | `briefings` (`MONGODB_BRIEFINGS_COLLECTION`) | JSON in `backend/db/briefings/` (write-through); die Abgabedateien und Mitgliedernamen werden NIE persistiert — nur Briefing, formale Vorprüfung, interne Einstufung |
 | Upload-Batches (seit 2026-09-02) | `backend/briefings/batches.py` (`BatchStore`) | `briefing_batches` (`MONGODB_BRIEFING_BATCHES_COLLECTION`) | JSON in `backend/db/briefings/batches/`; Verarbeitung läuft als Hintergrund-Task im Worker (stirbt der Prozess, bleibt der Batch `running` → nach 30 min als `stale` markiert; erneuter Upload, neuester Datensatz je Stammgruppe gewinnt) |
 | Widerrufene Teacher-Sessions (seit 2026-07-17) | `backend/db/revoked_sessions_store.py` | `revoked_teacher_sessions` (TTL 24 h) | In-Memory-Dict pro Prozess (Dev/Single-Worker); Lookup-Fehler sind **fail-open** — der Widerruf ist Härtung on top der 12-h-Ablauffrist, Dashboards bleiben verfügbar |
 
@@ -412,7 +412,7 @@ zirka-Werte und drift-anfällig. Re-Verifikation pro Fakt (vom Repo-Root):
 | WEB_CONCURRENCY-Warnung | `grep -n "WEB_CONCURRENCY" railway.toml` |
 | Briefings: Upload nur Master (API-Key ODER Upload-Token), Dateien nur in-memory | `grep -n "upload_auth\|require_master\|verify_upload_token" backend/briefings/routes.py` |
 | Briefing-Leitplanken aktiv (Punkte/Musterlösung/Gruppenvergleich) | `grep -n "apply_guardrails\|GUARDRAIL_PLACEHOLDER" backend/briefings/generator.py backend/briefings/guardrails.py` |
-| Feedback-Sperre schaltbar (FEEDBACK_RELEASE_GATE, Standard aus) | `grep -n "feedback_gate_enabled\|FEEDBACK_RELEASE_GATE" backend/briefings/rubrics.py` |
+| Kein KI-Feedback-Produkt mehr (seit 2026-09-28) | `grep -rn "feedback" backend/briefings/ --include=*.py` (keine Treffer) |
 | Master-Flag im Teacher-Cookie + Proxy-Gate | `grep -n "master" frontend/lib/teacherAuth.ts "frontend/app/api/teacher/[...path]/route.ts"` |
 | Prompt-Caching + Fallback-Routing im LLM-Client | `grep -n "cache_system\|fallback_models\|LLM_PROMPT_CACHING" backend/llm.py` |
 | Gruppencode-Validierung (GROUP_CODE_MAX) | `grep -n "group_code_allowed\|GROUP_CODE_MAX" backend/anonymize.py backend/api/routes.py` |

@@ -1,0 +1,147 @@
+{
+  "meta": {
+    "course": "BWL A HS26",
+    "touchpoint": 1,
+    "version": "v2",
+    "date": "2026-08-28",
+    "supersedes": "ki_rubrics_tp1_v1.json (v1.1)",
+    "exam_ref": [
+      "A1a",
+      "A1b"
+    ],
+    "learning_objectives": [
+      "1.3",
+      "1.4"
+    ],
+    "case": {
+      "document": "Case Study ON",
+      "chapter": "A",
+      "references": "Section 2.5 (What concerns ON: four starting points), Section 2.8 (What the figures do not show: change of leadership, Cyclon, China, patent expiry), Exhibit A5 (stakeholder overview, incl. dynamics notes such as high, falling)."
+    }
+  },
+  "guardrails": [
+    "no_points_or_grades",
+    "no_model_solution",
+    "no_group_comparison",
+    "briefing_only_to_uegl",
+    "feedback_only_after_session",
+    "any_choice_admissible_judge_reasoning_only",
+    "swiss_standard_german_ss"
+  ],
+  "formal_checks": {
+    "slide2_max_chars": 1350,
+    "slide3_max_chars": 1050,
+    "chars_include_spaces": true,
+    "full_sentences_required": true,
+    "code_pattern": "TP1-UEG\\d{2}-SG[1-8]",
+    "filename_pattern": "TP1_UEG\\d{2}_SG[1-8]\\.pptx",
+    "submission_format": "pptx_3_slides_official_template",
+    "report_only_never_grade": true
+  },
+  "rubrics": {
+    "baustein1": {
+      "slide": 2,
+      "title": "Challenges and causal chain",
+      "exam_ref": "A1a",
+      "criteria": [
+        {
+          "name": "Selection and criticality",
+          "ueberzeugend": "Two challenges are chosen, and it is justified why precisely these are more critical than the others; the choice reaches beyond the four topics in Section 2.5 or justifies why it does not.",
+          "tragfaehig": "Two challenges are named and plausible, but the justification of their criticality remains general (important, central) or relies only on the obvious topics from Section 2.5.",
+          "ansatzweise": "Challenges are listed rather than weighted, or no recognisable selection of two has been made."
+        },
+        {
+          "name": "Explanation",
+          "ueberzeugend": "For both, it is explained in a case-based way what they consist of and why they are relevant to ON's business model, with concrete information from the case.",
+          "tragfaehig": "The explanation is present but remains descriptive or makes little use of case material.",
+          "ansatzweise": "The challenges are only named, not explained."
+        },
+        {
+          "name": "Positioning in the field of tension",
+          "ueberzeugend": "At least one challenge is clearly positioned between the environment (what comes from outside) and internal design (which of ON's own decisions it meets).",
+          "tragfaehig": "The positioning is hinted at but clearly names only one of the two sides.",
+          "ansatzweise": "No recognisable positioning."
+        },
+        {
+          "name": "Causal coherence",
+          "ueberzeugend": "The chain of cause, effect within the company and pressure to act is continuous; the mechanism between the links is visible, not merely asserted.",
+          "tragfaehig": "The chain is set up, but one link remains thin; typically it ends at a consequence (revenue suffers) without the mechanism leading to it, or the pressure to act remains vague (ON must react).",
+          "ansatzweise": "Cause and consequence stand side by side unconnected; no mechanism, no concrete pressure to act."
+        }
+      ],
+      "typical_weaknesses": "Typical weaknesses: describing instead of justifying; only the four obvious topics from Section 2.5, although Section 2.8 contains more critical developments; the chain ends at revenue without a mechanism; the two challenges are not related to each other."
+    },
+    "baustein2": {
+      "slide": 3,
+      "title": "Stakeholder and implication",
+      "exam_ref": "A1b",
+      "criteria": [
+        {
+          "name": "Classification",
+          "ueberzeugend": "The stakeholder is classified along both dimensions (influence and affectedness), and the classification is justified with reference to the case; dynamics (rising, falling) are taken into account; a deviation from Exhibit A5 is explicitly named, an adoption briefly confirmed.",
+          "tragfaehig": "Both dimensions are addressed, but the justification relies only on Exhibit A5, without the group's own evidence from the case; dynamics are overlooked.",
+          "ansatzweise": "Only one dimension, or a mere assertion of importance without classification."
+        },
+        {
+          "name": "Expectation",
+          "ueberzeugend": "A central expectation of the stakeholder towards ON is named concretely and supported by the case.",
+          "tragfaehig": "The expectation is named but remains generic (good products, fair treatment).",
+          "ansatzweise": "No concrete expectation recognisable."
+        },
+        {
+          "name": "Implication",
+          "ueberzeugend": "A concrete, case-based implication for ON's business model follows from the expectation: what ON therefore cannot do or must do, formulated as a decision.",
+          "tragfaehig": "An implication is hinted at but remains a statement (maintain the relationship, take it seriously) rather than a decision consequence.",
+          "ansatzweise": "No implication; it is merely stated that the stakeholder is important."
+        }
+      ],
+      "typical_weaknesses": "Typical weaknesses: Exhibit A5 is adopted instead of examined; the dynamics note (high, falling) is overlooked; the implication is a statement instead of a decision consequence."
+    }
+  },
+  "levels": [
+    "ueberzeugend",
+    "tragfaehig",
+    "ansatzweise"
+  ],
+  "outputs": {
+    "briefing": {
+      "audience": "uegl",
+      "timing": "wednesday_before_session",
+      "per_group_per_baustein": [
+        "kernposition_1_satz",
+        "tragende_argumente_max2",
+        "duenne_stellen_max2_als_rueckfrage_ansatz"
+      ],
+      "per_slot": [
+        "konsens_und_dissens_ueber_4_gruppen_als_spannungslinien_kandidaten"
+      ]
+    },
+    "feedback": {
+      "audience": "stammgruppe",
+      "timing": "after_session_only",
+      "per_baustein": [
+        "was_traegt",
+        "was_bleibt_duenn_mit_kriterienbezug",
+        "naechster_schritt"
+      ],
+      "closing": "feed_forward_tp2_und_klausur_aufgabe1"
+    }
+  },
+  "example_submissions": {
+    "ueberzeugend": {
+      "slide2": "The two most critical challenges are the channel conflict and the expiring patent protection. The channel conflict is critical because direct-to-consumer sales drive ON's margins but at the same time threaten the specialist retailers, who in Europe still reach over 60 per cent of customers and made the brand credible. The patent protection is critical because the CloudTec technology is the core of the differentiation and its protection ends between 2027 and 2029, while Hoka already offers a comparable system. The patent expiry lies in the field of tension: from the outside, legal protection ends; internally, ON decided to build its entire product line on this one technology. Causal chain: the patent protection expires (cause). Competitors can offer comparable cushioning systems, the technological differentiation erodes and the price premium comes under pressure (effect within the company). Before the expiry, ON must build up the brand as a second pillar of its premium claim or increase the pace of innovation so that its lead holds without intellectual property protection (pressure to act).",
+      "slide3": "The stakeholder that currently restricts ON's room for manoeuvre most strongly is the investors. We classify them as Exhibit A5 does: very high influence, medium affectedness. We support this classification with the case: since the IPO, the share price has reacted sensitively to every miss of the growth forecast, and analysts are calling for rising margins. Their central expectation is profitable growth of around 20 per cent. The implication for the business model: ON cannot deliberately restrict distribution to protect the brand without at the same time showing a credible growth path. Every decision in favour of exclusivity must therefore explain where the growth will come from instead, for instance from apparel or new markets.",
+      "calibration_note": "Building block 1: the selection deliberately draws on Section 2.8 (patent expiry), criticality is justified twice, positioning covers both sides, the chain has a visible mechanism and concrete pressure to act. Building block 2: the classification adopts A5 but explicitly confirms it with evidence from the case; the expectation is concrete; the implication is formulated as a decision consequence. Expected feedback: all criteria convincing; next step at most the connection between the two building blocks (the investors' expectation intensifies the channel conflict)."
+    },
+    "tragfaehig": {
+      "slide2": "The two most critical challenges are the tension between growth and culture and the conflict between direct-to-consumer sales and specialist retail. Both topics concern ON greatly and are described in detail in the case. The culture question is critical because ON has grown strongly and many new executives come from large corporations. The channel conflict is critical because specialist retail made ON big and now feels bypassed. The channel conflict lies in the field of tension between the environment and internal design: the retailers react from the outside, and ON itself decides how strongly it expands direct-to-consumer sales. Causal chain: ON expands direct-to-consumer sales, as a result specialist retailers reduce their shelf space, as a result ON loses presence in retail and revenue suffers. ON must therefore react.",
+      "slide3": "The most important stakeholder is specialist retail. It has high influence and very high affectedness, as Exhibit A5 also shows. Specialist retail built up ON in its early years and still reaches the majority of customers in Europe. Its central expectation is fair terms and no cannibalisation by ON's own channels. The implication for ON is that it should maintain the relationship with specialist retail and not lose the retailers, because they are important for the brand. ON should therefore proceed cautiously when expanding direct-to-consumer sales and keep the retailers well informed.",
+      "calibration_note": "Building block 1: plausible but obvious selection only from Section 2.5 with a general justification (concern ON greatly); positioning fine; the chain breaks at the end (revenue suffers, ON must react): mechanism and concrete pressure to act are missing. Building block 2: the classification adopts A5 uncritically and overlooks the dynamics note (high, falling); expectation fine; the implication remains a statement (maintain the relationship, proceed cautiously). Expected feedback: holds in selection and expectation, thin on causality, dynamics and implication, with one concrete next step each."
+    },
+    "ansatzweise": {
+      "slide2": "ON faces many challenges. First, the company is growing very quickly and the culture is changing. Second, there is a conflict with specialist retail because of direct-to-consumer sales. Third, the brand could be diluted by the expansion. Fourth, there are sustainability targets that are difficult to achieve because growth increases CO2 emissions. All of these challenges are important for ON and are connected to the rapid growth. The causal chain shows that growth leads to problems: if ON continues to grow, the culture and also the brand suffer, and in the end revenue declines. That is why ON must be careful about how it continues to grow.",
+      "slide3": "Customers are the most important stakeholder for ON, because without customers there is no revenue. They therefore have very high influence and high affectedness. Customers expect good and innovative products at a fair price from ON. ON must meet customer expectations so that customers remain loyal. Customers are very important for ON's business model because they buy the products and recommend the brand.",
+      "calibration_note": "Building block 1: four challenges listed instead of two weighted; no positioning; the causal chain is a chain of assertions without a mechanism. Building block 2: choosing customers is admissible, but the classification is unjustified (without customers no revenue), the expectation is generic, an implication is missing (only importance stated). Expected feedback: friendly but clear along all criteria; next step in each case the smallest concrete improvement (select two and justify them; spell out a mechanism; derive a consequence from the expectation)."
+    }
+  }
+}

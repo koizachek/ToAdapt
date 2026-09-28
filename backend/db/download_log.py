@@ -48,7 +48,7 @@ class DownloadLogStore:
             "download_id": str(uuid.uuid4()),
             "tutor": tutor or "operator",
             "target_tp": int(target_tp),
-            "kind": kind,            # briefing | feedback
+            "kind": kind,            # briefing (früher auch feedback)
             "scope": scope,          # bundle | single
             "code": code,
             "briefing_id": briefing_id,

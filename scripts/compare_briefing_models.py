@@ -1,6 +1,6 @@
 """Modellvergleich für die KI-Briefings: dieselben Abgaben, verschiedene LLMs.
 
-Schickt jede Datei einer Test-ZIP durch Extraktion → Briefing → Feedback mit
+Schickt jede Datei einer Test-ZIP durch Extraktion → Briefing mit
 dem angegebenen OpenRouter-Modell und legt je Modell EIN Word-Dokument mit
 allen Stammgruppen ab (identischer Renderer wie im Betrieb) plus die rohen
 Datensätze als JSON (für Nachvergleiche). Optional wird ein bestehender
@@ -37,7 +37,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 from backend.briefings.docx_render import render_briefing_docx  # noqa: E402
 from backend.briefings.extraction import build_code, extract_submission  # noqa: E402
 from backend.briefings.formal import formal_checks  # noqa: E402
-from backend.briefings.generator import FeedbackGenerator  # noqa: E402
+from backend.briefings.generator import BriefingGenerator  # noqa: E402
 from backend.briefings.rubrics import SUPPORTED_TPS, load_rubric  # noqa: E402
 from backend.llm import get_openrouter_key  # noqa: E402
 from backend.timeutils import naive_utcnow  # noqa: E402
@@ -50,7 +50,7 @@ def _slug(model: str) -> str:
 
 
 async def _run_model(model: str, entries: list[tuple[str, bytes]], api_key: str) -> list[dict]:
-    generator = FeedbackGenerator(api_key=api_key, model=model)
+    generator = BriefingGenerator(api_key=api_key, model=model)
     rubrics = {}
     records: list[dict] = []
     for filename, data in entries:
@@ -65,16 +65,12 @@ async def _run_model(model: str, entries: list[tuple[str, bytes]], api_key: str)
         kd = sub.kenndaten
         started = time.perf_counter()
         result = await generator.generate(briefing_id=str(uuid.uuid4()), rubric=rubric, sub=sub)
-        feedback = await generator.generate_feedback(
-            briefing_id=str(uuid.uuid4()), rubric=rubric, sub=sub,
-            assessment=result["assessment"] if result["evaluation_status"] == "ok" else None,
-        )
         seconds = time.perf_counter() - started
         q = result["briefing"].get("rueckfragen", {})
         print(
-            f"  {filename}: {result['evaluation_status']} · Feedback {feedback['feedback_status']} · "
+            f"  {filename}: {result['evaluation_status']} · "
             f"Rückfragen {len(q.get('zu_staerken', []))}+{len(q.get('zu_schwaechen', []))} · "
-            f"Leitplanken {result.get('guardrail_hits') or '-'} / {feedback.get('feedback_guardrail_hits') or '-'} · {seconds:.0f}s"
+            f"Leitplanken {result.get('guardrail_hits') or '-'} · {seconds:.0f}s"
         )
         records.append({
             "briefing_id": str(uuid.uuid4()),
@@ -94,11 +90,6 @@ async def _run_model(model: str, entries: list[tuple[str, bytes]], api_key: str)
             "formal": formal_checks(sub, rubric, tp),
             "briefing": result["briefing"],
             "assessment": result["assessment"],
-            "feedback": feedback["feedback"],
-            "feedback_status": feedback["feedback_status"],
-            "feedback_guardrail_hits": list(feedback.get("feedback_guardrail_hits", [])),
-            "feedback_needs_human_review": bool(feedback.get("feedback_needs_human_review")),
-            "feedback_review_reason": feedback.get("feedback_review_reason"),
             "model": model,
             "seconds": round(seconds, 1),
         })

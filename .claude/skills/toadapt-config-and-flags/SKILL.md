@@ -100,7 +100,7 @@ Host eine URI gebaut.
 | `MONGODB_SUBMISSIONS_COLLECTION` | Submission-States | `submission_states` | nein | — |
 | `MONGODB_SESSIONS_COLLECTION` | Chat-Sessions | `sessions` | nein | — |
 | `MONGODB_DASHBOARD_COLLECTION` | Dashboard-Ergebnisse | `dashboard_results` | nein | — |
-| `MONGODB_BRIEFINGS_COLLECTION` (seit 2026-09-02, ersetzt `MONGODB_GROUP_UPLOADS_COLLECTION`) | KI-Briefings + KI-Feedback je Stammgruppen-Abgabe (`backend/db/briefing_store.py`) | `briefings` | nein | — |
+| `MONGODB_BRIEFINGS_COLLECTION` (seit 2026-09-02, ersetzt `MONGODB_GROUP_UPLOADS_COLLECTION`) | KI-Briefings je Stammgruppen-Abgabe (`backend/db/briefing_store.py`; Alt-Datensätze tragen noch Feedback-Felder) | `briefings` | nein | — |
 | `MONGODB_BRIEFING_BATCHES_COLLECTION` (seit 2026-09-02) | Statusdokumente der Upload-Batches (`backend/briefings/batches.py`) | `briefing_batches` | nein | — |
 | `RETENTION_FORMATIVE_EXPIRE_AT` (seit 2026-07-17) | Fester Löschtermin (ISO-Datum) der formativen Lehrbetriebs-Daten (sessions, submission_states, dashboard_results, briefings, briefing_batches) — Stores schreiben ihn als `expire_at`, MongoDB löscht per TTL-Index (`backend/config/retention.py`; Indizes: `scripts/ensure_mongo_indexes.py`) | `2027-01-31` (Semesterende HS 2026 + 4 Wochen, Datenschutzantrag Teil 1 §7) | nein | Termin in der Vergangenheit ⇒ TTL-Monitor löscht SOFORT alle Daten; bei neuem Kursdurchlauf nachziehen. |
 | `RETENTION_RESEARCH_EXPIRE_AT` (seit 2026-07-17) | Fester Löschtermin des Forschungslogs `experiment_events` (Datenschutzantrag Teil 2 §5: längstens 24 Monate nach Semesterende) | `2028-12-31` | nein | wie oben — Vergangenheitstermin löscht das komplette Forschungslog. |
@@ -384,6 +384,7 @@ Neue Magic Numbers: Teacher-Login-Rate-Limit 10 Versuche/60 s pro IP
 Update 2026-09-02 (4): +FEEDBACK_RELEASE_GATE (Backend, Standard AUS): `1` schaltet
 die Sperre "Feedback erst am Tag nach dem Termin" ein (423 vorher, Master `force=1`);
 Owner-Entscheidung: in der Pilotphase nicht gebraucht (`backend/briefings/rubrics.py`).
+Stand 2026-09-28: Schalter und KI-Feedback-Produkt vollständig entfernt.
 
 Update 2026-09-02 (3): Pilotphase-Schalter. Frontend `NEXT_PUBLIC_PILOT_TUTOR_ONLY`
 (Build-Env Vercel; Standard AN, `0` = aus): blendet Studierenden-Flow, Case-Ansicht,
@@ -407,7 +408,7 @@ MAX_TOTAL_BYTES=1200MB, MAX_BAUSTEIN_CHARS=8000, MAX_UPLOAD_BYTES=400MB
 BRIEFING_MAX_TOKENS=2200, MAX_ITEMS=2 (Argumente/dünne Stellen), TTL
 Upload-Token 900 s; Zeichengrenzen/Codes je TP aus
 `backend/config/ki_rubrics/ki_rubrics_tp{n}.json` (`formal_checks`),
-Termine (Abgabe/Termin je TP, Feedback-Freigabe = Tag nach dem Termin) in
+Termine (Abgabe/Termin je TP) in
 `BRIEFING_SCHEDULE` (`backend/briefings/rubrics.py`) — bewusst getrennt vom
 Studierenden-TP_SCHEDULE. Die Magic Numbers des alten Upload-Moduls
 (MAX_PDF_BYTES, GROUP_TP_MAX_POINTS …) sind weg.

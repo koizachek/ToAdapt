@@ -129,7 +129,7 @@ JSON-Zeilen mit dem Event-Namen im Feld `"event"`; lokal Console-Format.
 | `direct_recommendation_or_template` | Empfehlungs-/Textbaustein-Muster (`RECOMMENDATION_PATTERNS` + Regexe) |
 | `case_speculation_outside_context` | Agent spekuliert über Fakten außerhalb des Case-Materials (`CASE_SPECULATION_PATTERNS`) |
 
-### KI-Briefings / KI-Feedback (`backend/briefings/`, seit 2026-09-02 — ersetzt `group_upload_*`)
+### KI-Briefings (`backend/briefings/`, seit 2026-09-02 — ersetzt `group_upload_*`)
 
 | Event | Level | Felder / Bedeutung |
 |---|---|---|
@@ -139,13 +139,12 @@ JSON-Zeilen mit dem Event-Namen im Feld `"event"`; lokal Console-Format.
 | `briefing_json_parse_failed` / `briefing_json_repair_failed` | warning/error | Briefing-JSON invalide; nach Repair-Fehlschlag → `technical_fallback` (Platzhaltertexte, Review-Flag) |
 | `briefing_llm_failed` | error | `briefing_id`, `error` — Transportfehler; NUR diese Abgabe fällt auf `technical_fallback`, der Batch läuft weiter |
 | `briefing_guardrail_triggered` | warning | `briefing_id`, `hits` (points/grades/scale/model_solution/group_comparison) — betroffenes Feld durch Platzhalter ersetzt, Briefing zur manuellen Sicht markiert. Häufung ⇒ Prompt prüfen, nicht die Leitplanke lockern |
-| `feedback_json_parse_failed` / `feedback_json_repair_failed` / `feedback_llm_failed` / `feedback_guardrail_triggered` | wie oben | Dasselbe für das KI-Feedback (Produkt 2, nach dem Termin freigegeben) |
+| `feedback_*` | — | Nur noch in Alt-Logs: das KI-Feedback-Produkt wurde am 2026-09-28 entfernt |
 | `briefing_assigned` | info | `briefing_id`, `ueg`, `sg`, `by` — manuelle Nachzuordnung durch den Master |
-| `feedback_release_forced` | warning | `by`, `target_tp`, `ueg` — Master hat Feedback VOR dem Freigabedatum abgerufen (`force=1`); nur zur Qualitätssicherung, nie zur Verteilung |
 | `briefing_store_save_failed` / `_load_failed`, `briefing_batch_store_*_failed` | warning | Mongo-Fehler der Stores (Datei-Fallback greift) |
 
-Kostenkontrolle: je Abgabe zwei LLM-Calls (Briefing + Feedback), System-Prompt
-je TP und Produkt byte-identisch und gecacht (`llm_call_completed.cached_tokens`
+Kostenkontrolle: je Abgabe ein Briefing-Call (plus kurze Themenprüfung), System-Prompt
+je TP byte-identisch und gecacht (`llm_call_completed.cached_tokens`
 ≈ 14k von ≈ 15k Prompt-Tokens ab dem zweiten Call eines Batches).
 
 ### Evaluator / Judge (`backend/evaluator/rubric_evaluator.py`, `backend/api/routes.py`)

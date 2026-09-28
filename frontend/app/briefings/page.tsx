@@ -14,8 +14,8 @@ import { AlertTriangle, ChevronDown, ChevronRight, Download, FileUp, KeyRound, L
 //   seiner Gruppen hoch (direkt ans Backend mit kurzlebigem Upload-Token, weil
 //   Vercel Request-Bodies auf 4,5 MB begrenzt). Touchpoint, Übungsgruppe und
 //   Stammgruppe liest das System vom Deckblatt; er prüft oder korrigiert sie.
-// - Er sieht nur, was er selbst hochgeladen hat, und lädt Briefings (Word) und
-//   Feedbacks (ZIP je Touchpoint) herunter.
+// - Er sieht nur, was er selbst hochgeladen hat, und lädt die Briefings (Word)
+//   herunter.
 // - Der Master sieht zusätzlich das Monitoring: je Konto Uploads/Downloads je
 //   Touchpoint und Gruppe, Passwort-Anfragen, Einmalcodes, dieselben Downloads.
 // Keine Punkte, keine Stufen: Das Briefing ist Vorbereitungsmaterial, keine Note.
@@ -27,17 +27,12 @@ interface BausteinBriefing {
   tragende_argumente: string[]
   duenne_stellen: string[]
   einschaetzung: string
+  naechster_schritt?: string   // seit 2026-09-28; ältere Briefings ohne
 }
 
 interface Rueckfragen {
   zu_staerken: string[]
   zu_schwaechen: string[]
-}
-
-interface BausteinFeedback {
-  was_traegt: string
-  was_bleibt_duenn: string
-  naechster_schritt: string
 }
 
 interface Formal {
@@ -61,6 +56,7 @@ interface BriefingRecord {
   code: string | null
   code_source: string | null
   status: string
+  language?: string   // Sprache der Abgabe = Sprache des Briefings (de | en)
   uploaded_at: string
   uploaded_by: string | null
   evaluation_status: string
@@ -68,10 +64,6 @@ interface BriefingRecord {
   review_reason: string | null
   formal: Formal
   briefing: Record<string, BausteinBriefing | Rueckfragen>
-  feedback: Record<string, BausteinFeedback | string>
-  feedback_status: string
-  feedback_needs_human_review: boolean
-  feedback_review_reason: string | null
   reject_reason: string | null
   pii_removed: string[]
   injection_suspected: boolean
@@ -117,7 +109,6 @@ interface MonitoringTp {
   review: number
   latest_uploaded_at: string | null
   last_download_briefing_at: string | null
-  last_download_feedback_at: string | null
   groups: MonitoringGroup[]
 }
 
@@ -149,7 +140,7 @@ const TEXT = {
   de: {
     eyebrow: 'Übungsgruppenleitung',
     title: 'KI-Briefings',
-    intro: 'Sie laden die Einreichungen Ihrer Gruppen hoch und erhalten je Stammgruppe ein Briefing zur Vorbereitung des Touchpoints und ein Feedback für die Gruppe. Keine Punkte, keine Musterlösung — jede Wahl ist zulässig, beurteilt wird nur, ob die Begründung trägt.',
+    intro: 'Sie laden die Einreichungen Ihrer Gruppen hoch und erhalten je Stammgruppe ein Briefing zur Vorbereitung des Touchpoints. Keine Punkte, keine Musterlösung — jede Wahl ist zulässig, beurteilt wird nur, ob die Begründung trägt.',
     helpIntro: 'So geht es: 1. ZIP-Datei hochladen. 2. Warten, bis die Verarbeitung fertig ist. 3. Erkannte Angaben prüfen. 4. Dokumente herunterladen. Alles Weitere steht im Reiter „Anleitung“.',
     // Upload
     uploadTitle: 'Einreichungen hochladen',
@@ -195,10 +186,7 @@ const TEXT = {
     groupCount: (n: number) => `${n} Stammgruppe${n === 1 ? '' : 'n'} hochgeladen`,
     downloadAll: (ueg: string) => `Briefing-Dokument ${ueg} (Word)`,
     helpDownloadAll: 'Ein Word-Dokument mit den Briefings aller Stammgruppen dieser Übungsgruppe — Ihre Vorbereitung für den Touchpoint.',
-    feedbackZip: (ueg: string) => `Feedback ${ueg} für die Stammgruppen (ZIP)`,
-    helpFeedback: 'Eine ZIP-Datei mit einem Word-Dokument je Stammgruppe. Geben Sie jeder Gruppe ihr Dokument weiter, zum Beispiel über Canvas. Das Feedback nennt keine Punkte und keine Musterlösung.',
     downloadOne: 'Briefing',
-    feedbackOne: 'Feedback',
     statusOk: 'Ausgewertet',
     statusRejected: 'Nicht ausgewertet',
     statusInjection: 'Prompt-Injection vermutet',
@@ -212,19 +200,15 @@ const TEXT = {
     argumente: 'Tragende Argumente',
     duenn: 'Dünne Stellen (Ansatz für Rückfragen)',
     einschaetzung: 'Einschätzung',
+    naechsterSchritt: 'Nächster Schritt',
     none: '—',
     baustein: (n: number) => `Baustein ${n}`,
     questionsTitle: 'Beispiel-Rückfragen an die Gruppe',
     questionsStrengths: 'An die Stärken anknüpfen',
     questionsWeaknesses: 'Dünne Stellen aufdecken',
     helpQuestions: 'Vorschläge für Ihr Gespräch mit dieser Gruppe: zwei Fragen vertiefen, was trägt; drei Fragen decken auf, wo die Begründung dünn bleibt. Welche Fragen Sie stellen, bleibt Ihre didaktische Entscheidung.',
-    feedbackTitle: 'Feedback an die Stammgruppe',
-    fbTraegt: 'Was trägt',
-    fbDuenn: 'Was bleibt dünn',
-    fbSchritt: 'Nächster Schritt',
-    fbAusblick: 'Ausblick',
-    fbReview: 'Feedback bitte vor der Weitergabe prüfen',
     uploadedBy: 'hochgeladen von',
+    briefingLanguage: (lang: string) => (lang === 'en' ? 'Briefing auf Englisch' : 'Briefing auf Deutsch'),
     // Master
     masterTitle: 'Monitoring (Kursleitung)',
     masterIntro: 'Je Konto: was wann hochgeladen und heruntergeladen wurde, offene Prüffälle, Passwort-Anfragen. Klappen Sie ein Konto auf, um die Gruppen je Touchpoint zu sehen und dieselben Dokumente herunterzuladen.',
@@ -248,13 +232,12 @@ const TEXT = {
     self: 'eigene Uploads (Master)',
     noUploads: 'noch nichts hochgeladen',
     lastBriefingDl: 'Briefing geladen',
-    lastFeedbackDl: 'Feedback geladen',
     never: 'nie',
   },
   en: {
     eyebrow: 'Tutorial group lead',
     title: 'AI briefings',
-    intro: 'You upload the submissions of your groups and receive, per home group, a briefing to prepare the touchpoint and feedback for the group. No points, no model solution — any choice is admissible; only the reasoning is judged.',
+    intro: 'You upload the submissions of your groups and receive, per home group, a briefing to prepare the touchpoint. No points, no model solution — any choice is admissible; only the reasoning is judged.',
     helpIntro: 'How it works: 1. Upload a ZIP file. 2. Wait until processing has finished. 3. Check the detected details. 4. Download the documents. Everything else is in the “Guide” tab.',
     uploadTitle: 'Upload submissions',
     uploadIntro: 'One ZIP file with the submissions of your groups (PPTX from the official template, or DOCX/PDF). The system reads touchpoint, tutorial group and home group from the cover sheet.',
@@ -296,10 +279,7 @@ const TEXT = {
     groupCount: (n: number) => `${n} home group${n === 1 ? '' : 's'} uploaded`,
     downloadAll: (ueg: string) => `Briefing document ${ueg} (Word)`,
     helpDownloadAll: 'One Word document with the briefings of all home groups of this tutorial group — your preparation for the touchpoint.',
-    feedbackZip: (ueg: string) => `Feedback ${ueg} for the home groups (ZIP)`,
-    helpFeedback: 'A ZIP file with one Word document per home group. Pass each group its document, e.g. via Canvas. The feedback names no points and no model solution.',
     downloadOne: 'Briefing',
-    feedbackOne: 'Feedback',
     statusOk: 'Evaluated',
     statusRejected: 'Not evaluated',
     statusInjection: 'Prompt injection suspected',
@@ -313,19 +293,15 @@ const TEXT = {
     argumente: 'Supporting arguments',
     duenn: 'Thin spots (prompts for follow-up questions)',
     einschaetzung: 'Assessment',
+    naechsterSchritt: 'Next step',
     none: '—',
     baustein: (n: number) => `Building block ${n}`,
     questionsTitle: 'Example follow-up questions for the group',
     questionsStrengths: 'Build on the strengths',
     questionsWeaknesses: 'Uncover thin spots',
     helpQuestions: 'Suggestions for your conversation with this group: two questions deepen what holds; three uncover where the reasoning stays thin. Which questions you ask remains your didactic decision.',
-    feedbackTitle: 'Feedback for the home group',
-    fbTraegt: 'What holds',
-    fbDuenn: 'What stays thin',
-    fbSchritt: 'Next step',
-    fbAusblick: 'Outlook',
-    fbReview: 'Please check the feedback before passing it on',
     uploadedBy: 'uploaded by',
+    briefingLanguage: (lang: string) => (lang === 'en' ? 'Briefing in English' : 'Briefing in German'),
     masterTitle: 'Monitoring (course lead)',
     masterIntro: 'Per account: what was uploaded and downloaded when, open checks, password requests. Expand an account to see its groups per touchpoint and download the same documents.',
     helpMaster: 'Only the master sees this table. Accounts that requested “forgot password” are marked red — generate a one-time code there and e-mail it to the person.',
@@ -348,7 +324,6 @@ const TEXT = {
     self: 'own uploads (master)',
     noUploads: 'nothing uploaded yet',
     lastBriefingDl: 'briefing downloaded',
-    lastFeedbackDl: 'feedback downloaded',
     never: 'never',
   },
 }
@@ -605,6 +580,9 @@ export default function BriefingsPage() {
         {(b?.duenne_stellen ?? []).length ? b!.duenne_stellen.map((a, i) => <li key={i}>{a}</li>) : <li style={{ color: 'var(--muted)' }}>{text.none}</li>}
       </ul>
       <p className="text-sm"><span className="font-medium">{text.einschaetzung}: </span>{b?.einschaetzung ?? text.none}</p>
+      {b?.naechster_schritt && (
+        <p className="text-sm mt-2"><span className="font-medium">{text.naechsterSchritt}: </span>{b.naechster_schritt}</p>
+      )}
     </div>
   )
 
@@ -641,6 +619,12 @@ export default function BriefingsPage() {
             <span className="font-mono text-sm font-medium">{r.code ?? r.filename}</span>
             {r.code && <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{r.filename}</span>}
             <span className="text-xs" style={{ color: status.tone }}>{status.label}</span>
+            {r.status === 'briefed' && (
+              <span className="text-xs font-medium px-1.5 py-0.5" title={text.briefingLanguage(r.language ?? 'de')}
+                style={{ border: '1px solid var(--hairline)', color: 'var(--muted)' }}>
+                {(r.language ?? 'de').toUpperCase()}
+              </span>
+            )}
             {isMaster && r.uploaded_by && <span className="text-xs" style={{ color: 'var(--muted)' }}>{text.uploadedBy} {r.uploaded_by}</span>}
             {f.baustein1_max != null && (
               <span className="text-xs" style={{ color: f.baustein1_within_limit === false ? REVIEW_TONE : 'var(--muted)' }}>
@@ -658,12 +642,6 @@ export default function BriefingsPage() {
               <a href={`/api/teacher/briefings/${encodeURIComponent(r.briefing_id)}/docx`}
                 className="flex items-center gap-1 px-3 py-1 text-xs font-medium" style={{ border: '1px solid var(--hairline)', color: 'var(--ink)' }}>
                 <Download size={12} /> {text.downloadOne}
-              </a>
-            )}
-            {r.status === 'briefed' && (r.feedback_status === 'ok' || r.feedback_status === 'technical_fallback') && (
-              <a href={`/api/teacher/briefings/${encodeURIComponent(r.briefing_id)}/feedback/docx`}
-                className="flex items-center gap-1 px-3 py-1 text-xs font-medium" style={{ border: '1px solid var(--hairline)', color: 'var(--ink)' }}>
-                <Download size={12} /> {text.feedbackOne}
               </a>
             )}
             {!assignMode && r.status === 'briefed' && !editing[r.briefing_id] && (
@@ -701,26 +679,6 @@ export default function BriefingsPage() {
                 {renderBaustein(2, r.briefing?.baustein2 as BausteinBriefing | undefined)}
                 {renderQuestions(r.briefing?.rueckfragen as Rueckfragen | undefined)}
               </>
-            )}
-            {r.status === 'briefed' && r.feedback && r.feedback.baustein1 && (
-              <div className="mt-6 p-4" style={{ background: 'var(--surface)', border: '1px solid var(--hairline)' }}>
-                <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>{text.feedbackTitle}</p>
-                {r.feedback_needs_human_review && (
-                  <p className="text-xs mb-3" style={{ color: REVIEW_TONE }}>{text.fbReview}{r.feedback_review_reason ? ` — ${r.feedback_review_reason}` : ''}</p>
-                )}
-                {[1, 2].map(n => {
-                  const fb = r.feedback[`baustein${n}`] as BausteinFeedback | undefined
-                  return (
-                    <div key={n} className="mb-4">
-                      <p className="text-xs font-medium mb-1">{text.baustein(n)}</p>
-                      <p className="text-sm"><span className="font-medium">{text.fbTraegt}: </span>{fb?.was_traegt ?? text.none}</p>
-                      <p className="text-sm"><span className="font-medium">{text.fbDuenn}: </span>{fb?.was_bleibt_duenn ?? text.none}</p>
-                      <p className="text-sm"><span className="font-medium">{text.fbSchritt}: </span>{fb?.naechster_schritt ?? text.none}</p>
-                    </div>
-                  )
-                })}
-                <p className="text-sm"><span className="font-medium">{text.fbAusblick}: </span>{String(r.feedback.feed_forward ?? text.none)}</p>
-              </div>
             )}
           </div>
         )}
@@ -806,18 +764,12 @@ export default function BriefingsPage() {
                         <div key={t.target_tp} className="mb-4">
                           <div className="flex flex-wrap items-center gap-3 mb-2">
                             <span className="font-medium">TP{t.target_tp || '?'}</span>
-                            <span style={{ color: 'var(--muted)' }}>{t.briefed}/{t.count} · {text.lastBriefingDl}: {t.last_download_briefing_at ? fmtTime(t.last_download_briefing_at) : text.never} · {text.lastFeedbackDl}: {t.last_download_feedback_at ? fmtTime(t.last_download_feedback_at) : text.never}</span>
+                            <span style={{ color: 'var(--muted)' }}>{t.briefed}/{t.count} · {text.lastBriefingDl}: {t.last_download_briefing_at ? fmtTime(t.last_download_briefing_at) : text.never}</span>
                             {t.target_tp > 0 && t.briefed > 0 && (
-                              <>
-                                <a href={`/api/teacher/briefings/docx?tp=${t.target_tp}&tutor=${encodeURIComponent(a.account)}`}
-                                  className="flex items-center gap-1 px-2 py-1 font-medium" style={{ border: '1px solid var(--hairline)', color: 'var(--ink)' }}>
-                                  <Download size={11} /> {text.downloadOne}
-                                </a>
-                                <a href={`/api/teacher/briefings/feedback/zip?tp=${t.target_tp}&tutor=${encodeURIComponent(a.account)}`}
-                                  className="flex items-center gap-1 px-2 py-1 font-medium" style={{ border: '1px solid var(--hairline)', color: 'var(--ink)' }}>
-                                  <Download size={11} /> {text.feedbackOne}
-                                </a>
-                              </>
+                              <a href={`/api/teacher/briefings/docx?tp=${t.target_tp}&tutor=${encodeURIComponent(a.account)}`}
+                                className="flex items-center gap-1 px-2 py-1 font-medium" style={{ border: '1px solid var(--hairline)', color: 'var(--ink)' }}>
+                                <Download size={11} /> {text.downloadOne}
+                              </a>
                             )}
                           </div>
                           <div className="flex flex-wrap gap-2">
@@ -974,7 +926,6 @@ export default function BriefingsPage() {
         {/* Auswertungen je Übungsgruppe */}
         {[...grouped.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([ueg, items]) => {
           const briefed = items.filter(r => r.status === 'briefed')
-          const withFeedback = briefed.filter(r => r.feedback_status === 'ok' || r.feedback_status === 'technical_fallback')
           return (
             <div key={ueg} className="mb-12">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -990,15 +941,6 @@ export default function BriefingsPage() {
                         <Download size={14} /> {text.downloadAll(ueg)}
                       </a>
                       <HelpHint text={text.helpDownloadAll} />
-                    </span>
-                  )}
-                  {withFeedback.length > 0 && (
-                    <span className="flex items-center">
-                      <a href={`/api/teacher/briefings/feedback/zip${dlQuery(`?tp=${activeTp}&ueg=${encodeURIComponent(ueg)}`)}`}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium" style={{ border: '1px solid var(--ink)', color: 'var(--ink)' }}>
-                        <Download size={14} /> {text.feedbackZip(ueg)}
-                      </a>
-                      <HelpHint text={text.helpFeedback} />
                     </span>
                   )}
                 </div>

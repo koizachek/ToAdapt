@@ -3,7 +3,7 @@
 Rollen (Owner-Entscheidung 2026-09-13):
 - Jeder eingeloggte Übungsgruppenleiter (Konto UEGL01–UEGL26) lädt eine
   ZIP-Datei mit den Einreichungen SEINER Gruppen hoch und lädt die
-  erzeugten Briefings und Feedbacks herunter. Er sieht genau das, was er
+  erzeugten Briefings herunter. Er sieht genau das, was er
   selbst hochgeladen hat — die Zugehörigkeit entsteht durch den Upload,
   nicht durch eine Namensregel.
 - Der Master darf dasselbe und sieht zusätzlich alles: Monitoring je Konto
@@ -24,8 +24,8 @@ gelten als Operator (= Master). Der Upload akzeptiert alternativ ein
 kurzlebiges Upload-Token (Direkt-Upload aus dem Browser, Vercel-Body-Limit).
 
 Es werden KEINE hochgeladenen Dateien persistiert. Nur der extrahierte Text
-wird verdichtet und verworfen; gespeichert werden Briefing, Feedback,
-formale Vorprüfung und interne Einstufung. Vom Deckblatt wird nur der Code
+wird verdichtet und verworfen; gespeichert werden Briefing, formale
+Vorprüfung und interne Einstufung. Vom Deckblatt wird nur der Code
 gelesen; personenbezogene Angaben im Text werden vor allem Weiteren entfernt.
 
 Eingangsprüfung (backend/briefings/intake.py, Owner-Entscheidung 2026-09-14):
@@ -33,6 +33,10 @@ Nur echte Abgaben werden ausgewertet — Deckblatt-Angaben vollständig, Baustei
 vorhanden, Bezug zum Running Case ON (Kernbegriffe + kurzer Modellaufruf).
 Alles andere wird mit Grund abgelehnt (Status ``rejected``, kein Briefing).
 Prompt-Injection-Versuche werden erkannt und im Briefing ausgewiesen.
+
+Sprache (Owner-Entscheidung 2026-09-28): Die Sprache der Abgabe bestimmt die
+Sprache des Briefings dieser Stammgruppe (``language`` am Datensatz, erkannt
+in ``backend/briefings/i18n.py``).
 """
 
 from __future__ import annotations
@@ -57,7 +61,7 @@ from backend.briefings.batches import (
     start_background,
     with_stale_flag,
 )
-from backend.briefings.docx_render import render_briefing_docx, render_feedback_docx
+from backend.briefings.docx_render import render_briefing_docx
 from backend.briefings.extraction import (
     ExtractedSubmission,
     ZipValidationError,
@@ -67,7 +71,8 @@ from backend.briefings.extraction import (
     normalize_ueg,
 )
 from backend.briefings.formal import formal_checks
-from backend.briefings.generator import FeedbackGenerator
+from backend.briefings.generator import BriefingGenerator
+from backend.briefings.i18n import detect_language
 from backend.briefings.intake import (
     INJECTION_NOTE,
     TopicClassifier,
@@ -195,6 +200,7 @@ class BriefingRecord(BaseModel):
     code: str | None = None
     code_source: str | None = None
     status: str                       # "briefed" | "rejected" | "extraction_failed" | "no_content"
+    language: str = "de"              # Sprache der Abgabe = Sprache des Briefings (de | en)
     uploaded_at: str
     generated_at: str | None = None
     uploaded_by: str | None = None
@@ -205,11 +211,6 @@ class BriefingRecord(BaseModel):
     formal: dict = Field(default_factory=dict)
     briefing: dict = Field(default_factory=dict)
     assessment: dict = Field(default_factory=dict)   # intern — nur Master
-    feedback: dict = Field(default_factory=dict)
-    feedback_status: str = "pending"                 # ok | technical_fallback | no_content | pending
-    feedback_guardrail_hits: list[str] = Field(default_factory=list)
-    feedback_needs_human_review: bool = False
-    feedback_review_reason: str | None = None
     text_chars: int = 0
     source: str = "briefing_upload"
     # Eingangsprüfung
@@ -232,6 +233,7 @@ class BriefingPublic(BaseModel):
     code: str | None = None
     code_source: str | None = None
     status: str
+    language: str = "de"
     uploaded_at: str
     generated_at: str | None = None
     uploaded_by: str | None = None
@@ -241,11 +243,6 @@ class BriefingPublic(BaseModel):
     guardrail_hits: list[str] = Field(default_factory=list)
     formal: dict = Field(default_factory=dict)
     briefing: dict = Field(default_factory=dict)
-    feedback: dict = Field(default_factory=dict)
-    feedback_status: str = "pending"
-    feedback_guardrail_hits: list[str] = Field(default_factory=list)
-    feedback_needs_human_review: bool = False
-    feedback_review_reason: str | None = None
     text_chars: int = 0
     source: str = "briefing_upload"
     reject_reason: str | None = None
@@ -306,10 +303,6 @@ class BriefingOverviewRow(BaseModel):
 def _public(record: dict) -> BriefingPublic:
     data = {k: v for k, v in record.items() if k in BriefingPublic.model_fields}
     return BriefingPublic(**data)
-
-
-def _feedback_ready(record: dict) -> bool:
-    return record.get("status") == "briefed" and record.get("feedback_status") in ("ok", "technical_fallback")
 
 
 def _latest_per_group(records: list[dict]) -> list[dict]:
@@ -407,18 +400,17 @@ async def _generate_into(
     *,
     sub: ExtractedSubmission,
     rubric: BriefingRubric,
-    generator: FeedbackGenerator,
+    generator: BriefingGenerator,
 ) -> dict:
-    """Führt Briefing + Feedback für einen Datensatz aus und schreibt die
+    """Erzeugt das Briefing für einen Datensatz und schreibt die
     Ergebnisfelder in ``record``."""
     kd = sub.kenndaten
     tp = rubric.tp
-    result = await generator.generate(briefing_id=record["briefing_id"], rubric=rubric, sub=sub)
-    status = "no_content" if result["evaluation_status"] == "no_content" else "briefed"
-    feedback = await generator.generate_feedback(
-        briefing_id=record["briefing_id"], rubric=rubric, sub=sub,
-        assessment=result["assessment"] if result["evaluation_status"] == "ok" else None,
+    language = record.get("language") or "de"
+    result = await generator.generate(
+        briefing_id=record["briefing_id"], rubric=load_rubric(tp, language), sub=sub, language=language,
     )
+    status = "no_content" if result["evaluation_status"] == "no_content" else "briefed"
     assigned = bool(kd.ueg and kd.sg)
     injection = bool(record.get("injection_suspected"))
     needs_review = bool(result["needs_human_review"]) or injection or not assigned
@@ -441,11 +433,6 @@ async def _generate_into(
         formal=formal_checks(sub, rubric, tp),
         briefing=result["briefing"],
         assessment=result["assessment"],
-        feedback=feedback["feedback"],
-        feedback_status=feedback["feedback_status"],
-        feedback_guardrail_hits=list(feedback.get("feedback_guardrail_hits", [])),
-        feedback_needs_human_review=bool(feedback.get("feedback_needs_human_review")),
-        feedback_review_reason=feedback.get("feedback_review_reason"),
         text_chars=sub.baustein1_chars + sub.baustein2_chars,
     )
     return record
@@ -473,7 +460,7 @@ def _rejected(base: dict, sub: ExtractedSubmission | None, reason: str) -> Brief
 
 async def _process_entry(
     *,
-    generator: FeedbackGenerator,
+    generator: BriefingGenerator,
     topic_classifier: TopicClassifier,
     rubrics: dict[int, BriefingRubric],
     batch_id: str,
@@ -545,6 +532,7 @@ async def _process_entry(
     record = dict(
         base,
         status="briefed",
+        language=detect_language(combined),
         topic_reason=topic_reason or None,
         pii_removed=list(sub.pii_hits),
         injection_suspected=bool(findings),
@@ -572,7 +560,7 @@ async def upload_submissions(
     ctx: TeacherContext = Depends(upload_auth),
 ):
     """Upload einer ZIP-Datei mit Einreichungen (PPTX/DOCX/PDF) → je Datei ein
-    Briefing und ein Feedback. Touchpoint, Übungsgruppe und Stammgruppe werden
+    Briefing. Touchpoint, Übungsgruppe und Stammgruppe werden
     vom Deckblatt gelesen. Speichert nur die Auswertung, nie die Dateien.
 
     Standard ist asynchron: Antwort 202 mit Batch-Status, Verarbeitung im
@@ -592,7 +580,7 @@ async def upload_submissions(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     del data
 
-    generator = FeedbackGenerator(api_key=api_key)
+    generator = BriefingGenerator(api_key=api_key)
     topic_classifier = TopicClassifier(api_key=api_key)
     rubrics: dict[int, BriefingRubric] = {}
     batch_id = str(uuid.uuid4())
@@ -689,10 +677,11 @@ async def get_batch(batch_id: str, ctx: TeacherContext = Depends(teacher_context
 async def monitoring(ctx: TeacherContext = Depends(require_master)):
     """Je Konto UEGL01–UEGL26 (plus master/operator, falls sie hochgeladen
     haben): Uploads je Touchpoint mit Gruppen und Status, letzter Upload,
-    letzter Download je Art, offene Prüffälle, Kontostatus (Passwort gesetzt,
+    letzter Briefing-Download, offene Prüffälle, Kontostatus (Passwort gesetzt,
     Zurücksetzen angefragt)."""
     records = _latest_per_group(briefing_store.load_all())
-    downloads = download_log.load_all()
+    # Nur Briefing-Downloads; Alt-Einträge aus der Zeit mit KI-Feedback-Dokument bleiben aussen vor.
+    downloads = [d for d in download_log.load_all() if d.get("kind", "briefing") == "briefing"]
     accounts = {a["account"]: tutor_account_store.public_view(a) for a in tutor_account_store.list_all()}
 
     def _label(value: str | None) -> str:
@@ -712,8 +701,7 @@ async def monitoring(ctx: TeacherContext = Depends(require_master)):
             tp = int(r.get("target_tp") or 0)
             entry = per_tp.setdefault(tp, {
                 "target_tp": tp, "count": 0, "briefed": 0, "review": 0,
-                "latest_uploaded_at": None, "last_download_briefing_at": None,
-                "last_download_feedback_at": None, "groups": [],
+                "latest_uploaded_at": None, "last_download_briefing_at": None, "groups": [],
             })
             entry["count"] += 1
             entry["briefed"] += int(r.get("status") == "briefed")
@@ -736,11 +724,9 @@ async def monitoring(ctx: TeacherContext = Depends(require_master)):
             tp = int(d.get("target_tp") or 0)
             entry = per_tp.setdefault(tp, {
                 "target_tp": tp, "count": 0, "briefed": 0, "review": 0,
-                "latest_uploaded_at": None, "last_download_briefing_at": None,
-                "last_download_feedback_at": None, "groups": [],
+                "latest_uploaded_at": None, "last_download_briefing_at": None, "groups": [],
             })
-            key = "last_download_feedback_at" if d.get("kind") == "feedback" else "last_download_briefing_at"
-            entry[key] = max(entry[key] or "", str(d.get("at", ""))) or None
+            entry["last_download_briefing_at"] = max(entry["last_download_briefing_at"] or "", str(d.get("at", ""))) or None
         for entry in per_tp.values():
             entry["groups"].sort(key=lambda g: (g["ueg"] or "~", g["sg"] or 99))
         rows.append({
@@ -849,41 +835,6 @@ async def download_briefing_bundle(
     )
 
 
-@router.get("/feedback/zip")
-async def download_feedback_bundle(
-    tp: int = Query(..., ge=1, le=5),
-    ueg: str | None = Query(default=None),
-    tutor: str | None = Query(default=None),
-    ctx: TeacherContext = Depends(teacher_context),
-):
-    """ZIP mit einem Feedback-DOCX je Stammgruppe — zur Weitergabe durch den
-    Übungsgruppenleiter (z.B. über Canvas)."""
-    rubric = _rubric_or_422(tp)
-    records = [r for r in _bundle_records(ctx, tp=tp, tutor=tutor, ueg=ueg) if _feedback_ready(r) and r.get("sg")]
-    if not records:
-        raise HTTPException(status_code=404, detail="Keine Feedbacks für diesen Touchpoint")
-    uegs = sorted({r["ueg"] for r in records})
-    owner = (tutor or ctx.label) if ctx.is_master else ctx.label
-
-    def _build() -> bytes:
-        buffer = io.BytesIO()
-        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
-            for record in records:
-                folder = f"{record.get('ueg')}/" if len(uegs) > 1 else ""
-                name = f"{folder}KI-Feedback_{record.get('code') or record['briefing_id'][:8]}.docx"
-                archive.writestr(name, render_feedback_docx(record, rubric=rubric))
-        return buffer.getvalue()
-
-    _log_download(ctx, tp=tp, kind="feedback", scope="bundle", code="+".join(uegs))
-    payload = await asyncio.to_thread(_build)
-    label = uegs[0] if len(uegs) == 1 else owner
-    return Response(
-        content=payload,
-        media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="KI-Feedback_TP{tp}_{label}.zip"'},
-    )
-
-
 @router.get("", response_model=list[BriefingPublic])
 async def list_briefings(
     tp: int | None = Query(default=None, ge=1, le=5),
@@ -898,24 +849,6 @@ async def list_briefings(
 @router.get("/{briefing_id}", response_model=BriefingPublic)
 async def get_briefing(briefing_id: str, ctx: TeacherContext = Depends(teacher_context)):
     return _public(_record_or_404(briefing_id, ctx))
-
-
-@router.get("/{briefing_id}/feedback/docx")
-async def download_feedback(briefing_id: str, ctx: TeacherContext = Depends(teacher_context)):
-    """Feedback-DOCX EINER Stammgruppe."""
-    record = _record_or_404(briefing_id, ctx)
-    if not _feedback_ready(record):
-        raise HTTPException(status_code=404, detail="Für diese Abgabe liegt kein Feedback vor")
-    tp = int(record.get("target_tp", 0) or 0)
-    rubric = _rubric_or_422(tp)
-    _log_download(ctx, tp=tp, kind="feedback", scope="single", code=record.get("code"), briefing_id=briefing_id)
-    payload = await asyncio.to_thread(render_feedback_docx, record, rubric=rubric)
-    label = record.get("code") or briefing_id[:8]
-    return Response(
-        content=payload,
-        media_type=DOCX_MEDIA_TYPE,
-        headers={"Content-Disposition": f'attachment; filename="KI-Feedback_{label}.docx"'},
-    )
 
 
 @router.get("/{briefing_id}/assessment")

@@ -1,0 +1,140 @@
+{
+  "meta": {
+    "course": "BWL A HS26",
+    "touchpoint": 3,
+    "version": "v1",
+    "date": "2026-08-28",
+    "exam_ref": [
+      "A3a",
+      "A3b"
+    ],
+    "learning_objectives": [
+      "3.4",
+      "3.5"
+    ],
+    "case": {
+      "document": "Case Study ON",
+      "chapter": "C",
+      "references": "Exhibit C1 (price comparison), Exhibit C2 (price test by segment), Exhibit C3 (channel profile), Section 4.3 (communication and positioning, Zendaya controversy), Section 4.4 (the question of coherence)."
+    }
+  },
+  "guardrails": [
+    "no_points_or_grades",
+    "no_model_solution",
+    "no_group_comparison",
+    "briefing_only_to_uegl",
+    "feedback_only_after_session",
+    "any_choice_admissible_judge_reasoning_only",
+    "swiss_standard_german_ss"
+  ],
+  "formal_checks": {
+    "slide2_max_chars": 1500,
+    "slide3_max_chars": 1650,
+    "chars_include_spaces": true,
+    "full_sentences_required": true,
+    "code_pattern": "TP3-UEG\\d{2}-SG[1-8]",
+    "filename_pattern": "TP3_UEG\\d{2}_SG[1-8]\\.pptx",
+    "submission_format": "pptx_3_slides_official_template",
+    "report_only_never_grade": true
+  },
+  "rubrics": {
+    "baustein1": {
+      "slide": 2,
+      "title": "Pricing decision",
+      "exam_ref": "A3a",
+      "criteria": [
+        {
+          "name": "Choice of target segment",
+          "ueberzeugend": "A segment from Exhibit C2 is chosen and the choice is justified with reference to the data (revenue share, responsiveness), not reflexively the largest one.",
+          "tragfaehig": "A segment is chosen, but the justification uses only one data point or remains general (largest segment, important customers).",
+          "ansatzweise": "No clear segment, or a choice without any reference to the data."
+        },
+        {
+          "name": "Derivation from the segment",
+          "ueberzeugend": "The pricing decision (raise, hold, lower) follows from the willingness to pay and price responsiveness of the chosen segment; all directions are defensible if they fit the segment's characteristics.",
+          "tragfaehig": "A direction is chosen, but it is partly derived from general rules (premium brands can raise prices) rather than from the segment data.",
+          "ansatzweise": "A pricing rule instead of a derivation; Exhibit C2 is not used."
+        },
+        {
+          "name": "Consequence for sales volume and margin",
+          "ueberzeugend": "It is set out concretely what happens to sales volume and margin (direction and order of magnitude), ideally with a contrast to an alternative segment (e.g. occasional buyers at minus 27 percent).",
+          "tragfaehig": "A consequence is named, but it is one-sided (only the margin rises) or lacks an order of magnitude.",
+          "ansatzweise": "No consequence for sales volume and margin."
+        }
+      ],
+      "typical_weaknesses": "Typical weaknesses: reflexively the largest segment (Lifestyle, 30 percent, but minus 14) without justification; a pricing rule instead of a derivation from the data; consequence only as the margin rises; side effects on other segments ignored."
+    },
+    "baustein2": {
+      "slide": 3,
+      "title": "Channel decision and coherence",
+      "exam_ref": "A3b",
+      "criteria": [
+        {
+          "name": "Channel decision",
+          "ueberzeugend": "A channel for the chosen segment is clearly chosen and justified with Exhibit C3 (contribution margin, control, data).",
+          "tragfaehig": "A channel is chosen, but the justification uses only the margin.",
+          "ansatzweise": "Use all channels, or no justified choice."
+        },
+        {
+          "name": "Weighing margin against brand control",
+          "ueberzeugend": "The trade-off is worked out as a weighing (what ON gives up in the channel not chosen: reach, advice, 60 percent of customers in retail), not as a list of pros and cons.",
+          "tragfaehig": "Pros and cons are listed; the actual weighing (what is sacrificed and why that is acceptable) remains implicit.",
+          "ansatzweise": "No weighing; the direct channel is treated as obviously superior."
+        },
+        {
+          "name": "Coherence judgement",
+          "ueberzeugend": "One point of fit and one point of remaining tension between channel, price and positioning are each named concretely (Section 4.4); anyone who finds no tension has not checked.",
+          "tragfaehig": "A judgement is present, but the tension is a minor detail or the judgement remains sweeping (fits together well).",
+          "ansatzweise": "No coherence judgement."
+        }
+      ],
+      "typical_weaknesses": "Typical weaknesses: direct channel as an automatic choice (at ON, margin and control point in the same direction, in the exam they do not, which is why the weighing is practised, not the rule); a judgement of harmony without tension; positioning axis (Section 4.3) overlooked."
+    }
+  },
+  "levels": [
+    "ueberzeugend",
+    "tragfaehig",
+    "ansatzweise"
+  ],
+  "outputs": {
+    "briefing": {
+      "audience": "uegl",
+      "timing": "wednesday_before_session",
+      "per_group_per_baustein": [
+        "kernposition_1_satz",
+        "tragende_argumente_max2",
+        "duenne_stellen_max2_als_rueckfrage_ansatz"
+      ],
+      "per_slot": [
+        "konsens_und_dissens_ueber_4_gruppen_als_spannungslinien_kandidaten"
+      ]
+    },
+    "feedback": {
+      "audience": "stammgruppe",
+      "timing": "after_session_only",
+      "per_baustein": [
+        "was_traegt",
+        "was_bleibt_duenn_mit_kriterienbezug",
+        "naechster_schritt"
+      ],
+      "closing": "feed_forward_tp4_und_klausur_aufgabe3"
+    }
+  },
+  "example_submissions": {
+    "ueberzeugend": {
+      "slide2": "We choose Performance Runners as our target segment. They account for 22 percent of revenue and, according to Exhibit C2, react to a price increase of 10 percent with a drop in sales volume of only minus 4 percent: their purchase decision depends on technology and performance, not on price. We decide to raise the prices of the performance line by around 10 percent (Cloudmonster from 179 to about 195 francs, which puts ON on a par with New Balance, Exhibit C1). Derivation: demand in this segment is almost inelastic, willingness to pay is covered by the technology anchor, and today's price does not capture it fully. Consequence: sales volume in the segment falls by around 4 percent, revenue rises by around 5 percent net, and the contribution margin per pair rises disproportionately because costs remain unchanged. We would deliberately not raise prices for occasional buyers (minus 27 percent) or in the Lifestyle segment (minus 14 percent): the increase therefore applies to the performance models, not across the entire range.",
+      "slide3": "We serve Performance Runners primarily through ON's own online channel. Justification from Exhibit C3: the highest contribution margin (82 francs per pair compared with 38 in specialist retail), full control over price and brand presentation, and full data access, which can be used for fit recommendations and product development. We take the trade-off seriously: with this choice, ON gives up reach and, above all, advice. In Europe, over 60 percent of customers buy in brick-and-mortar retail, and performance products in particular are explained through advice. We consider the exchange acceptable because the chosen segment is brand-savvy and needs less advice than beginners; specialist retail remains in place for breadth. Coherence: the price increase, a controlled channel and performance positioning support one another, and a premium price can be enforced in ON's own channel without discounting pressure. The tension that remains: the price increase in the direct channel intensifies the conflict with precisely those specialist retailers whose advice underpins ON's performance credibility. We do not resolve this tension; we name it as the price of our decision.",
+      "calibration_note": "Building block 1: segment choice justified with two data points, direction derived from responsiveness and willingness to pay, consequence with order of magnitude and contrast to alternative segments. Building block 2: channel choice with three C3 dimensions, a genuine weighing (what is sacrificed and why it is acceptable), fit and an honest remaining tension. Expected feedback: all criteria convincing; next step at most to make the calculation of sales volume times contribution margin explicit."
+    },
+    "tragfaehig": {
+      "slide2": "We choose the Lifestyle segment because, at 30 percent, it has the largest share of revenue and continues to grow strongly. As a premium brand, ON can raise prices here, because premium brands fundamentally have pricing latitude and customers buy ON because of its design and brand image. We therefore recommend a price increase of 10 percent on the Lifestyle line. This will raise the margin significantly, which will finance the expansion of ON's own stores. The price increase also underlines the exclusivity of the brand and fits the premium strategy. Overall, the decision strengthens ON's profitability and makes optimal use of the size of the most important segment.",
+      "slide3": "As our channel, we choose ON's own online shop, because that is where the margin is highest at around 60 percent and ON has full control over its brand presentation. Further advantages are the customer data and independence from retail. Disadvantages are the lower reach and the costs of the platform. Overall, the advantages clearly outweigh the disadvantages. On coherence: price, channel and positioning fit together well, because all three contribute to the premium brand. The price increase underlines exclusivity, the own channel protects the brand presentation, and the positioning as a high-quality brand is thereby strengthened overall. The concept is therefore coherent in itself.",
+      "calibration_note": "Building block 1: largest segment chosen reflexively, derivation via a pricing rule (premium brands can raise prices) instead of from the minus 14 percent responsiveness; consequence only that the margin rises, the effect on sales volume is missing. Building block 2: channel choice based only on margin, pros and cons as a list instead of a weighing, a judgement of harmony without tension. Expected feedback: holds in its decisiveness, thin on derivation, consequence, weighing and coherence; next step in each case: calculate with Exhibit C2, name one point where it does not add up."
+    },
+    "ansatzweise": {
+      "slide2": "We think that ON should keep its prices stable, because customers fundamentally dislike price increases and could switch to the competition. The running shoe market is highly competitive, and Nike and Adidas are large competitors with lower prices. If ON raises its prices, it will lose customers, and if it lowers its prices, its premium image will suffer. That is why it is best to leave prices as they are. This way ON stays competitive and customers stay satisfied. Good marketing is also important so that customers understand the value of the products.",
+      "slide3": "ON should use all channels in order to reach as many customers as possible: its own online shop, its own stores, specialist retail, large chains and the platforms. Each channel has its strengths and reaches different customers. The online shop brings high margins, specialist retail offers advice, and the platforms have a large reach. With a broad channel strategy, ON maximises revenue and is not dependent on a single channel. This also fits well with the company's growth strategy.",
+      "calibration_note": "Building block 1: no segment choice, derivation from an everyday rule instead of from Exhibit C2, no consideration of consequences. Building block 2: all channels is not a decision, no weighing, no coherence judgement. Expected feedback: smallest next step for each building block: choose a segment from C2 and use its two figures; choose a channel and name what this choice costs."
+    }
+  }
+}

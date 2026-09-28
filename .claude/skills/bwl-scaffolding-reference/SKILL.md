@@ -379,13 +379,13 @@ So hängt Tool und Kurs zusammen (Klärung der Ownerin, Stand 2026-07-09):
    Rubrics `backend/config/ki_rubrics/ki_rubrics_tp{1..5}.json`):
    (a) das **KI-Briefing** für die ÜGL (vor dem Termin; je Baustein
    Kernposition, ≤2 tragende Argumente, ≤2 dünne Stellen als
-   Rückfrage-Ansatz, Einschätzung in Prosa) und (b) das **KI-Feedback** an
-   die Stammgruppe (erst NACH dem Termin freigegeben; je Baustein was trägt /
-   was bleibt dünn mit Kriterienbezug / nächster Schritt, Abschluss
-   Feed-forward auf nächsten TP und Klausur). Die Niveau-Einstufung je
+   Rückfrage-Ansatz, Einschätzung in Prosa). Das früher zusätzlich erzeugte
+   (b) **KI-Feedback** an die Stammgruppe wurde am 2026-09-28 entfernt
+   (Owner-Entscheidung: gebraucht wird nur das Briefing, das Feedback an die
+   Gruppe gibt die ÜGL selbst). Die Niveau-Einstufung je
    Kriterium (ueberzeugend/tragfaehig/ansatzweise) wird nur INTERN
-   gespeichert (Master-Endpoint) — nie im Briefing, nie im Feedback.
-   Leitplanken beider Produkte: keine Punkte/Noten/Stufen, keine
+   gespeichert (Master-Endpoint) — nie im Briefing.
+   Leitplanken: keine Punkte/Noten/Stufen, keine
    Musterlösung, kein Gruppenvergleich, Schweizer ss. Die Gruppen-Aggregate
    des Dashboards (`/dashboard/groups`) speisen sich weiterhin NUR aus den
    Individual-Submissions; die `group_work*`-Felder bleiben leer.
@@ -426,11 +426,10 @@ Noten.
   AI-generierten FIKTIVEN Mini-Cases. Würde ein generierter Case ON Running
   referenzieren oder imitieren, würde das Tool die Kurs-Gruppenarbeit
   vorwegnehmen. **Ausnahme (seit 2026-09-02, Owner-Entscheidung):** Die
-  TUTOR-Pipeline der KI-Briefings/-Feedbacks (§6) arbeitet ausdrücklich AUF
+  TUTOR-Pipeline der KI-Briefings (§6) arbeitet ausdrücklich AUF
   dem ON-Case — der Case-Text liegt dafür in
   `backend/config/ki_rubrics/case/kapitel_{a..e}.md` und geht nur in
-  Judge-Prompts, deren Output ausschliesslich Tutor:innen sehen (Briefing)
-  bzw. die ÜGL nach dem Termin an die Stammgruppen weitergibt (Feedback).
+  Judge-Prompts, deren Output ausschliesslich Tutor:innen sehen (Briefing).
   Der Validator-Bann gilt unverändert für alle generierten Cases.
 - **NORDIC HOME** = der geheime Klausur-Case. Jede Referenz wäre
   Prüfungskompromittierung.
@@ -475,8 +474,8 @@ erwähnt werden, nie als Inhalt.
 | Case-Pool | Freigegebene Mini-Cases in `backend/cases/pool/` (Status draft→approved→retired, `backend/models/case.py`). |
 | Golden Case | `alpes-bank-genai-001`: der eine approved Full-Case, Referenz für Tests und Alignment (§5). |
 | Glossar-Chips | Klickbare Fachbegriffe im Case-Reader; kommen aus `case.glossary` (Case-Paket); der Frontend-Hardcode `CASE_GLOSSARY` hat pro case_id Vorrang (nur Alpes). |
-| ON Running / NORDIC HOME | Kurs-Case / Klausur-Case — für generierte Cases reserviert (§7); ON ist seit 2026-09-02 die Arbeitsgrundlage der Tutor-Pipeline (Briefings/Feedback, §6). NORDIC HOME bleibt absolut tabu. |
-| KI-Briefing / KI-Feedback | Die zwei punktfreien Tutor-Produkte je Stammgruppen-Abgabe (§6): Briefing vor dem Termin an die ÜGL, Feedback nach dem Termin an die Stammgruppe. Code: `backend/briefings/`. |
+| ON Running / NORDIC HOME | Kurs-Case / Klausur-Case — für generierte Cases reserviert (§7); ON ist seit 2026-09-02 die Arbeitsgrundlage der Tutor-Pipeline (Briefings, §6). NORDIC HOME bleibt absolut tabu. |
+| KI-Briefing | Das punktfreie Tutor-Produkt je Stammgruppen-Abgabe (§6): Briefing vor dem Termin an die ÜGL. Das separate KI-Feedback an die Stammgruppe wurde 2026-09-28 entfernt. Code: `backend/briefings/`. |
 | Stammgruppe (SG) / Übungsgruppe (UEG) | 5er-Gruppe SG1–SG8 innerhalb einer Übungsgruppe UEGxx (55 Übungsgruppen); Kenndaten-Code `TPn-UEGxx-SGy`. Tutor-Kennung = Übungsgruppe. |
 | Teacher-Alignment-Studie | Blind-Review-Vergleich Judge vs. Lehrkraft (64 Frage-Zeilen, 16 Submissions); Basis der Kalibrierungsanker. Details → toadapt-judge-alignment-campaign. |
 | SGMM | St.Galler Management-Modell — erlaubtes Denkwerkzeug in `allowed_frameworks` (Umwelt-Organisation-Spannungsfeld); als Name in Case-Texten unkritisch, taucht aber studierendensichtbar im Tool nicht auf. |

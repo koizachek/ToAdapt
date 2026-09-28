@@ -17,6 +17,12 @@ Aufruf (vom Repo-Root, OPENROUTER_API_KEY in der Umgebung):
     .venv/bin/python scripts/calibrate_briefings.py --tp 1
     .venv/bin/python scripts/calibrate_briefings.py --all --out report.json
     .venv/bin/python scripts/calibrate_briefings.py --tp 1 --dry-run   # nur Prompts zeigen
+    .venv/bin/python scripts/calibrate_briefings.py --all --language en   # englische Beispielabgaben
+    .venv/bin/python scripts/calibrate_briefings.py --all --language both
+
+Mit ``--language en`` laufen die englischen Beispielabgaben
+(``backend/config/ki_rubrics/en/``) durch den englischen Prompt; zusätzlich
+wird geprüft, dass die Spracherkennung sie als englisch erkennt.
 """
 
 from __future__ import annotations
@@ -36,16 +42,16 @@ load_dotenv()
 
 from backend.briefings.extraction import ExtractedSubmission, Kenndaten, count_chars  # noqa: E402
 from backend.briefings.generator import (  # noqa: E402
-    FeedbackGenerator,
-    build_feedback_system_prompt,
+    BriefingGenerator,
     build_system_prompt,
     build_user_prompt,
 )
+from backend.briefings.i18n import detect_language  # noqa: E402
 from backend.briefings.rubrics import SUPPORTED_TPS, load_rubric  # noqa: E402
 
 
-def _example_submission(tp: int, level: str) -> ExtractedSubmission:
-    rubric = load_rubric(tp)
+def _example_submission(tp: int, level: str, language: str = "de") -> ExtractedSubmission:
+    rubric = load_rubric(tp, language)
     ex = rubric.examples[level]
     sub = ExtractedSubmission(
         filename=f"TP{tp}_UEG00_SG0_{level}.pptx",
@@ -60,22 +66,23 @@ def _example_submission(tp: int, level: str) -> ExtractedSubmission:
     return sub
 
 
-async def run_tp(tp: int, generator: FeedbackGenerator | None, dry_run: bool, with_feedback: bool = False) -> dict:
-    rubric = load_rubric(tp)
-    report: dict = {"tp": tp, "levels": {}}
+async def run_tp(tp: int, generator: BriefingGenerator | None, dry_run: bool, language: str = "de") -> dict:
+    rubric = load_rubric(tp, language)
+    report: dict = {"tp": tp, "language": language, "levels": {}}
     if dry_run:
-        print(f"=== TP{tp} SYSTEM PROMPT ({len(build_system_prompt(rubric))} Zeichen) ===")
-        print(build_system_prompt(rubric)[:1500] + "\n…")
-        if with_feedback:
-            print(f"=== TP{tp} FEEDBACK SYSTEM PROMPT ({len(build_feedback_system_prompt(rubric))} Zeichen) ===")
+        print(f"=== TP{tp} [{language}] SYSTEM PROMPT ({len(build_system_prompt(rubric, language))} Zeichen) ===")
+        print(build_system_prompt(rubric, language)[:1500] + "\n…")
     for level in rubric.levels:
-        sub = _example_submission(tp, level)
+        sub = _example_submission(tp, level, language)
+        detected = detect_language(f"{sub.baustein1}\n{sub.baustein2}")
         if dry_run:
             print(f"--- TP{tp} · {level} · USER PROMPT ---")
             print(build_user_prompt(rubric, sub)[:600] + "\n…")
             continue
         assert generator is not None
-        result = await generator.generate(briefing_id=f"calib-tp{tp}-{level}", rubric=rubric, sub=sub)
+        result = await generator.generate(
+            briefing_id=f"calib-tp{tp}-{language}-{level}", rubric=rubric, sub=sub, language=language,
+        )
         levels = {
             key: [k["niveau"] for k in result["assessment"].get(key, {}).get("kriterien", [])]
             for key in ("baustein1", "baustein2")
@@ -88,25 +95,18 @@ async def run_tp(tp: int, generator: FeedbackGenerator | None, dry_run: bool, wi
             "needs_human_review": result["needs_human_review"],
             "criteria_levels": levels,
             "match_share": round(matched / total, 2) if total else None,
+            "detected_language": detected,
             "briefing": result["briefing"],
         }
         print(
-            f"TP{tp} · erwartet {level:12s} · Treffer {matched}/{total} · "
+            f"TP{tp} [{language}, erkannt {detected}] · erwartet {level:12s} · Treffer {matched}/{total} · "
             f"status={result['evaluation_status']} · guardrails={result['guardrail_hits'] or '-'}"
         )
         for key in ("baustein1", "baustein2"):
             print(f"   {key}: {result['briefing'][key]['kernposition']}")
-        if with_feedback:
-            fb = await generator.generate_feedback(
-                briefing_id=f"calib-fb-tp{tp}-{level}", rubric=rubric, sub=sub, assessment=result["assessment"]
-            )
-            report["levels"][level]["feedback"] = fb["feedback"]
-            report["levels"][level]["feedback_status"] = fb["feedback_status"]
-            report["levels"][level]["feedback_guardrail_hits"] = fb["feedback_guardrail_hits"]
-            print(f"   feedback: status={fb['feedback_status']} guardrails={fb['feedback_guardrail_hits'] or '-'}")
-            for key in ("baustein1", "baustein2"):
-                print(f"     {key} · nächster Schritt: {fb['feedback'][key]['naechster_schritt']}")
-            print(f"     Ausblick: {fb['feedback']['feed_forward']}")
+            print(f"      nächster Schritt: {result['briefing'][key].get('naechster_schritt', '')}")
+            for thin in result["briefing"][key].get("duenne_stellen", []):
+                print(f"      dünn: {thin}")
     return report
 
 
@@ -116,7 +116,8 @@ async def main() -> int:
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--dry-run", action="store_true", help="Nur Prompts zeigen, kein LLM-Call")
     parser.add_argument("--out", type=Path, help="JSON-Report schreiben")
-    parser.add_argument("--feedback", action="store_true", help="Zusätzlich das KI-Feedback (Produkt 2) erzeugen")
+    parser.add_argument("--language", choices=["de", "en", "both"], default="de",
+                        help="Sprache der Beispielabgaben und des Briefings (Standard de)")
     args = parser.parse_args()
     if not args.tp and not args.all:
         parser.error("--tp N oder --all angeben")
@@ -128,9 +129,10 @@ async def main() -> int:
         if not api_key:
             print("OPENROUTER_API_KEY fehlt (oder --dry-run verwenden)", file=sys.stderr)
             return 2
-        generator = FeedbackGenerator(api_key=api_key)
+        generator = BriefingGenerator(api_key=api_key)
 
-    reports = [await run_tp(tp, generator, args.dry_run, with_feedback=args.feedback) for tp in tps]
+    languages = ["de", "en"] if args.language == "both" else [args.language]
+    reports = [await run_tp(tp, generator, args.dry_run, lang) for lang in languages for tp in tps]
     if args.out and not args.dry_run:
         args.out.write_text(json.dumps(reports, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"Report: {args.out}")

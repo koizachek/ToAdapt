@@ -1,0 +1,140 @@
+{
+  "meta": {
+    "course": "BWL A HS26",
+    "touchpoint": 4,
+    "version": "v1",
+    "date": "2026-08-28",
+    "exam_ref": [
+      "A4a",
+      "A4b"
+    ],
+    "learning_objectives": [
+      "4.3",
+      "4.4"
+    ],
+    "case": {
+      "document": "Case Study ON",
+      "chapter": "D",
+      "references": "Exhibit D1 (supply chain overview: footwear external, Vietnam 65 per cent, six suppliers, one logistics hub per region), Exhibit D2 (cost structure per shoe), Exhibit D4 (4.1 million orders, 22 per cent returns, 61 per cent fit, 24 francs per return), Sections 5.1 and 5.2."
+    }
+  },
+  "guardrails": [
+    "no_points_or_grades",
+    "no_model_solution",
+    "no_group_comparison",
+    "briefing_only_to_uegl",
+    "feedback_only_after_session",
+    "any_choice_admissible_judge_reasoning_only",
+    "swiss_standard_german_ss"
+  ],
+  "formal_checks": {
+    "slide2_max_chars": 1500,
+    "slide3_max_chars": 1650,
+    "chars_include_spaces": true,
+    "full_sentences_required": true,
+    "code_pattern": "TP4-UEG\\d{2}-SG[1-8]",
+    "filename_pattern": "TP4_UEG\\d{2}_SG[1-8]\\.pptx",
+    "submission_format": "pptx_3_slides_official_template",
+    "report_only_never_grade": true
+  },
+  "rubrics": {
+    "baustein1": {
+      "slide": 2,
+      "title": "Make or buy",
+      "exam_ref": "A4a",
+      "criteria": [
+        {
+          "name": "Clarity of the decision",
+          "ueberzeugend": "A clear decision (own fulfilment centre or external partners) has been made.",
+          "tragfaehig": "A tendency is recognisable but is not committed to.",
+          "ansatzweise": "No decision, only pros and cons."
+        },
+        {
+          "name": "Weighing",
+          "ueberzeugend": "Cost, control and dependency are weighed against each other; the economic part calculates with the case figures (Exhibit D4: around 22 million francs of return costs per year) instead of estimating; the other side is taken seriously, no straw man.",
+          "tragfaehig": "The three categories appear, but nothing is calculated (asset-light as doctrine or an own warehouse as gut feeling), or the argument is made on cost alone.",
+          "ansatzweise": "Neither figures nor categories; pure assertion."
+        },
+        {
+          "name": "Strategic positioning",
+          "ueberzeugend": "The decision is measured against the group's own strategy from Touchpoint 2; a contradiction with it is reflected on rather than passed over.",
+          "tragfaehig": "The positioning is mentioned but remains superficial.",
+          "ansatzweise": "No link to the strategic decision."
+        }
+      ],
+      "typical_weaknesses": "Typical weaknesses: doctrine without calculation (asset-light is our principle); cost arguments only, although control affects the brand experience in the direct channel; the returns calculation (4.1 million times 22 per cent times 24 francs) not done; no link to Touchpoint 2."
+    },
+    "baustein2": {
+      "slide": 3,
+      "title": "Supply chain and dependency",
+      "exam_ref": "A4b",
+      "criteria": [
+        {
+          "name": "Risk prioritisation and sourcing decision",
+          "ueberzeugend": "The biggest supply chain risk is prioritised (with reasons why this one and not the adjacent dependency in Exhibit D1), and a clear sourcing decision against it has been made.",
+          "tragfaehig": "A risk is chosen, but the prioritisation against alternatives remains unjustified, or the measure remains vague (diversification).",
+          "ansatzweise": "Risks are listed instead of prioritised; no decision."
+        },
+        {
+          "name": "Weighing",
+          "ueberzeugend": "The safeguard is weighed along cost, security of supply and dependency, with reference to Exhibit D1 (not from general procurement rules); the EU supply chain regulation from 2027 is taken into account where relevant.",
+          "tragfaehig": "The weighing uses only one dimension or merely mentions the regulation without integrating it.",
+          "ansatzweise": "No weighing."
+        },
+        {
+          "name": "Price of the safeguard and positioning",
+          "ueberzeugend": "It is stated what the safeguard costs (money and complexity) and whether it fits the asset-light model; consciously bearing a risk is also admissible if justified.",
+          "tragfaehig": "The safeguard is recommended, but its price is not stated.",
+          "ansatzweise": "Neither price nor positioning."
+        }
+      ],
+      "typical_weaknesses": "Typical weaknesses: listing instead of prioritising; safeguard without a price; concentration (65 per cent Vietnam, one hub per region) read only as a risk or only as efficiency, without the price of the other reading."
+    }
+  },
+  "levels": [
+    "ueberzeugend",
+    "tragfaehig",
+    "ansatzweise"
+  ],
+  "outputs": {
+    "briefing": {
+      "audience": "uegl",
+      "timing": "wednesday_before_session",
+      "per_group_per_baustein": [
+        "kernposition_1_satz",
+        "tragende_argumente_max2",
+        "duenne_stellen_max2_als_rueckfrage_ansatz"
+      ],
+      "per_slot": [
+        "konsens_und_dissens_ueber_4_gruppen_als_spannungslinien_kandidaten"
+      ]
+    },
+    "feedback": {
+      "audience": "stammgruppe",
+      "timing": "after_session_only",
+      "per_baustein": [
+        "was_traegt",
+        "was_bleibt_duenn_mit_kriterienbezug",
+        "naechster_schritt"
+      ],
+      "closing": "feed_forward_tp5_und_klausur_aufgabe4"
+    }
+  },
+  "example_submissions": {
+    "ueberzeugend": {
+      "slide2": "We decide to stay with external fulfilment. First the calculation: 4.1 million online orders times a 22 per cent return rate times 24 francs gives around 22 million francs of return costs per year (Exhibit D4). That is a lot, but it is not an argument for insourcing: 61 per cent of returns are fit-related, so the bigger lever lies in avoiding them (data-based size recommendations) rather than in handling the same returns more expensively in our own warehouse. Weighing: on cost, building up the fixed costs of an own centre speaks against insourcing, precisely because volumes fluctuate seasonally. We take control seriously, because delivery time and packaging are part of the brand experience in the direct channel; here we rely on stricter service levels in the contract instead of running it ourselves. The dependency on one logistics partner per region remains, and we address it in building block 2. Strategic positioning: our strategy from Touchpoint 2 (Premium Fortress) would actually call for more control; we nevertheless consider outsourcing justifiable, because capital tied up in brand and product creates more advantage than in running a warehouse.",
+      "slide3": "The biggest supply chain risk is the concentration of footwear production: 65 per cent runs through Vietnam, spread across a few of the six suppliers (Exhibit D1). We prioritise this risk over the logistics hubs because a production outage lasts months and a hub outage weeks, and because footwear carries 80 per cent of revenue. Our sourcing decision: expand capacity in Indonesia from 35 to around 45 per cent and build contractually secured second sources for the two highest-revenue model families. Weighing: security of supply rises markedly and the dependency on one country falls; at the same time the dual-source structure helps with the traceability that the EU supply chain regulation requires from 2027, because audits are set up twice anyway. The price: duplicate tooling and quality assurance, estimated at a low single-digit million amount per year, plus more coordination effort, and part of the economies of scale in Vietnam is lost. This fits the asset-light model, because production remains outsourced and only the contract structure becomes denser. We consciously bear the residual risk of a regional disruption in South-East Asia; relocating to Europe would not be competitive for running shoes.",
+      "calibration_note": "Building block 1: clear decision, calculated instead of estimated (22 million), all three categories genuinely weighed, contradiction with the group's own strategy reflected on. Building block 2: risk prioritised with reasons against the alternative, concrete measure, regulation integrated, price stated, residual risk consciously borne. Expected feedback: convincing throughout; next step at most to make the cost estimate more robust."
+    },
+    "tragfaehig": {
+      "slide2": "We recommend staying with external fulfilment, because asset-light is ON's basic principle and has proven itself. ON built its business model on external partners from the start and could only grow so fast that way. An own fulfilment centre would be very expensive and would require high investments that ON would do better to put into marketing and product development. In addition, logistics partners are specialists who can do this better. The return rate of 22 per cent is high, but that is normal in online retail. Control over delivery is admittedly an argument for an own warehouse, but overall the cost advantages of outsourcing clearly outweigh it. The decision also fits the strategy, because ON should concentrate on its strengths.",
+      "slide3": "ON's supply chain has several risks. First, the concentration of production in Vietnam, second, the high return costs, third, the new EU supply chain regulation from 2027 and fourth, possible transport problems between the regions. These risks can considerably impair the business. We therefore recommend diversifying the supply chain so that ON is not too dependent on individual countries and partners. In addition, ON should maintain close relationships with its suppliers and implement the new regulatory requirements early. This makes the supply chain more resilient overall, and ON is better prepared for crises. This is also compatible with the asset-light model.",
+      "calibration_note": "Building block 1: decision present, but doctrine without calculation (return costs not quantified, although Exhibit D4 provides everything); control dismissed as a side note; positioning superficial. Building block 2: four risks listed instead of one prioritised; diversification without a concrete decision and without a price; regulation only mentioned. Expected feedback: holds on clarity and overview of risks, thin on calculation, prioritisation and the price of the safeguard."
+    },
+    "ansatzweise": {
+      "slide2": "We think ON should build its own warehouse, because then the company has more control over deliveries and is more independent of external partners. In addition, ON can then handle returns itself and does not have to pay external service providers. An own warehouse is expensive at first, but in the long run it will surely pay off, because running costs fall. Many large companies such as Amazon also have their own warehouses and are successful with them. That is why an own fulfilment centre is the best solution for ON.",
+      "slide3": "ON's supply chain has risks because production is far away in Asia. If something happens there, for example a natural disaster or political problems, ON will no longer get any shoes. ON should minimise these risks by maintaining good partnerships with suppliers and always holding enough stock. Good communication with everyone involved is also important so that problems are recognised early. That way ON can avoid supply problems and deliver to customers reliably.",
+      "calibration_note": "Building block 1: decision without figures, 'in the long run it will surely pay off' replaces the calculation; Amazon comparison instead of case reference; no positioning. Building block 2: risk named but neither prioritised nor decided; measures generic, holding stock contradicts the asset-light model unnoticed. Expected feedback: smallest next step: do the one calculation from Exhibit D4; choose one risk and formulate one measure with a price tag."
+    }
+  }
+}

@@ -1,4 +1,4 @@
-"""DOCX-Renderer für KI-Briefings und KI-Feedback.
+"""DOCX-Renderer für KI-Briefings.
 
 Layout-Basis ist die Briefing-Vorlage der Kursleitung ("BWL A_Briefing
 TPn.docx", HSG-Briefvorlage): ``backend/config/ki_rubrics/briefing_template.docx``
@@ -8,14 +8,17 @@ die Fusszeile "Touchpoint n | BWL A HS2026 | Seite" bleiben, der Inhalt und
 das schwere Titelbild wurden entfernt. Fehlt die Vorlage, fällt der Renderer
 auf ein neutrales Dokument zurück.
 
-Produkt 1 (Briefing, an die ÜGL): ein Dokument je Übungsgruppe mit einem
+Briefing (an die ÜGL): ein Dokument je Übungsgruppe mit einem
 nummerierten Abschnitt je Stammgruppe — Kenndaten, formale Vorprüfung
 (gemeldet, nicht bewertet), je Baustein Kernposition, tragende Argumente,
-dünne Stellen als Rückfrage-Ansatz und die Einschätzung in Prosa. Keine
+dünne Stellen mit Kriterienbezug als Rückfrage-Ansatz, die Einschätzung in
+Prosa und der nächste Schritt; oben einmal der Ausblick des Touchpoints. Keine
 Punkte, keine Stufen, keine interne Kriterien-Einstufung.
 
-Produkt 2 (Feedback, an die Stammgruppe): ein Dokument je Stammgruppe — je
-Baustein was trägt / was bleibt dünn / nächster Schritt, Abschluss Ausblick.
+Sprache (seit 2026-09-28): Jeder Stammgruppen-Abschnitt steht in der Sprache
+der Abgabe (``record["language"]``, Baustein-Titel aus der Rubric dieser
+Sprache). Kopf, Einleitung und Ausblick sind deutsch, ausser alle Abschnitte
+des Dokuments sind englisch. Feste Texte: ``backend/briefings/i18n.py``.
 """
 
 from __future__ import annotations
@@ -28,23 +31,18 @@ from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt, RGBColor
 
-from backend.briefings.rubrics import KI_RUBRICS_DIR, BRIEFING_SCHEDULE, BriefingRubric
+from backend.briefings.i18n import DOC_LABELS, FEED_FORWARD_EN, format_date_long, normalize_language, translate_note
+from backend.briefings.rubrics import BRIEFING_SCHEDULE, FEED_FORWARD, KI_RUBRICS_DIR, BriefingRubric, load_rubric
 
 TEMPLATE_PATH: Path = KI_RUBRICS_DIR / "briefing_template.docx"
 _GREY = RGBColor(0x59, 0x59, 0x59)
 
-_MONTHS_DE = [
-    "Januar", "Februar", "März", "April", "Mai", "Juni",
-    "Juli", "August", "September", "Oktober", "November", "Dezember",
-]
 
 
-def _fmt_date(value: date | None) -> str:
-    return value.strftime("%d.%m.%Y") if value else "–"
-
-
-def _fmt_date_long(value: date) -> str:
-    return f"{value.day}. {_MONTHS_DE[value.month - 1]} {value.year}"
+def _fmt_date(value: date | None, language: str = "de") -> str:
+    if not value:
+        return "–"
+    return value.strftime("%d/%m/%Y") if language == "en" else value.strftime("%d.%m.%Y")
 
 
 def _new_document():
@@ -92,24 +90,30 @@ def _bullets(doc, items: list[str], empty_text: str) -> None:
         doc.add_paragraph(str(item), style=style) if style else doc.add_paragraph(f"– {item}")
 
 
-def _set_footer_touchpoint(doc, tp: int) -> None:
-    """Fusszeile der Vorlage: erste Zelle trägt 'Touchpoint 1' → aktueller TP."""
+def _set_footer(doc, tp: int, language: str) -> None:
+    """Fusszeile der Vorlage: erste Zelle trägt 'Touchpoint 1' → aktueller TP;
+    bei englischem Kopf wird 'Seite' zu 'Page'."""
+    page_de, page = DOC_LABELS["de"]["page"], DOC_LABELS[language]["page"]
     for section in doc.sections:
         for footer in (section.footer, section.first_page_footer, section.even_page_footer):
             try:
                 tables = footer.tables
+                paragraphs = list(footer.paragraphs)
             except Exception:
                 continue
             for table in tables:
                 for row in table.rows:
                     for cell in row.cells:
-                        for p in cell.paragraphs:
-                            for run in p.runs:
-                                if run.text.strip().lower().startswith("touchpoint"):
-                                    run.text = f"Touchpoint {tp}"
+                        paragraphs.extend(cell.paragraphs)
+            for p in paragraphs:
+                for run in p.runs:
+                    if run.text.strip().lower().startswith("touchpoint"):
+                        run.text = f"Touchpoint {tp}"
+                    elif language != "de" and page_de in run.text:
+                        run.text = run.text.replace(page_de, page)
 
 
-def _title_block(doc, *, kicker: str, title: str, subtitle: str, meta: str) -> None:
+def _title_block(doc, *, kicker: str, title: str, subtitle: str, meta: str, language: str) -> None:
     """Titelblock im Stil der Vorlage: Kicker (Title), Titel (Subtitle),
     Untertitel + Kurs-/Case-Zeile (Normal), 'St.Gallen, <Datum>'."""
     _para(doc, kicker, style=_style(doc, "Title"))
@@ -117,34 +121,47 @@ def _title_block(doc, *, kicker: str, title: str, subtitle: str, meta: str) -> N
     _para(doc, subtitle)
     _para(doc, meta, grey=True, size=9.5)
     today = datetime.now(timezone.utc).date()
-    _para(doc, f"St.Gallen, {_fmt_date_long(today)}", style=_style(doc, "Verfasser Ort Datum"))
+    _para(
+        doc,
+        DOC_LABELS[language]["place_date"].format(date=format_date_long(today.day, today.month, today.year, language)),
+        style=_style(doc, "Verfasser Ort Datum"),
+    )
 
 
 # ---------------------------------------------------------------------------
-# Produkt 1: KI-Briefing (ÜGL)
+# KI-Briefing (ÜGL)
 # ---------------------------------------------------------------------------
 
-def _formal_table(doc, formal: dict, rubric: BriefingRubric) -> None:
+def _number(value: int, language: str) -> str:
+    # Tausender: deutsch mit Apostroph (Schweiz), englisch mit Komma
+    return f"{value:,}".replace(",", "'") if language == "de" else f"{value:,}"
+
+
+def _formal_table(doc, formal: dict, rubric: BriefingRubric, language: str) -> None:
+    L = DOC_LABELS[language]
     rows: list[tuple[str, str]] = []
-    for key, label in (("baustein1", "Folie 2 (Baustein 1)"), ("baustein2", "Folie 3 (Baustein 2)")):
+    for key, n, slide in (("baustein1", 1, 2), ("baustein2", 2, 3)):
         chars = int(formal.get(f"{key}_chars", 0) or 0)
         limit = int(formal.get(f"{key}_max", rubric.max_chars(key)) or 0)
-        status = "innerhalb der Grenze" if chars <= limit else f"über der Grenze (+{chars - limit})"
-        rows.append((label, f"{chars:,} von {limit:,} Zeichen · {status}".replace(",", "'")))
+        status = L["within"] if chars <= limit else L["over"].format(n=chars - limit)
+        rows.append((
+            L["slide_row"].format(slide=slide, n=n),
+            L["chars"].format(chars=_number(chars, language), limit=_number(limit, language), status=status),
+        ))
     code = formal.get("code") or ""
     if code:
         parts = code.split("-")
-        label = f"Touchpoint {parts[0][2:]} · Übungsgruppe {parts[1][3:]} · Stammgruppe {parts[2][2:]}" if len(parts) == 3 else code
+        label = L["group_code"].format(tp=parts[0][2:], ueg=parts[1][3:], sg=parts[2][2:]) if len(parts) == 3 else code
         if not formal.get("code_matches_tp", True):
-            label += " · Touchpoint auf dem Deckblatt weicht ab"
+            label += L["tp_mismatch"]
     else:
-        label = "auf dem Deckblatt nicht erkennbar — bitte nachtragen"
-    rows.append(("Gruppe", label))
-    rows.append(("Dateiname", str(formal.get("filename", ""))))
+        label = L["code_missing"]
+    rows.append((L["row_group"], label))
+    rows.append((L["row_filename"], str(formal.get("filename", ""))))
     fmt = str(formal.get("format", "")).upper()
-    rows.append(("Format", fmt + (" · offizielle Vorlage" if formal.get("template_detected") else "")))
+    rows.append((L["row_format"], fmt + (L["official_template"] if formal.get("template_detected") else "")))
     if formal.get("full_sentences_hint"):
-        rows.append(("Satzform", str(formal["full_sentences_hint"])))
+        rows.append((L["row_sentences"], translate_note(str(formal["full_sentences_hint"]), language)))
 
     table = doc.add_table(rows=0, cols=2)
     table.style = _style(doc, "Table Grid") or table.style
@@ -155,69 +172,84 @@ def _formal_table(doc, formal: dict, rubric: BriefingRubric) -> None:
         for paragraph in cells[0].paragraphs + cells[1].paragraphs:
             for run in paragraph.runs:
                 run.font.size = Pt(9)
-    notes = [str(n) for n in formal.get("notes", []) if str(n).strip()]
+    notes = [translate_note(str(n), language) for n in formal.get("notes", []) if str(n).strip()]
     if notes:
         _para(doc, " ".join(notes), italic=True, size=9)
 
 
+def _record_language(record: dict) -> str:
+    return normalize_language(record.get("language"))
+
+
+def _rubric_for(rubric: BriefingRubric, language: str) -> BriefingRubric:
+    """Rubric derselben Touchpoint-Version in der Sprache des Abschnitts."""
+    if language == "de":
+        return rubric
+    try:
+        return load_rubric(rubric.tp, language)
+    except ValueError:  # pragma: no cover - englische Fassung fehlt → deutsche Titel
+        return rubric
+
+
 def _render_group(doc, record: dict, rubric: BriefingRubric) -> None:
+    language = _record_language(record)
+    L = DOC_LABELS[language]
+    rubric = _rubric_for(rubric, language)
     sg = record.get("sg")
     code = record.get("code") or record.get("filename", "")
-    title = f"Stammgruppe SG{sg}" if sg else "Stammgruppe (nicht zugeordnet)"
+    title = L["group"].format(sg=sg) if sg else L["group_unassigned"]
     _heading(doc, f"{title} · {code}", 2)
 
     if record.get("status") == "extraction_failed":
-        _para(
-            doc,
-            "Die Datei konnte nicht gelesen werden — bitte die Abgabe direkt öffnen. "
-            + str(record.get("review_reason") or ""),
-            italic=True,
-        )
+        _para(doc, L["extraction_failed"] + translate_note(str(record.get("review_reason") or ""), language), italic=True)
         return
 
     if record.get("status") == "rejected":
-        _para(doc, "Abgelehnt — kein Briefing: " + str(record.get("reject_reason") or ""), italic=True)
+        _para(doc, L["rejected"] + str(record.get("reject_reason") or ""), italic=True)
         return
 
     if record.get("injection_suspected"):
-        p = _para(doc, "Achtung: Die Gruppe hat versucht, eine Prompt-Injection einzugeben.")
+        p = _para(doc, L["injection"])
         for run in p.runs:
             run.bold = True
         for excerpt in record.get("injection_findings", []) or []:
-            _para(doc, f"Gefundener Text: „{excerpt}“", size=9, grey=True)
+            _para(doc, L["injection_found"].format(excerpt=translate_note(str(excerpt), language)), size=9, grey=True)
 
     if record.get("needs_human_review"):
-        reason = record.get("review_reason") or "Automatische Verdichtung mit Vorbehalt."
-        _para(doc, f"Hinweis: {reason}", italic=True, size=9, grey=True)
+        reason = translate_note(str(record.get("review_reason") or ""), language) or L["review_default"]
+        _para(doc, L["review"].format(reason=reason), italic=True, size=9, grey=True)
 
-    _heading(doc, "Formale Vorprüfung (gemeldet, nicht bewertet)", 3)
-    _formal_table(doc, record.get("formal", {}) or {}, rubric)
+    _heading(doc, L["formal_heading"], 3)
+    _formal_table(doc, record.get("formal", {}) or {}, rubric, language)
 
     briefing = record.get("briefing", {}) or {}
     for b in rubric.bausteine:
         data = briefing.get(b.key, {}) or {}
-        _heading(doc, f"Baustein {b.key[-1]} · {b.title} (Folie {b.slide}, Klausur {b.exam_ref})", 3)
-        _para(doc, str(data.get("kernposition", "")), bold_label="Kernposition:")
-        _para(doc, "", bold_label="Tragende Argumente:")
-        _bullets(doc, list(data.get("tragende_argumente", []) or []), "Keine tragenden Argumente identifiziert.")
-        _para(doc, "", bold_label="Dünne Stellen (Ansatz für Rückfragen):")
-        _bullets(doc, list(data.get("duenne_stellen", []) or []), "Keine dünnen Stellen identifiziert.")
-        _para(doc, str(data.get("einschaetzung", "")), bold_label="Einschätzung:")
+        _heading(doc, L["baustein_heading"].format(n=b.key[-1], title=b.title, slide=b.slide, exam=b.exam_ref), 3)
+        _para(doc, str(data.get("kernposition", "")), bold_label=L["kernposition"])
+        _para(doc, "", bold_label=L["argumente"])
+        _bullets(doc, list(data.get("tragende_argumente", []) or []), L["argumente_none"])
+        _para(doc, "", bold_label=L["duenn"])
+        _bullets(doc, list(data.get("duenne_stellen", []) or []), L["duenn_none"])
+        _para(doc, str(data.get("einschaetzung", "")), bold_label=L["einschaetzung"])
+        if data.get("naechster_schritt"):   # Alt-Datensätze vor 2026-09-28 ohne dieses Feld
+            _para(doc, str(data["naechster_schritt"]), bold_label=L["naechster_schritt"])
 
     questions = briefing.get("rueckfragen", {}) or {}
     strengths = list(questions.get("zu_staerken", []) or [])
     weaknesses = list(questions.get("zu_schwaechen", []) or [])
     if strengths or weaknesses:
-        _heading(doc, "Beispiel-Rückfragen an die Gruppe", 3)
-        _para(
-            doc,
-            "Vorschläge für das Gespräch — welche Fragen Sie stellen, bleibt Ihre didaktische Entscheidung.",
-            italic=True, size=9, grey=True,
-        )
-        _para(doc, "", bold_label="An die Stärken anknüpfen:")
-        _bullets(doc, strengths, "Keine Vorschläge.")
-        _para(doc, "", bold_label="Dünne Stellen aufdecken:")
-        _bullets(doc, weaknesses, "Keine Vorschläge.")
+        _heading(doc, L["questions_heading"], 3)
+        _para(doc, L["questions_intro"], italic=True, size=9, grey=True)
+        _para(doc, "", bold_label=L["questions_strengths"])
+        _bullets(doc, strengths, L["questions_none"])
+        _para(doc, "", bold_label=L["questions_weaknesses"])
+        _bullets(doc, weaknesses, L["questions_none"])
+
+
+def document_language(records: list[dict]) -> str:
+    """Kopfsprache: englisch nur, wenn ALLE Abschnitte englisch sind."""
+    return "en" if records and all(_record_language(r) == "en" for r in records) else "de"
 
 
 def render_briefing_docx(
@@ -227,101 +259,46 @@ def render_briefing_docx(
     ueg: str,
 ) -> bytes:
     """Rendert ein DOCX für eine Übungsgruppe (alle vorhandenen Stammgruppen)
-    oder — bei genau einem Datensatz — für eine einzelne Stammgruppe."""
+    oder — bei genau einem Datensatz — für eine einzelne Stammgruppe.
+    ``rubric`` ist die deutsche Rubric des Touchpoints; englische Abschnitte
+    laden die englische Fassung selbst."""
+    language = document_language(records)
+    L = DOC_LABELS[language]
+    head_rubric = _rubric_for(rubric, language)
     doc = _new_document()
-    _set_footer_touchpoint(doc, rubric.tp)
+    _set_footer(doc, rubric.tp, language)
     schedule = BRIEFING_SCHEDULE.get(rubric.tp, {})
     single = len(records) == 1
-    bausteine = " · ".join(b.title for b in rubric.bausteine)
+    bausteine = " · ".join(b.title for b in head_rubric.bausteine)
 
-    title = f"Touchpoint {rubric.tp} · Übungsgruppe {ueg or 'ohne Zuordnung'}"
+    title = L["title"].format(tp=rubric.tp, ueg=ueg or L["no_ueg"])
     if single and records[0].get("sg"):
-        title += f" · Stammgruppe SG{records[0]['sg']}"
+        title += L["title_sg"].format(sg=records[0]["sg"])
     _title_block(
         doc,
-        kicker="KI-Briefing",
+        kicker=L["kicker"],
         title=title,
         subtitle=bausteine,
-        meta=(
-            f"BWL A Assessment-Jahr HS26 · Running Case ON, Kapitel {rubric.case_chapter} · "
-            f"Abgabe {_fmt_date(schedule.get('abgabe'))} · Termin {_fmt_date(schedule.get('termin'))} · "
-            f"Klausurbezug {', '.join(rubric.exam_ref)} · Rubric {rubric.version} vom {rubric.date}"
+        meta=L["meta"].format(
+            chapter=rubric.case_chapter,
+            abgabe=_fmt_date(schedule.get("abgabe"), language),
+            termin=_fmt_date(schedule.get("termin"), language),
+            exam=", ".join(rubric.exam_ref),
+            version=rubric.version,
+            date=rubric.date,
         ),
+        language=language,
     )
 
-    _para(
-        doc,
-        "Nur für die Übungsgruppenleitung. Dieses Briefing verdichtet jede Abgabe entlang der "
-        "Bausteine des Arbeitsauftrags: Kernposition, tragende Argumente, dünne Stellen. Es enthält "
-        "keine Punkte, keine Stufen und keine Musterlösung — jede Wahl ist zulässig, beurteilt wird "
-        "nur, ob die Begründung trägt. Die Wahl der Spannungslinie und der Rückfragen bleibt Ihre "
-        "didaktische Entscheidung. Das Feedback an die Stammgruppen ist ein eigenes Dokument.",
-        italic=True, size=9.5,
-    )
+    _para(doc, L["intro"], italic=True, size=9.5)
+    outlook = (FEED_FORWARD_EN if language == "en" else FEED_FORWARD).get(rubric.tp)
+    if outlook:
+        _para(doc, outlook, bold_label=L["outlook"], size=9.5)
     ordered = sorted(records, key=lambda r: (r.get("sg") is None, int(r.get("sg") or 99), str(r.get("filename", ""))))
     for record in ordered:
         _render_group(doc, record, rubric)
 
-    footer = _para(doc, "Automatisch erstellt durch ToAdapt · KI-Pipeline BWL A HS26", size=8, grey=True)
-    footer.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-
-    buffer = io.BytesIO()
-    doc.save(buffer)
-    return buffer.getvalue()
-
-
-# ---------------------------------------------------------------------------
-# Produkt 2: KI-Feedback an die Stammgruppe (ein Dokument je Stammgruppe)
-# ---------------------------------------------------------------------------
-
-def render_feedback_docx(record: dict, *, rubric: BriefingRubric) -> bytes:
-    """Rückmeldung an EINE Stammgruppe: je Baustein was trägt / was bleibt dünn /
-    nächster Schritt, Abschluss Ausblick. Keine Punkte, keine Stufen, keine
-    formale Vorprüfung, keine interne Einstufung — nur die Rückmeldung selbst."""
-    doc = _new_document()
-    _set_footer_touchpoint(doc, rubric.tp)
-    schedule = BRIEFING_SCHEDULE.get(rubric.tp, {})
-    sg = record.get("sg")
-    code = record.get("code") or record.get("filename", "")
-
-    title = f"Touchpoint {rubric.tp}"
-    if sg:
-        title += f" · Stammgruppe SG{sg}"
-    _title_block(
-        doc,
-        kicker="Rückmeldung",
-        title=title,
-        subtitle=" · ".join(b.title for b in rubric.bausteine),
-        meta=(
-            f"BWL A Assessment-Jahr HS26 · Running Case ON, Kapitel {rubric.case_chapter} · Abgabe {code} · "
-            f"Termin {_fmt_date(schedule.get('termin'))} · Klausurbezug {', '.join(rubric.exam_ref)}"
-        ),
-    )
-    _para(
-        doc,
-        "Diese Rückmeldung bezieht sich ausschliesslich auf Ihr eigenes Ergebnis und folgt denselben "
-        "Kriterien, die im Bewertungsraster der Klausur für die entsprechende Teilaufgabe gelten. Sie "
-        "enthält keine Punkte und keine Musterlösung: Jede Wahl ist zulässig; es geht nur darum, wo "
-        "Ihre Begründung trägt und wo sie dünn bleibt.",
-        italic=True, size=9.5,
-    )
-
-    feedback = record.get("feedback", {}) or {}
-    for b in rubric.bausteine:
-        data = feedback.get(b.key, {}) or {}
-        _heading(doc, f"Baustein {b.key[-1]} · {b.title} (Folie {b.slide}, Klausur {b.exam_ref})", 2)
-        _para(doc, str(data.get("was_traegt", "")), bold_label="Was trägt:")
-        _para(doc, str(data.get("was_bleibt_duenn", "")), bold_label="Was bleibt dünn:")
-        _para(doc, str(data.get("naechster_schritt", "")), bold_label="Nächster Schritt:")
-
-    _heading(doc, "Ausblick", 2)
-    _para(doc, str(feedback.get("feed_forward", "")))
-
-    footer = _para(
-        doc,
-        "Automatisch erstellt durch ToAdapt · KI-Pipeline BWL A HS26 · weitergegeben durch Ihre Übungsgruppenleitung",
-        size=8, grey=True,
-    )
+    footer = _para(doc, L["footer"], size=8, grey=True)
     footer.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
     buffer = io.BytesIO()

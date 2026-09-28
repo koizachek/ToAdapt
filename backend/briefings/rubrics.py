@@ -1,4 +1,4 @@
-"""Rubric-Config der KI-Pipeline je Touchpoint (Briefing + Feedback).
+"""Rubric-Config der KI-Pipeline je Touchpoint (Briefing).
 
 Quelle: ``backend/config/ki_rubrics/ki_rubrics_tp{n}.json`` — die von der
 Kursleitung gelieferten Rubrics (BWL A HS26, KI_Paket vom 2026-08-28) mit
@@ -11,6 +11,11 @@ den Rubric-Referenzen: Kapitel A = Abschnitt 2, B = 3, C = 4, D = 5, E = 6)
 und die Vorlagentexte der offiziellen Abgabevorlagen
 (``template_texts.json``), damit die Extraktion Vorlagentext von
 Studierendentext trennen kann.
+
+Englische Fassungen (Owner-Entscheidung 2026-09-28, Briefing in der Sprache
+der Abgabe): ``ki_rubrics/en/ki_rubrics_tp{n}.json`` (gleiche Struktur,
+übersetzte Texte) und ``ki_rubrics/case/en/kapitel_*.md``. ``load_rubric``
+und ``case_context_for_tp`` nehmen die Sprache als Parameter.
 
 Diese Config ist ausschliesslich tutor-/pipeline-seitig — nichts davon ist
 studierendensichtbar. Der Reserved-Term-Check in ``backend/cases/validator.py``
@@ -30,6 +35,7 @@ from pydantic import BaseModel, Field
 
 KI_RUBRICS_DIR = Path(__file__).resolve().parent.parent / "config" / "ki_rubrics"
 CASE_DIR = KI_RUBRICS_DIR / "case"
+EN_DIR_NAME = "en"
 
 SUPPORTED_TPS: tuple[int, ...] = (1, 2, 3, 4, 5)
 
@@ -51,9 +57,10 @@ BRIEFING_SCHEDULE: dict[int, dict[str, date]] = {
     5: {"abgabe": date(2026, 12, 15), "termin": date(2026, 12, 18)},
 }
 
-# Feed-forward-Sätze je Touchpoint (KI_Paket, Abschnitt "Formale Vorprüfung /
-# Feed-forward") — Anker für den Schlussabsatz des KI-Feedbacks. TP5 ohne die
-# Punktangabe der Klausur (Leitplanke no_points_or_grades gilt auch dort).
+# Ausblick je Touchpoint (KI_Paket, Abschnitt "Formale Vorprüfung /
+# Feed-forward"): wofür die geübte Denkoperation später gebraucht wird. Steht
+# einmal oben im Briefing-Dokument (für alle Stammgruppen gleich). TP5 ohne
+# die Punktangabe der Klausur (Leitplanke no_points_or_grades).
 FEED_FORWARD: dict[int, str] = {
     1: "In Touchpoint 2 wird auf dieser Analyse entschieden; in der Klausur ist dies Aufgabe 1 am unbekannten Fall.",
     2: "In Touchpoint 3 wird der Marktzugang an der heutigen Strategie gemessen; in der Klausur ist dies Aufgabe 2 am unbekannten Fall.",
@@ -134,16 +141,18 @@ class BriefingRubric(BaseModel):
         return re.compile(self.formal_checks.filename_pattern, re.IGNORECASE)
 
 
-def _rubric_path(tp: int) -> Path:
-    return KI_RUBRICS_DIR / f"ki_rubrics_tp{tp}.json"
+def _rubric_path(tp: int, language: str = "de") -> Path:
+    base = KI_RUBRICS_DIR / EN_DIR_NAME if language == "en" else KI_RUBRICS_DIR
+    return base / f"ki_rubrics_tp{tp}.json"
 
 
-@lru_cache(maxsize=8)
-def load_rubric(tp: int) -> BriefingRubric:
-    """Lädt die Rubric eines Touchpoints; ValueError bei unbekanntem TP."""
+@lru_cache(maxsize=16)
+def load_rubric(tp: int, language: str = "de") -> BriefingRubric:
+    """Lädt die Rubric eines Touchpoints in der Sprache ``de`` oder ``en``;
+    ValueError bei unbekanntem TP oder fehlender Datei."""
     if tp not in SUPPORTED_TPS:
         raise ValueError(f"Ungültiger Touchpoint: {tp} (erlaubt: 1–5)")
-    path = _rubric_path(tp)
+    path = _rubric_path(tp, language)
     if not path.exists():
         raise ValueError(f"Rubric-Datei fehlt: {path.name}")
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -184,9 +193,10 @@ def load_rubric(tp: int) -> BriefingRubric:
     )
 
 
-@lru_cache(maxsize=8)
-def load_case_chapter(letter: str) -> str:
-    path = CASE_DIR / f"kapitel_{letter.lower()}.md"
+@lru_cache(maxsize=16)
+def load_case_chapter(letter: str, language: str = "de") -> str:
+    base = CASE_DIR / EN_DIR_NAME if language == "en" else CASE_DIR
+    path = base / f"kapitel_{letter.lower()}.md"
     return path.read_text(encoding="utf-8") if path.exists() else ""
 
 
@@ -200,17 +210,18 @@ def _extract_section(chapter_text: str, number: str) -> str:
     return rest[: (match.end() - match.start()) + nxt.start()] if nxt else rest
 
 
-@lru_cache(maxsize=8)
-def case_context_for_tp(tp: int) -> str:
+@lru_cache(maxsize=16)
+def case_context_for_tp(tp: int, language: str = "de") -> str:
     """Case-Text für den Judge: das TP-Kapitel plus referenzierte Zusatzstellen."""
     letter = TP_CHAPTER.get(tp)
     if not letter:
         return ""
-    parts = [load_case_chapter(letter).strip()]
+    parts = [load_case_chapter(letter, language).strip()]
+    label = "Reference section from Chapter" if language == "en" else "Referenzstelle aus Kapitel"
     for extra_letter, number in TP_EXTRA_SECTIONS.get(tp, []):
-        section = _extract_section(load_case_chapter(extra_letter), number).strip()
+        section = _extract_section(load_case_chapter(extra_letter, language), number).strip()
         if section:
-            parts.append(f"(Referenzstelle aus Kapitel {extra_letter.upper()})\n\n{section}")
+            parts.append(f"({label} {extra_letter.upper()})\n\n{section}")
     return "\n\n".join(p for p in parts if p)
 
 

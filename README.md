@@ -50,7 +50,7 @@ Dozent → POST /admin/cases/generate  (Branche, Land, TP-Ziel)
 | `POST /admin/cases/{id}/approve` | Case freigeben |
 | `GET /dashboard/overview` | Kursübersicht |
 | `GET /dashboard/student/{matrikel}` | Einzelstudent |
-| `POST /briefings/upload` | Upload je Übungsgruppenleiter: ZIP mit Einreichungen → Briefing + Feedback je Datei (Touchpoint vom Deckblatt) |
+| `POST /briefings/upload` | Upload je Übungsgruppenleiter: ZIP mit Einreichungen → Briefing je Datei (Touchpoint vom Deckblatt) |
 | `GET /briefings?tp=&tutor=` | Briefings (eigene Uploads; Master alle, `tutor` filtert) |
 | `GET /briefings/overview?tp=` | Je Übungsgruppe: vorhandene Stammgruppen |
 | `GET /briefings/monitoring` | Master: je Konto Uploads/Downloads je Touchpoint, Prüffälle, Kontostatus |
@@ -61,8 +61,6 @@ Dozent → POST /admin/cases/generate  (Branche, Land, TP-Ziel)
 | `GET /briefings/batches`, `/batches/{id}` | Status der eigenen Upload-Batches (Master: alle) |
 | `POST /auth/tutor/login`, `/set-password`, `/reset-request` | Login der Übungsgruppenleiter (vom Frontend-Server aufgerufen) |
 | `POST /auth/tutor/{account}/reset-code`, `GET /auth/tutor/accounts` | Master: Einmalcode erzeugen, Kontostatus |
-| `GET /briefings/{id}/feedback/docx` | KI-Feedback einer Stammgruppe (DOCX) |
-| `GET /briefings/feedback/zip?tp=&ueg=&tutor=` | ZIP mit einem Feedback-DOCX je Stammgruppe |
 
 ## Tech Stack
 
@@ -159,7 +157,7 @@ In der Pilotphase ist ausschliesslich die Tutorenansicht freigeschaltet. Studier
 Case-Ansicht, Case-Generator (Admin) und das Individual-Dashboard bleiben im Code, werden aber
 nicht angezeigt. Rollen (Owner-Entscheidung 2026-09-13): **26 Übungsgruppenleiter** mit festen
 Konten `UEGL01`–`UEGL26` laden jeweils eine ZIP-Datei mit den Einreichungen ihrer Gruppen hoch,
-sehen nur ihre eigenen Uploads und laden Briefings und Feedbacks herunter. Der **Master**
+sehen nur ihre eigenen Uploads und laden die Briefings herunter. Der **Master**
 (Login mit `TEACHER_ARCHIVE_CODE` in beiden Feldern) darf dasselbe und sieht zusätzlich das
 Monitoring (wer hat wann was hoch- und heruntergeladen, Passwort-Anfragen). Schalter: Frontend
 `NEXT_PUBLIC_PILOT_TUTOR_ONLY` (Standard AN; `0` schaltet die Studierenden frei), Backend
@@ -188,11 +186,20 @@ offiziellen Vorlage (Deckblatt-Code `TPn-UEGxx-SGy`), ersatzweise DOCX oder PDF.
 kein Touchpoint-Feld — Touchpoint, Übungsgruppe und Stammgruppe kommen vom Deckblatt); je Datei
 entsteht ein Briefing nach dem KI-Paket der Kursleitung: je Baustein Kernposition (ein Satz),
 tragende Argumente (max. 2), dünne Stellen als Rückfrage-Ansatz (max. 2) und eine Einschätzung
-in Prosa, dazu das Feedback an die Stammgruppe und die formale Vorprüfung (Zeichengrenzen je
+in Prosa und der nächste Schritt (Grundlage für das Feedback der ÜGL); die dünnen Stellen nennen
+das betroffene Kriterium; oben im Dokument einmal der Ausblick des Touchpoints; dazu die formale Vorprüfung (Zeichengrenzen je
 Folie, Code, Dateiname — gemeldet, nie bewertet). Die Niveau-Einstufung je Kriterium wird intern
 gespeichert und ist nur für den Master sichtbar. Keine Punkte, keine Musterlösung, kein
 Gruppenvergleich; Leitplanken werden nach dem LLM-Call regelbasiert nachgeprüft
 (`backend/briefings/guardrails.py`).
+
+Sprache (Owner-Entscheidung 2026-09-28): Die Sprache der Abgabe bestimmt die Sprache des
+Briefings dieser Stammgruppe — englische Abgabe → englisches Briefing, deutsche Abgabe → deutsches
+(Erkennung und feste Texte: `backend/briefings/i18n.py`, Feld `language` am Datensatz). Im
+Sammeldokument steht jede Stammgruppe in ihrer Sprache; Kopf und Einleitung sind deutsch, ausser
+alle Stammgruppen haben englisch abgegeben. Englische Fassungen von Rubrics und ON-Case:
+`backend/config/ki_rubrics/en/` und `backend/config/ki_rubrics/case/en/` (übersetzt 2026-09-28).
+Kalibrierung beider Sprachen: `scripts/calibrate_briefings.py --all --language both`.
 
 - Code: `backend/briefings/` (Extraktion, Rubrics, Generator, DOCX-Renderer, Routen),
   Store `backend/db/briefing_store.py` (Mongo `briefings`, Datei-Fallback `backend/db/briefings/`),
@@ -219,11 +226,11 @@ Gruppenvergleich; Leitplanken werden nach dem LLM-Call regelbasiert nachgeprüft
   roten Warnhinweis. `PATCH /briefings/{id}` korrigiert Touchpoint/Übungsgruppe/Stammgruppe
   ausgewerteter Datensätze.
 - Downloads: `GET /briefings/docx?tp=` (ein DOCX je Übungsgruppe, bei mehreren ein ZIP; `ueg=`
-  wählt eine aus), `GET /briefings/feedback/zip?tp=` (ein Feedback-DOCX je Stammgruppe), plus
-  Einzeldokumente je Datensatz. Feedback ist sofort verfügbar (keine Terminsperre mehr).
+  wählt eine aus), plus Einzeldokumente je Datensatz. Ein separates KI-Feedback-Dokument an die
+  Stammgruppen gibt es nicht mehr (Owner-Entscheidung 2026-09-28) — das Feedback gibt die ÜGL.
   Jeder Download wird protokolliert (Konto, Zeitpunkt, Touchpoint, Art).
 - Monitoring (nur Master): `GET /briefings/monitoring` — je Konto Uploads je Touchpoint mit
-  Gruppen und Status, letzter Upload, letzter Download je Art, offene Prüffälle, Kontostatus.
+  Gruppen und Status, letzter Upload, letzter Briefing-Download, offene Prüffälle, Kontostatus.
 - Kalibrierung (Pflicht vor Prompt-/Rubric-Änderungen): `python scripts/calibrate_briefings.py --all`
   schickt die drei Beispielabgaben je TP durch den Generator und vergleicht die Einstufung.
 - **Upload-Weg (Vercel-Limit):** Vercel begrenzt Request-Bodies von Route-Handlern auf 4,5 MB

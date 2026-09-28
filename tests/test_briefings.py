@@ -44,14 +44,13 @@ from backend.briefings.formal import formal_checks, full_sentences_hint
 from backend.briefings.generator import (
     BriefingGenerator,
     FALLBACK_TEXT,
-    FeedbackGenerator,
     NO_CONTENT_TEXT,
-    build_feedback_system_prompt,
-    build_feedback_user_prompt,
     build_system_prompt,
     build_user_prompt,
 )
+from backend.briefings.docx_render import render_briefing_docx
 from backend.briefings.rubrics import (
+    FEED_FORWARD,
     SUPPORTED_TPS,
     case_context_for_tp,
     load_rubric,
@@ -162,6 +161,7 @@ def _llm_payload(**overrides) -> str:
             "tragende_argumente": [f"{prefix} Argument A", f"{prefix} Argument B", "Drittes wird gekappt"],
             "duenne_stellen": [f"{prefix}: Woran macht die Gruppe fest, dass …?"],
             "einschaetzung": f"{prefix}: Die Auswahl trägt, die Kette bleibt beim Mechanismus dünn.",
+            "naechster_schritt": f"{prefix}: Die Gruppe formuliert den Mechanismus zwischen Ursache und Umsatzfolge aus.",
             "kriterien": [{"name": n, "niveau": "tragfaehig", "begruendung": "Weil."} for n in names],
         }
     rubric = load_rubric(1)
@@ -180,44 +180,21 @@ def _llm_payload(**overrides) -> str:
     return json.dumps(data, ensure_ascii=False)
 
 
-def _feedback_payload(**overrides) -> str:
-    def baustein(prefix: str):
-        return {
-            "was_traegt": f"{prefix}: Ihre Auswahl ist am Fall belegt und die Erwartung konkret benannt.",
-            "was_bleibt_duenn": f"{prefix}: Die Wirkungskette endet beim Umsatz; der Mechanismus davor fehlt.",
-            "naechster_schritt": f"{prefix}: Formulieren Sie den Mechanismus zwischen Ursache und Umsatzfolge aus.",
-        }
-    data = {
-        "baustein1": baustein("F1"),
-        "baustein2": baustein("F2"),
-        "feed_forward": "In Touchpoint 2 wird auf dieser Analyse entschieden; in der Klausur ist dies Aufgabe 1.",
-        "judge_confidence": "high",
-        "needs_human_review": False,
-        "review_reason": None,
-    }
-    data.update(overrides)
-    return json.dumps(data, ensure_ascii=False)
-
-
 ON_TOPIC = '{"on_topic": true, "tp": 1, "grund": "Bearbeitet den Auftrag am Fall ON."}'
 OFF_TOPIC = '{"on_topic": false, "tp": null, "grund": "Der Text handelt von einem Reisebericht, nicht von ON."}'
 
 
-def _mock_llm(monkeypatch, response_text: str, feedback_text: str | None = None, topic_text: str = ON_TOPIC):
-    """Antwortet auf den Briefing-Prompt mit response_text, auf den
-    Feedback-Prompt mit feedback_text und auf die Themenprüfung mit
-    topic_text (jeweils am System-Prompt erkennbar). Themenprüfungs-Aufrufe
-    werden mit kind="topic" markiert."""
+def _mock_llm(monkeypatch, response_text: str, topic_text: str = ON_TOPIC):
+    """Antwortet auf den Briefing-Prompt mit response_text und auf die
+    Themenprüfung mit topic_text (am System-Prompt erkennbar).
+    Themenprüfungs-Aufrufe werden mit kind="topic" markiert."""
     calls: list[dict] = []
-    feedback_text = feedback_text if feedback_text is not None else _feedback_payload()
 
     async def fake_complete(self, *, system, messages, max_tokens, cache_system=False):
-        kind = "topic" if "Du prüfst für den Kurs" in system else ("feedback" if "Rückmeldung auf ihre Abgabe" in system else "briefing")
+        kind = "topic" if "Du prüfst für den Kurs" in system else "briefing"
         calls.append({"system": system, "messages": messages, "cache_system": cache_system, "kind": kind})
         if kind == "topic":
             return topic_text
-        if kind == "feedback":
-            return feedback_text
         return response_text
 
     monkeypatch.setattr(OpenRouterClient, "complete", fake_complete)
@@ -645,7 +622,7 @@ def test_upload_by_tutor_visibility_by_uploader_docx_and_assessment(client, monk
     assert rows["UEGL02"]["upload_count"] == 1 and rows["UEGL02"]["last_download_at"] is None
     assert rows["UEGL03"]["upload_count"] == 0 and rows["UEGL03"]["password_set"] is False
     tp1 = next(t for t in rows["UEGL01"]["touchpoints"] if t["target_tp"] == 1)
-    assert tp1["last_download_briefing_at"] and tp1["last_download_feedback_at"] is None
+    assert tp1["last_download_briefing_at"] and "last_download_feedback_at" not in tp1
     assert sorted(g["code"] for g in tp1["groups"] if g["code"]) == ["TP1-UEG07-SG3", "TP1-UEG07-SG5"]
     # Master-Download für ein Konto taucht beim Master auf, nicht beim Konto
     assert rows["master"]["last_download_at"] is not None
@@ -698,7 +675,7 @@ def test_intake_topic_classifier_rejects_off_topic_and_flags_outage(client, monk
     rec = _upload(client, files).json()["briefings"][0]
     assert rec["status"] == "briefed" and rec["needs_human_review"] is True
     assert "Themenprüfung" in rec["review_reason"]
-    assert [c["kind"] for c in calls] == ["topic", "briefing", "feedback"]
+    assert [c["kind"] for c in calls] == ["topic", "briefing"]
 
 
 def test_intake_detects_prompt_injection_and_notes_it_in_briefing(client, monkeypatch):
@@ -796,7 +773,7 @@ def test_correction_of_evaluated_record(client, monkeypatch):
     assert "Touchpoint von 1 auf 2" in changed["review_reason"]
 
 
-def test_multiple_uegs_of_one_tutor_bundle_zip_and_feedback(client, monkeypatch):
+def test_multiple_uegs_of_one_tutor_bundle_zip(client, monkeypatch):
     _mock_llm(monkeypatch, _llm_payload())
     files = {
         "TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT),
@@ -814,15 +791,9 @@ def test_multiple_uegs_of_one_tutor_bundle_zip_and_feedback(client, monkeypatch)
     single = client.get("/briefings/docx?tp=1&ueg=UEG12", headers=me)
     assert single.status_code == 200 and single.headers["content-type"].startswith("application/vnd")
     assert client.get("/briefings/docx?tp=1&ueg=UEG09", headers=me).status_code == 404
-    # Feedback-ZIP über beide Übungsgruppen, nach Übungsgruppe in Ordnern
-    fb = client.get("/briefings/feedback/zip?tp=1", headers=me)
-    assert fb.status_code == 200
-    assert sorted(zipfile.ZipFile(io.BytesIO(fb.content)).namelist()) == [
-        "UEG07/KI-Feedback_TP1-UEG07-SG3.docx", "UEG12/KI-Feedback_TP1-UEG12-SG1.docx",
-    ]
     # Master lädt dieselben Dokumente über das Konto
-    assert client.get("/briefings/feedback/zip?tp=1&tutor=UEGL05", headers=_master_headers()).status_code == 200
-    assert client.get("/briefings/feedback/zip?tp=1", headers=_master_headers()).status_code == 422
+    assert client.get("/briefings/docx?tp=1&tutor=UEGL05", headers=_master_headers()).status_code == 200
+    assert client.get("/briefings/docx?tp=1", headers=_master_headers()).status_code == 422
 
 
 def test_reupload_same_group_latest_wins_per_tutor(client, monkeypatch):
@@ -928,79 +899,52 @@ def test_verify_upload_token_roundtrip(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Produkt 2: KI-Feedback (sofort verfügbar — keine Sperre)
+# Nur Briefing — kein separates KI-Feedback-Dokument (Owner-Entscheidung 2026-09-28)
 # ---------------------------------------------------------------------------
 
-async def test_feedback_generator_valid_and_guardrail(monkeypatch):
-    _mock_llm(monkeypatch, _llm_payload())
-    gen = FeedbackGenerator("k")
-    result = await gen.generate_feedback(briefing_id="f1", rubric=load_rubric(1), sub=_sub(), assessment=None)
-    assert result["feedback_status"] == "ok" and result["feedback_needs_human_review"] is False
-    assert result["feedback"]["baustein1"]["naechster_schritt"].startswith("F1")
-    assert result["feedback"]["feed_forward"].startswith("In Touchpoint 2")
-    # Guardrail: Musterlösung im Feedback → Platzhalter + Review
-    payload = json.loads(_feedback_payload())
-    payload["baustein2"]["naechster_schritt"] = "Die richtige Entscheidung wäre der Fachhandel gewesen."
-    _mock_llm(monkeypatch, _llm_payload(), json.dumps(payload, ensure_ascii=False))
-    result = await gen.generate_feedback(briefing_id="f2", rubric=load_rubric(1), sub=_sub(), assessment=None)
-    assert result["feedback_guardrail_hits"] == ["model_solution"]
-    assert result["feedback"]["baustein2"]["naechster_schritt"] == guardrails.GUARDRAIL_PLACEHOLDER
-    assert result["feedback_needs_human_review"] is True
-    # Garbage → technical_fallback mit Feed-forward-Anker
-    _mock_llm(monkeypatch, _llm_payload(), "kein json")
-    result = await gen.generate_feedback(briefing_id="f3", rubric=load_rubric(1), sub=_sub(), assessment=None)
-    assert result["feedback_status"] == "technical_fallback"
-    assert result["feedback"]["baustein1"]["was_traegt"] == FALLBACK_TEXT
-    assert "Touchpoint 2" in result["feedback"]["feed_forward"]
+def test_only_briefing_no_feedback_product(client, monkeypatch):
+    calls = _mock_llm(monkeypatch, _llm_payload())
+    files = {"TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT)}
+    rec = _upload(client, files).json()["briefings"][0]
+    assert [c["kind"] for c in calls] == ["topic", "briefing"]      # kein zweiter Modellaufruf
+    assert not any(k.startswith("feedback") for k in rec)
+    bid = rec["briefing_id"]
+    assert client.get(f"/briefings/{bid}/feedback/docx", headers=_tutor_headers("UEGL01")).status_code == 404
+    assert client.get("/briefings/feedback/zip?tp=1", headers=_tutor_headers("UEGL01")).status_code == 404
+    text = _docx_text(client.get(f"/briefings/{bid}/docx", headers=_tutor_headers("UEGL01")).content)
+    assert "Feedback" not in text
 
 
-def test_feedback_prompt_contains_anchor_and_assessment():
+async def test_briefing_next_step_criterion_and_outlook(client, monkeypatch):
+    """Übernommen aus dem entfernten Feedback: nächster Schritt je Baustein,
+    Kriterienbezug der dünnen Stellen, Ausblick einmal oben im Dokument."""
     rubric = load_rubric(1)
-    system = build_feedback_system_prompt(rubric)
-    assert build_feedback_system_prompt(rubric) == system
-    assert "Rückmeldung auf ihre Abgabe" in system and "Aufgabe 1" in system
-    assessment = {"baustein1": {"kriterien": [{"name": "Erläuterung", "niveau": "tragfaehig", "begruendung": "x"}]}}
-    user = build_feedback_user_prompt(rubric, _sub(), assessment)
-    assert "Erläuterung: tragfaehig" in user
-
-
-def test_feedback_downloads_immediately_available(client, monkeypatch):
+    system = build_system_prompt(rubric)
+    assert '"naechster_schritt"' in system and "beginnt mit dem betroffenen Kriterium" in system
+    # Generator: Feld wird übernommen und durch die Leitplanken geprüft
+    payload = json.loads(_llm_payload())
+    payload["baustein2"]["naechster_schritt"] = "Die richtige Entscheidung wäre der Fachhandel gewesen."
+    _mock_llm(monkeypatch, json.dumps(payload, ensure_ascii=False))
+    result = await BriefingGenerator("k").generate(briefing_id="n1", rubric=rubric, sub=_sub())
+    assert result["briefing"]["baustein1"]["naechster_schritt"].startswith("B1: Die Gruppe formuliert")
+    assert result["briefing"]["baustein2"]["naechster_schritt"] == guardrails.GUARDRAIL_PLACEHOLDER
+    assert "model_solution" in result["guardrail_hits"]
+    # DOCX: nächster Schritt je Baustein, Ausblick genau einmal
     _mock_llm(monkeypatch, _llm_payload())
     files = {
         "TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT),
         "TP1_UEG07_SG5.pptx": _template_pptx(1, code="TP1-UEG07-SG5", b1=B1_TEXT, b2=B2_TEXT),
     }
-    body = _upload(client, files).json()
-    rec = body["briefings"][0]
-    assert rec["feedback_status"] == "ok" and rec["feedback"]["baustein1"]["was_traegt"].startswith("F1")
-    assert "feedback_released" not in rec and "feedback_available_from" not in rec
-    bid = rec["briefing_id"]
-    mine = client.get("/briefings?tp=1", headers=_tutor_headers("UEGL01")).json()
-    assert all(b["feedback"]["feed_forward"] for b in mine)
-    single = client.get(f"/briefings/{bid}/feedback/docx", headers=_tutor_headers("UEGL01"))
-    assert single.status_code == 200 and "KI-Feedback_TP1-UEG07-SG3.docx" in single.headers["content-disposition"]
-    text = _docx_text(single.content)
-    assert "Stammgruppe SG3" in text and "Was trägt:" in text and "Nächster Schritt:" in text
-    assert "Ausblick" in text and "In Touchpoint 2" in text
-    lowered = text.lower()
-    assert "tragfaehig" not in lowered and "niveau" not in lowered and "punkte von" not in lowered
-    assert "Formale Vorprüfung" not in text and "Kernposition" not in text   # kein Briefing-Inhalt
-
-    bundle = client.get("/briefings/feedback/zip?tp=1", headers=_tutor_headers("UEGL01"))
-    assert bundle.status_code == 200 and bundle.headers["content-type"] == "application/zip"
-    names = sorted(zipfile.ZipFile(io.BytesIO(bundle.content)).namelist())
-    assert names == ["KI-Feedback_TP1-UEG07-SG3.docx", "KI-Feedback_TP1-UEG07-SG5.docx"]
-    assert client.get(f"/briefings/{bid}/feedback/docx", headers=_tutor_headers("UEGL02")).status_code == 404
-    assert client.get("/briefings/feedback/zip?tp=1", headers=_tutor_headers("UEGL02")).status_code == 404
-    assert client.get("/briefings/feedback/zip?tp=1", headers=_master_headers()).status_code == 422
-    assert client.get("/briefings/feedback/zip?tp=1&tutor=UEGL01", headers=_master_headers()).status_code == 200
-
-    # Download-Protokoll: Art und Umfang, keine Inhalte
-    events = download_log_module.download_log.load_all()
-    assert sorted((e["tutor"], e["kind"], e["scope"]) for e in events) == [
-        ("UEGL01", "feedback", "bundle"), ("UEGL01", "feedback", "single"), ("master", "feedback", "bundle"),
-    ]
-    assert all(set(e) <= {"download_id", "tutor", "target_tp", "kind", "scope", "code", "briefing_id", "at"} for e in events)
+    assert _upload(client, files).status_code in (200, 202)
+    text = _docx_text(client.get("/briefings/docx?tp=1", headers=_tutor_headers("UEGL01")).content)
+    assert text.count("Nächster Schritt:") == 4
+    assert text.count("Ausblick:") == 1 and FEED_FORWARD[1] in text
+    # Alt-Datensatz ohne naechster_schritt rendert ohne leere Zeile
+    old = {"sg": 1, "code": "TP1-UEG07-SG1", "status": "briefed",
+           "briefing": {k: {kk: vv for kk, vv in v.items() if kk != "naechster_schritt"}
+                        for k, v in result["briefing"].items() if k.startswith("baustein")}}
+    old_text = _docx_text(render_briefing_docx([old], rubric=rubric, ueg="UEG07"))
+    assert "Nächster Schritt:" not in old_text and "Kernposition:" in old_text
 
 
 def test_pilot_tutor_only_blocks_student_api_and_generator(client, monkeypatch):
@@ -1022,3 +966,123 @@ def test_store_file_fallback_roundtrip(monkeypatch, tmp_path):
     assert (tmp_path / "x1.json").exists()
     assert store.get("x1")["ueg"] == "UEG01"
     assert store.get("nope") is None
+
+
+# ---------------------------------------------------------------------------
+# Sprache der Abgabe = Sprache des Briefings (Owner-Entscheidung 2026-09-28)
+# ---------------------------------------------------------------------------
+
+B1_TEXT_EN = (
+    "The two most critical challenges are the channel conflict and the expiring patent "
+    "protection. The channel conflict is critical because direct-to-consumer sales drive the margins "
+    "but at the same time threaten the specialist retailers. Causal chain: the patent protection expires, "
+    "competitors offer comparable systems, and ON has to build the brand as a second pillar."
+)
+B2_TEXT_EN = (
+    "The stakeholder that restricts the room for manoeuvre most are the investors. "
+    "Their central expectation is profitable growth. The implication: ON cannot make distribution "
+    "scarcer without showing a credible growth path."
+)
+
+
+def test_detect_language():
+    from backend.briefings.i18n import detect_language
+
+    assert detect_language(f"{B1_TEXT}\n{B2_TEXT}") == "de"
+    assert detect_language(f"{B1_TEXT_EN}\n{B2_TEXT_EN}") == "en"
+    assert detect_language("") == "de"
+    assert detect_language("ON Exhibit A5 Premium Stakeholder") == "de"   # nur Fallbegriffe → Standard
+    for tp in SUPPORTED_TPS:
+        for level, ex in load_rubric(tp, "en").examples.items():
+            assert detect_language(f"{ex.slide2}\n{ex.slide3}") == "en", (tp, level)
+        for level, ex in load_rubric(tp).examples.items():
+            assert detect_language(f"{ex.slide2}\n{ex.slide3}") == "de", (tp, level)
+
+
+def test_english_rubrics_and_case_mirror_german():
+    for tp in SUPPORTED_TPS:
+        de, en = load_rubric(tp), load_rubric(tp, "en")
+        assert [b.key for b in de.bausteine] == [b.key for b in en.bausteine]
+        assert [len(b.criteria) for b in de.bausteine] == [len(b.criteria) for b in en.bausteine]
+        assert de.formal_checks == en.formal_checks and de.levels == en.levels
+        assert set(de.examples) == set(en.examples)
+        assert [b.title for b in de.bausteine] != [b.title for b in en.bausteine]
+        assert case_context_for_tp(tp, "en") and case_context_for_tp(tp, "en") != case_context_for_tp(tp)
+    assert "Reference section from Chapter A" in case_context_for_tp(2, "en")
+    assert "## 2.8" in case_context_for_tp(2, "en")
+    assert load_rubric(1, "en").baustein("baustein1").title == "Challenges and causal chain"
+
+
+def test_english_submission_gets_english_briefing(client, monkeypatch):
+    calls = _mock_llm(monkeypatch, _llm_payload())
+    files = {
+        "TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT),
+        "TP1_UEG07_SG5.pptx": _template_pptx(1, code="TP1-UEG07-SG5", b1=B1_TEXT_EN, b2=B2_TEXT_EN),
+    }
+    body = _upload(client, files).json()
+    by_sg = {b["sg"]: b for b in body["briefings"]}
+    assert by_sg[3]["language"] == "de" and by_sg[5]["language"] == "en"
+    assert by_sg[5]["status"] == "briefed"                     # Themenprüfung lässt englische Abgaben durch
+    systems = {c["messages"][0]["content"].split("\n")[0]: c["system"] for c in calls if c["kind"] == "briefing"}
+    en_system = systems["ABGABE TP1-UEG07-SG5"]
+    de_system = systems["ABGABE TP1-UEG07-SG3"]
+    assert "Schreibe ALLE Textfelder des JSON auf Englisch" in en_system
+    assert "Challenges and causal chain" in en_system and "What the figures do not show" in en_system
+    assert "Schweizer Standarddeutsch" in de_system and "Herausforderungen und Wirkungskette" in de_system
+
+    # Sammeldokument: Kopf deutsch, jede Stammgruppe in ihrer Sprache
+    mixed = _docx_text(client.get("/briefings/docx?tp=1", headers=_tutor_headers("UEGL01")).content)
+    assert "Übungsgruppe UEG07" in mixed and "Ausblick:" in mixed
+    assert "Stammgruppe SG3" in mixed and "Kernposition:" in mixed
+    assert "Home group SG5" in mixed and "Core position:" in mixed and "Next step:" in mixed
+    assert "Building block 1 · Challenges and causal chain (slide 2, exam A1a)" in mixed
+    assert "Formal pre-check (reported, not graded)" in mixed and "characters" in mixed
+
+    # Einzel-Download eines englischen Briefings: komplett englisch
+    single = _docx_text(client.get(f"/briefings/{by_sg[5]['briefing_id']}/docx", headers=_tutor_headers("UEGL01")).content)
+    assert "Tutorial group UEG07" in single and "AI briefing" in single and "Outlook:" in single
+    from backend.briefings.i18n import FEED_FORWARD_EN
+    assert FEED_FORWARD_EN[1] in single
+    for german in ("Übungsgruppe", "Stammgruppe", "Kernposition", "Ausblick", "Einschätzung", "Nur für die Übungsgruppenleitung"):
+        assert german not in single, german
+    # Einzel-Download eines deutschen Briefings bleibt deutsch
+    single_de = _docx_text(client.get(f"/briefings/{by_sg[3]['briefing_id']}/docx", headers=_tutor_headers("UEGL01")).content)
+    assert "Übungsgruppe UEG07" in single_de and "Home group" not in single_de
+
+
+async def test_english_guardrails_and_placeholders(monkeypatch):
+    from backend.briefings.i18n import FALLBACK_TEXT as FB
+    from backend.briefings.i18n import GUARDRAIL_PLACEHOLDER as GP
+
+    for text, label in [
+        ("The group earns 5 points for this.", "points"),
+        ("The right decision would have been specialist retail.", "model_solution"),
+        ("They should have chosen the investors.", "model_solution"),
+        ("Compared to the other groups the chain is thin.", "group_comparison"),
+        ("Level: convincing.", "scale"),
+    ]:
+        assert label in guardrails.check_briefing_text(text), text
+    for text in ("The argument holds and is sound.", "The group points to Exhibit A5.", "Two points from Section 2.5."):
+        assert guardrails.check_briefing_text(text) == [], text
+
+    rubric = load_rubric(1, "en")
+    payload = json.loads(_llm_payload())
+    payload["baustein2"]["einschaetzung"] = "The right decision would have been specialist retail."
+    _mock_llm(monkeypatch, json.dumps(payload, ensure_ascii=False))
+    sub = _sub(b1=B1_TEXT_EN, b2=B2_TEXT_EN)
+    result = await BriefingGenerator("k").generate(briefing_id="e1", rubric=rubric, sub=sub, language="en")
+    assert result["briefing"]["baustein2"]["einschaetzung"] == GP["en"]
+    assert result["review_reason"].startswith("The guardrail check withheld")
+    _mock_llm(monkeypatch, "kein json")
+    result = await BriefingGenerator("k").generate(briefing_id="e2", rubric=rubric, sub=sub, language="en")
+    assert result["evaluation_status"] == "technical_fallback"
+    assert result["briefing"]["baustein1"]["kernposition"] == FB["en"]
+
+
+def test_translate_note_for_english_sections():
+    from backend.briefings.i18n import translate_note
+
+    assert translate_note("Touchpoint 1 aus dem Inhalt bestimmt.", "en") == "Touchpoint 1 determined from the content."
+    assert translate_note("Nur 1 von 4 Absätzen enden mit Satzzeichen — Stichpunkt-Verdacht.", "en").startswith("Only 1 of 4")
+    assert translate_note("Touchpoint 1 aus dem Inhalt bestimmt.", "de") == "Touchpoint 1 aus dem Inhalt bestimmt."
+    assert translate_note("Unbekannter Text.", "en") == "Unbekannter Text."

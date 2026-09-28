@@ -1,0 +1,148 @@
+{
+  "meta": {
+    "course": "BWL A HS26",
+    "touchpoint": 5,
+    "version": "v1",
+    "date": "2026-08-28",
+    "exam_ref": [
+      "A5a",
+      "A5d"
+    ],
+    "learning_objectives": [
+      "5.1",
+      "5.2",
+      "5.4"
+    ],
+    "case": {
+      "document": "Case Study ON",
+      "chapter": "E",
+      "references": "Chapter E, Section 6.2 (How ON is changing), Section 6.3 (Letter from the CEO); the group's own submissions from Touchpoints 2 to 4 and the results from PBL 3 also form the basis. Note for the AI: the group's referenced prior decisions come from its earlier submissions; what is judged is the internal coherence of the present answer, never the quality of the prior decision."
+    }
+  },
+  "guardrails": [
+    "no_points_or_grades",
+    "no_model_solution",
+    "no_group_comparison",
+    "briefing_only_to_uegl",
+    "feedback_only_after_session",
+    "any_choice_admissible_judge_reasoning_only",
+    "swiss_standard_german_ss",
+    "judge_internal_coherence_never_quality_of_prior_decisions"
+  ],
+  "formal_checks": {
+    "slide2_max_chars": 1350,
+    "slide3_max_chars": 1350,
+    "chars_include_spaces": true,
+    "full_sentences_required": true,
+    "code_pattern": "TP5-UEG\\d{2}-SG[1-8]",
+    "filename_pattern": "TP5_UEG\\d{2}_SG[1-8]\\.pptx",
+    "submission_format": "pptx_3_slides_official_template",
+    "report_only_never_grade": true
+  },
+  "rubrics": {
+    "baustein1": {
+      "slide": 2,
+      "title": "Consistency and robustness",
+      "exam_ref": "A5a",
+      "criteria": [
+        {
+          "name": "Supporting point",
+          "ueberzeugend": "A point at which two of the group's own decisions support each other is shown as an interaction (one makes the other stronger), not as mere compatibility.",
+          "tragfaehig": "Two decisions are named as fitting together, but without the mechanism of the interaction.",
+          "ansatzweise": "No concrete point; a sweeping assertion of coherence."
+        },
+        {
+          "name": "Point of tension",
+          "ueberzeugend": "A genuine tension between the group's own decisions is shown concretely and not glossed over; whoever finds none has not checked.",
+          "tragfaehig": "A tension is named but treated as a minor matter or immediately played down.",
+          "ansatzweise": "No tension; everything is declared coherent."
+        },
+        {
+          "name": "Robustness judgement",
+          "ueberzeugend": "A reasoned, ideally differentiated judgement on whether the decisions together form a robust business model (robust under which assumption, for how long).",
+          "tragfaehig": "A judgement is present but unjustified (coherent overall).",
+          "ansatzweise": "No judgement."
+        },
+        {
+          "name": "Derived adjustment",
+          "ueberzeugend": "A concrete adjustment to establish coherence is developed so that it could be decided on.",
+          "tragfaehig": "An adjustment is called for rather than developed (improve communication).",
+          "ansatzweise": "No adjustment."
+        }
+      ],
+      "typical_weaknesses": "Typical weaknesses: harmony as an evasive manoeuvre; tension treated as a minor matter; adjustment as an appeal instead of a proposal for decision."
+    },
+    "baustein2": {
+      "slide": 3,
+      "title": "Revision and knock-on effects",
+      "exam_ref": "A5d",
+      "criteria": [
+        {
+          "name": "Choice of the riskiest decision",
+          "ueberzeugend": "The riskiest of the group's own decisions is chosen and the choice is briefly justified (why this one, not the most capital-intensive one).",
+          "tragfaehig": "A decision is chosen, but the justification is missing or remains formulaic.",
+          "ansatzweise": "No clear choice."
+        },
+        {
+          "name": "Revision",
+          "ueberzeugend": "A concrete, robust revision is developed, recognisable as a change and not as a declaration of intent; proceeding more slowly is not a revision.",
+          "tragfaehig": "The revision is hinted at but remains close to slowing down or weakening what exists.",
+          "ansatzweise": "Declaration of intent instead of change."
+        },
+        {
+          "name": "Knock-on effect with mechanism",
+          "ueberzeugend": "The effect on another of the group's own decisions is played through concretely, and the path of effect is shown (through what the change works, not only that it works).",
+          "tragfaehig": "The knock-on effect is asserted; the intermediate step is missing.",
+          "ansatzweise": "No knock-on effect."
+        }
+      ],
+      "typical_weaknesses": "Typical weaknesses: revision as retreat (more cautious, step by step); effect without a path (this also helps the margin, without the mechanism); choice of the riskiest decision unjustified."
+    }
+  },
+  "levels": [
+    "ueberzeugend",
+    "tragfaehig",
+    "ansatzweise"
+  ],
+  "outputs": {
+    "briefing": {
+      "audience": "uegl",
+      "timing": "wednesday_before_session",
+      "per_group_per_baustein": [
+        "kernposition_1_satz",
+        "tragende_argumente_max2",
+        "duenne_stellen_max2_als_rueckfrage_ansatz"
+      ],
+      "per_slot": [
+        "konsens_und_dissens_ueber_4_gruppen_als_spannungslinien_kandidaten"
+      ]
+    },
+    "feedback": {
+      "audience": "stammgruppe",
+      "timing": "after_session_only",
+      "per_baustein": [
+        "was_traegt",
+        "was_bleibt_duenn_mit_kriterienbezug",
+        "naechster_schritt"
+      ],
+      "closing": "feed_forward_klausur_aufgabe5"
+    }
+  },
+  "example_submissions": {
+    "ueberzeugend": {
+      "slide2": "Our decisions from Touchpoints 2 to 4: Premium Fortress, a price increase for the Performance Runners with a focus on the direct channel, staying with external fulfilment with a second production location. Supporting point: strategy and channel mesh as an interaction, because the direct channel enforces the selectivity of Premium Fortress (no discount pressure, controlled experience), and the higher channel margin in turn finances the selectivity that the strategy demands. Point of tension, not glossed over: our direct-channel focus weakens precisely the specialist retail whose advice carries the performance credibility on which our price increase rests; so we are indirectly sawing off the branch of our own pricing decision. Robustness judgement: the model is robust, but only under the assumption that specialist retail can be retained; if it tips over, the price premium goes with it. Derived adjustment: a selective partner programme with a guaranteed range and margin protection for the best fifty running retailers, decidable as a concrete programme rather than an intention.",
+      "slide3": "The riskiest of our decisions is the price increase, not the second production country, which ties up more money: the increase rests on the assumption of a stable performance positioning, and precisely this is threatened by the patent expiry from 2027. Our revision: we do not raise prices on the existing models, but introduce the higher prices only with the new model generations whose added value justifies them. This is a genuine change of approach, not merely slowing down. Knock-on effect on our channel decision, with mechanism: because the prices of existing models remain stable, the price gap between the direct channel and specialist retail narrows, the discount pressure on retailers decreases, and the channel conflict from our point of tension is defused. The path of effect thus runs through price differentiation by product generation instead of by channel: retailers remain competitive on the existing models, while the direct channel carries the new releases.",
+      "calibration_note": "Building block 1: interaction instead of compatibility, a genuine tension not glossed over, a differentiated judgement with an assumption, an adjustment that can be decided on. Building block 2: choice justified against the capital-intensive alternative, revision as a genuine change, knock-on effect with a fully formulated mechanism. Expected feedback: convincing throughout; next step at most the question of what the partner programme costs."
+    },
+    "tragfaehig": {
+      "slide2": "Our decisions: Premium Fortress, a price increase in the performance segment via the direct channel, external fulfilment with a second production country. Supporting point: the strategy and the channel decision fit together well, because both strengthen the premium brand and rely on control. There is a certain tension with specialist retail, which comes under some pressure from direct-to-consumer sales; but we consider this manageable, because specialist retail is losing importance for ON anyway and customers increasingly buy online. Overall, we judge our business model to be coherent and robust; the decisions complement each other well. As an improvement, we propose improving communication with retail and aligning the channels even better, so that everyone involved understands and supports the strategy.",
+      "slide3": "The riskiest decision is the second production country, because it costs the most and means a lot of effort. As a revision, we propose starting to build the second source only from 2027 and beginning with a smaller capacity at first to gain experience. That keeps the risk manageable and ON can react flexibly. This change also has a positive effect on our other decisions: the funds saved help the margin and thus strengthen the premium strategy. In addition, ON gains time to restructure the supply chain carefully. Overall, the revision makes our concept more robust.",
+      "calibration_note": "Building block 1: supporting point as compatibility without a mechanism; tension named but immediately played down as a minor matter (manageable); sweeping judgement; adjustment as an appeal (improve communication). Building block 2: choice justified by capital commitment instead of risk; the revision is a slowdown; knock-on effect asserted (helps the margin), the path of effect is missing. Expected feedback: thin on tension, adjustment, revision and mechanism, each with a concrete next step."
+    },
+    "ansatzweise": {
+      "slide2": "When we look back at our decisions from the touchpoints, they all fit together well. The premium strategy, the pricing and the supply chain all strengthen the ON brand and contribute to the same goal. We could not identify any contradictions, because with every decision we made sure it fitted the strategy. From our point of view, the business model is therefore robust and future-proof. With these decisions ON is well positioned and can continue to grow successfully.",
+      "slide3": "Since all our decisions are well justified, we would not fundamentally change any of them. At most, we would implement everything somewhat more slowly and cautiously in order to avoid risks and remain flexible. If something does not work, ON can then adjust in time. This cautious implementation has a positive effect on all areas, because fewer mistakes happen and the company remains more stable.",
+      "calibration_note": "Building block 1: harmony as an evasive manoeuvre (finding no tension means not having checked, see the note in the assignment); no reasoned judgement, no adjustment. Building block 2: no choice of a riskiest decision; proceeding more slowly is explicitly not a revision; knock-on effect generic without a mechanism. Expected feedback: smallest next step: look for a single point at which two decisions compete for the same resource or the same customer, and start there."
+    }
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "meta": {
+    "course": "BWL A HS26",
+    "touchpoint": 2,
+    "version": "v1",
+    "date": "2026-08-28",
+    "exam_ref": [
+      "A2a",
+      "A2b"
+    ],
+    "learning_objectives": [
+      "2.2",
+      "2.3"
+    ],
+    "case": {
+      "document": "Case Study ON",
+      "chapter": "B",
+      "references": "Section 3.1 (The strategic question; three development paths, Exhibit B1), Section 3.3 (Resource base), Section 2.8 (CloudTec patent expiry 2027 to 2029), Exhibit B2 (Competition)."
+    }
+  },
+  "guardrails": [
+    "no_points_or_grades",
+    "no_model_solution",
+    "no_group_comparison",
+    "briefing_only_to_uegl",
+    "feedback_only_after_session",
+    "any_choice_admissible_judge_reasoning_only",
+    "swiss_standard_german_ss"
+  ],
+  "formal_checks": {
+    "slide2_max_chars": 1200,
+    "slide3_max_chars": 1200,
+    "chars_include_spaces": true,
+    "full_sentences_required": true,
+    "code_pattern": "TP2-UEG\\d{2}-SG[1-8]",
+    "filename_pattern": "TP2_UEG\\d{2}_SG[1-8]\\.pptx",
+    "submission_format": "pptx_3_slides_official_template",
+    "report_only_never_grade": true
+  },
+  "rubrics": {
+    "baustein1": {
+      "slide": 2,
+      "title": "Strategic decision",
+      "exam_ref": "A2a",
+      "criteria": [
+        {
+          "name": "Clarity of the decision",
+          "ueberzeugend": "One development path (or a reasoned combination with a financing logic) is unambiguously chosen and recognisable as a directional decision.",
+          "tragfaehig": "A direction is recognisable but is phrased more as a preference than as a decision, or the combination lacks a financing logic.",
+          "ansatzweise": "The three options are summarised rather than decided between; choosing all three at once is not a decision."
+        },
+        {
+          "name": "Grounding of the advantage",
+          "ueberzeugend": "The intended competitive advantage is anchored in concrete resources or capabilities of ON (something ON has: brand, community, direct-channel data, pace of innovation), with at most two core arguments.",
+          "tragfaehig": "The advantage is named but justified by what ON wants to do rather than by what ON has; or more than two arguments without weighting.",
+          "ansatzweise": "General statements about premium brands without case reference."
+        },
+        {
+          "name": "Durability",
+          "ueberzeugend": "It is justified why competitors would find it hard to replicate the advantage; anyone naming CloudTec as its basis addresses the patent expiry (Section 2.8).",
+          "tragfaehig": "Protection against imitation is asserted but not justified; CloudTec as the basis without considering the patent expiry.",
+          "ansatzweise": "No statement on imitability."
+        }
+      ],
+      "typical_weaknesses": "Typical weaknesses: Premium Fortress as avoidance (least risky) rather than as a decision; advantage derived from intention rather than possession; CloudTec without the patent expiry; more than two arguments, breadth instead of depth."
+    },
+    "baustein2": {
+      "slide": 3,
+      "title": "Trade-off",
+      "exam_ref": "A2b",
+      "criteria": [
+        {
+          "name": "Identification",
+          "ueberzeugend": "The trade-off visibly arises from the group's own decision in building block 1, not from a general field of tension in the industry.",
+          "tragfaehig": "A genuine conflict is named, but the link to the group's own decision remains loose (the group would have it with any option).",
+          "ansatzweise": "Generic conflict (quality versus costs, growth versus stability) without reference to the decision."
+        },
+        {
+          "name": "Both sides acknowledged",
+          "ueberzeugend": "For both sides it is justified why they cannot be ignored; neither side is turned into a sham option.",
+          "tragfaehig": "Both sides are mentioned, but one is only taken seriously pro forma.",
+          "ansatzweise": "Only one side is argued."
+        },
+        {
+          "name": "Commitment and price",
+          "ueberzeugend": "It is clearly stated what the group decides in favour of and what it accepts in return; the price is quantified as far as the case allows (e.g. forgoing the growth differential according to Exhibit B1).",
+          "tragfaehig": "A commitment is there, but the price remains unquantified (somewhat lower growth).",
+          "ansatzweise": "A good middle way without commitment; nothing is accepted in return."
+        }
+      ],
+      "typical_weaknesses": "Typical weaknesses: conflict generic rather than decision-specific; middle way instead of commitment; price unquantified even though Exhibit B1 provides figures."
+    }
+  },
+  "levels": [
+    "ueberzeugend",
+    "tragfaehig",
+    "ansatzweise"
+  ],
+  "outputs": {
+    "briefing": {
+      "audience": "uegl",
+      "timing": "wednesday_before_session",
+      "per_group_per_baustein": [
+        "kernposition_1_satz",
+        "tragende_argumente_max2",
+        "duenne_stellen_max2_als_rueckfrage_ansatz"
+      ],
+      "per_slot": [
+        "konsens_und_dissens_ueber_4_gruppen_als_spannungslinien_kandidaten"
+      ]
+    },
+    "feedback": {
+      "audience": "stammgruppe",
+      "timing": "after_session_only",
+      "per_baustein": [
+        "was_traegt",
+        "was_bleibt_duenn_mit_kriterienbezug",
+        "naechster_schritt"
+      ],
+      "closing": "feed_forward_tp3_und_klausur_aufgabe2"
+    }
+  },
+  "example_submissions": {
+    "ueberzeugend": {
+      "slide2": "We choose Premium Fortress. The intended competitive advantage rests on two resources that ON already possesses. First, the brand with its design DNA and Swiss origin: it carries a price premium of 20 to 40 percent above the industry average and cannot be copied in the short term, because it has grown over fifteen years out of community and credibility with specialist retail. Second, the direct-channel platform with its customer data: 41 percent of revenue already runs through ON's own channels, and the data pool grows with every purchase, while competitors cannot replicate it without cannibalising their wholesale business. We deliberately do not choose CloudTec as the basis: patent protection ends between 2027 and 2029 (Section 2.8), and Hoka already offers something comparable. Precisely for this reason, the advantage must be rebuilt on brand and data while the technology still supports it.",
+      "slide3": "Our decision creates the conflict between brand protection and investors' growth expectations. Both sides are indispensable: without selectivity, the exclusivity on which core customers' willingness to pay rests erodes; without growth of around 20 percent, as analysts expect, the share price falls, and with it the room to finance innovation and stores. We commit to brand protection and accept in return that ON trades the growth path of plus 60 to 80 percent (Global Push) for plus 20 to 30 percent (Exhibit B1). We want to manage this price actively: with a clear capital-market story that sets lower volume against rising margin and brand value, instead of quietly disappointing expectations.",
+      "calibration_note": "Building block 1: unambiguous choice; advantage based on possession (brand, data) rather than intention; durability including a deliberate delimitation of CloudTec with reference to the patent. Building block 2: conflict follows from the choice, both sides taken seriously, commitment with a price quantified from Exhibit B1. Expected feedback: all criteria convincing; next step at most the question of how long the brand holds without technology protection."
+    },
+    "tragfaehig": {
+      "slide2": "We choose Premium Fortress because this path is the least risky and fits ON best. ON is a premium brand and should strengthen this position further instead of spreading itself too thin with Global Push or Beyond Running. The competitive advantage lies in ON wanting to focus consistently on quality and innovation and sharpening its premium positioning. Moreover, with CloudTec ON has a unique technology that no other provider has, as well as a strong community. Competitors cannot simply replicate this, because ON has a head start and brings new products to market faster. Therefore Premium Fortress is the right choice for the coming years and secures the company's future.",
+      "slide3": "An important trade-off at ON is growth versus quality. On the one hand, the company wants to grow and generate more revenue; on the other hand, the quality of the products and the brand must not suffer as a result. Both goals are important: without growth ON loses relevance, and without quality it loses its customers. We think that ON should find a good middle way here by growing moderately while keeping quality high. For this, ON accepts that growth will be somewhat lower than with aggressive expansion. This way the brand remains protected and investors still get a good return.",
+      "calibration_note": "Building block 1: choice is there, but justified as avoidance; advantage derived from intention (wants quality) rather than possession; CloudTec without the patent expiry. Building block 2: conflict generic (would arise with any option), middle way instead of commitment, price unquantified. Expected feedback: holds on clarity, thin on grounding, durability, identification and price, each with a concrete next step (e.g. quantify using Exhibit B1)."
+    },
+    "ansatzweise": {
+      "slide2": "ON has three strategic options: Global Push, Beyond Running and Premium Fortress. Global Push means expansion into Asia and offers the greatest growth, but is expensive and risky. Beyond Running focuses on apparel and new categories, which broadens the brand. Premium Fortress concentrates on existing markets and the premium position. All three options have advantages and disadvantages that need to be weighed carefully. Probably the best would be a combination of all three approaches, so that ON can benefit from all the advantages and does not waste any potential.",
+      "slide3": "Every strategy involves trade-offs, for example between costs and quality or between short-term and long-term success. ON must make sure to keep costs under control and still offer good products. Sustainability is also an important goal that can conflict with growth. Management must keep an eye on these conflicts and balance them so that the company remains successful in the long term.",
+      "calibration_note": "Building block 1: options summarised rather than decided between; choosing all three at once ignores the investment logic from Exhibit B1; no advantage justified. Building block 2: generic conflicts without reference to a (missing) decision, no commitment. Expected feedback: friendly but clear; smallest next step: choose one option and spell out a single possession-based argument for it."
+    }
+  }
+}
