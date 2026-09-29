@@ -53,8 +53,9 @@ class BriefingStore:
         if collection is not None:
             try:
                 docs = list(collection.find({}, {"_id": 0, retention.TTL_FIELD: 0}))
-                if docs:
-                    return docs
+                # Mongo ist die Wahrheit, auch wenn leer: sonst tauchen in Mongo
+                # gelöschte Datensätze aus den lokalen Dateien wieder auf.
+                return docs
             except Exception as exc:  # pragma: no cover - external service failure
                 logger.warning("briefing_store_load_failed", error=str(exc))
 
