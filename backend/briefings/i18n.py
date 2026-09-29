@@ -82,6 +82,7 @@ REVIEW_TEXTS: dict[str, dict[str, str]] = {
         "no_text": "Kein Text in der Abgabe gefunden.",
         "llm_failed": "LLM-Aufruf fehlgeschlagen.",
         "json_failed": "Modellantwort war auch nach Reparaturversuch kein valides JSON.",
+        "wrong_language": "Das Modell hat nicht in der Sprache der Abgabe geantwortet — bitte prüfen.",
     },
     "en": {
         "few_questions": "Fewer example follow-up questions than intended.",
@@ -89,6 +90,7 @@ REVIEW_TEXTS: dict[str, dict[str, str]] = {
         "no_text": "No text found in the submission.",
         "llm_failed": "The model call failed.",
         "json_failed": "The model response was not valid JSON even after a repair attempt.",
+        "wrong_language": "The model did not answer in the language of the submission — please check.",
     },
 }
 
@@ -100,6 +102,33 @@ PROMPT_LANGUAGE_RULE: dict[str, str] = {
         "(British English), sachlich, knapp, ganze Sätze. Wörtliche Zitate aus der Abgabe bleiben wörtlich. "
         "Orte heissen \"slide 2\", \"slide 3\", Fallstellen \"Section 2.8\", \"Exhibit A6\". "
         "Die JSON-Schlüssel und die Niveau-Werte (ueberzeugend | tragfaehig | ansatzweise) bleiben unverändert."
+    ),
+}
+
+# Sprachvorgabe am Anfang des System-Prompts und am Ende der Abgabe-Nachricht:
+# Eine einzelne Zeile im deutschen Prompt reichte nicht, das Modell schrieb
+# englische Abgaben deutsch (Test 2026-09-29).
+PROMPT_LANGUAGE_HEADER: dict[str, str] = {
+    "de": "",
+    "en": (
+        "OUTPUT LANGUAGE: ENGLISH. The group submitted in English. Every text value of the JSON you "
+        "return must be written in English (British English), even though these instructions are in "
+        "German. Never write German. JSON keys and niveau values stay unchanged.\n\n"
+    ),
+}
+USER_LANGUAGE_REMINDER: dict[str, str] = {
+    "de": "Erstelle jetzt das JSON. Alle Textfelder auf Deutsch.",
+    "en": "Now write the JSON. Every text value in English — no German.",
+}
+LANGUAGE_RETRY_PROMPT: dict[str, str] = {
+    "de": (
+        "Deine Antwort ist nicht auf Deutsch. Die Gruppe hat auf Deutsch abgegeben. Gib dasselbe "
+        "JSON noch einmal aus, alle Textfelder auf Deutsch (Schweizer Standarddeutsch). Nur das JSON."
+    ),
+    "en": (
+        "Your answer is not in English. The group submitted in English. Return the same JSON again "
+        "with every text value written in English (British English). Keys and niveau values unchanged. "
+        "Only the JSON."
     ),
 }
 

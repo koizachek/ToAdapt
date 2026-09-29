@@ -438,6 +438,39 @@ async def _generate_into(
     return record
 
 
+_CANVAS_GROUP_RE = re.compile(r"^(?:stammgruppe|core\s*team|home\s*group|gruppe|group)\s*[-_ ]?0?([1-8])(?!\d)", re.IGNORECASE)
+
+
+def _upload_ueg(entries: list[tuple[str, bytes]]) -> str:
+    """Die Übungsgruppe, die alle erkannten Deckblätter eines Uploads gemeinsam
+    haben (Canvas-Export einer Übungsgruppe); leer bei keiner oder mehreren."""
+    uegs: set[str] = set()
+    for filename, payload in entries:
+        try:
+            ueg = _extract(filename, payload).kenndaten.ueg
+        except ValueError:
+            continue
+        if ueg:
+            uegs.add(ueg)
+    return uegs.pop() if len(uegs) == 1 else ""
+
+
+def _fill_group(sub: ExtractedSubmission, filename: str, upload_ueg: str) -> list[str]:
+    """Deckblatt ohne Übungs-/Stammgruppe: Übungsgruppe aus den übrigen
+    Abgaben desselben Uploads, Stammgruppe aus dem Canvas-Präfix des
+    Dateinamens (``stammgruppe4_…``, ``coreteam5_…``). Rückgabe: Hinweise."""
+    kd = sub.kenndaten
+    notes: list[str] = []
+    if not kd.ueg and upload_ueg:
+        kd.ueg = upload_ueg
+        notes.append(f"Übungsgruppe {upload_ueg} aus den übrigen Abgaben dieses Uploads übernommen.")
+    group = _CANVAS_GROUP_RE.match(filename or "")
+    if not kd.sg and group:
+        kd.sg = int(group.group(1))
+        notes.append(f"Stammgruppe SG{kd.sg} aus dem Dateinamen übernommen.")
+    return notes
+
+
 def _rejected(base: dict, sub: ExtractedSubmission | None, reason: str) -> BriefingRecord:
     kd = sub.kenndaten if sub else None
     return BriefingRecord(
@@ -467,6 +500,7 @@ async def _process_entry(
     filename: str,
     data: bytes,
     uploaded_by: str | None,
+    upload_ueg: str = "",
 ) -> BriefingRecord:
     briefing_id = str(uuid.uuid4())
     uploaded_at = naive_utcnow().isoformat()
@@ -492,13 +526,15 @@ async def _process_entry(
             formal={"filename": filename},
         )
 
+    fill_notes = _fill_group(sub, filename, upload_ueg)
+
     # 1. Formale Eingangsprüfung: nur leere Dateien werden abgelehnt; fehlendes
     #    Deckblatt oder fehlende Marker geben Hinweise (nachtragen statt ablehnen)
     decision = validate_submission(sub)
     if not decision.accepted:
         logger.info("briefing_rejected", filename=filename, reason=decision.reason, uploaded_by=uploaded_by)
         return _rejected(base, sub, decision.reason or "Keine Abgabe.")
-    intake_notes = list(decision.notes)
+    intake_notes = list(decision.notes) + fill_notes
 
     # 2. Themenprüfung: Kernbegriffe (kostenlos), dann kurzer Modellaufruf, der
     #    bei fehlendem Deckblatt auch den Touchpoint bestimmt
@@ -579,6 +615,7 @@ async def upload_submissions(
     except ZipValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     del data
+    upload_ueg = await asyncio.to_thread(_upload_ueg, entries)
 
     generator = BriefingGenerator(api_key=api_key)
     topic_classifier = TopicClassifier(api_key=api_key)
@@ -612,6 +649,7 @@ async def upload_submissions(
             filename=filename,
             data=payload,
             uploaded_by=ctx.tutor_id,
+            upload_ueg=upload_ueg,
         )
         dumped = record.model_dump()
         records.append(dumped)
@@ -921,7 +959,8 @@ async def patch_assignment(
         notes.append(f"Touchpoint von {old_tp} auf {tp} geändert — die Auswertung wurde mit der Rubric von Touchpoint {old_tp} erstellt.")
         record["needs_human_review"] = True
         record["review_reason"] = notes[-1]
-    intake_marks = ("Auf dem Deckblatt fehlen", "aus dem Inhalt bestimmt")
+    intake_marks = ("Auf dem Deckblatt fehlen", "aus dem Inhalt bestimmt",
+                    "aus den übrigen Abgaben dieses Uploads übernommen", "aus dem Dateinamen übernommen")
     formal["notes"] = [n for n in notes if not any(m in n for m in intake_marks)]
     record["formal"] = formal
     if record.get("review_reason") and not (old_tp and tp != old_tp):

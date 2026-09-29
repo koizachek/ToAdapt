@@ -25,6 +25,7 @@ stehen in ``backend/briefings/i18n.py``.
 
 from __future__ import annotations
 
+import json
 import re
 
 import structlog
@@ -33,7 +34,15 @@ from backend.briefings.extraction import ExtractedSubmission
 from backend.briefings.guardrails import apply_guardrails, sanitize_swiss
 from backend.briefings.i18n import FALLBACK_TEXT as _FALLBACK
 from backend.briefings.i18n import NO_CONTENT_TEXT as _NO_CONTENT
-from backend.briefings.i18n import PROMPT_LANGUAGE_RULE, REVIEW_TEXTS, normalize_language
+from backend.briefings.i18n import (
+    LANGUAGE_RETRY_PROMPT,
+    PROMPT_LANGUAGE_HEADER,
+    PROMPT_LANGUAGE_RULE,
+    REVIEW_TEXTS,
+    USER_LANGUAGE_REMINDER,
+    detect_language,
+    normalize_language,
+)
 from backend.briefings.rubrics import BriefingRubric, case_context_for_tp
 from backend.evaluator.rubric_evaluator import REPAIR_PROMPT, parse_evaluation_payload
 from backend.llm import OpenRouterClient
@@ -48,7 +57,7 @@ QUESTIONS_WEAKNESSES = 3  # Beispiel-Rückfragen je Gruppe, die dünne Stellen a
 NO_CONTENT_TEXT = _NO_CONTENT["de"]
 FALLBACK_TEXT = _FALLBACK["de"]
 
-BRIEFING_SYSTEM_TEMPLATE = """Du bereitest für die Übungsgruppenleitung (ÜGL) des Kurses {course} ein Briefing zu einer Stammgruppen-Abgabe vor.
+BRIEFING_SYSTEM_TEMPLATE = """{language_header}Du bereitest für die Übungsgruppenleitung (ÜGL) des Kurses {course} ein Briefing zu einer Stammgruppen-Abgabe vor.
 
 KONTEXT
 Touchpoint {tp} übt formativ am Running Case ON (Kapitel {chapter}) die Denkoperation, die in der Klausur in Aufgabe {exam_ref} am unbekannten Fall summativ geprüft wird. Das Briefing dient der ÜGL zur Vorbereitung des Gesprächs (Oxford-Tutorial: nachfragen, nicht bewerten). Die Abgabe ist eine Behauptung; erst das Gespräch zeigt, ob die Gruppe trägt, was sie geschrieben hat.
@@ -126,7 +135,7 @@ SUBMISSION_TEMPLATE = """ABGABE {code}
 {text2}
 <<<ENDE ABGABE>>>
 
-Erstelle jetzt das JSON."""
+{reminder}"""
 
 
 def _rubric_block(rubric: BriefingRubric) -> str:
@@ -166,6 +175,7 @@ def build_system_prompt(rubric: BriefingRubric, language: str = "de") -> str:
     ``rubric`` muss in derselben Sprache geladen sein (``load_rubric(tp, language)``)."""
     language = normalize_language(language)
     return BRIEFING_SYSTEM_TEMPLATE.format(
+        language_header=PROMPT_LANGUAGE_HEADER[language],
         language_rule=PROMPT_LANGUAGE_RULE[language],
         course=rubric.course,
         tp=rubric.tp,
@@ -183,7 +193,7 @@ def build_system_prompt(rubric: BriefingRubric, language: str = "de") -> str:
     )
 
 
-def build_user_prompt(rubric: BriefingRubric, sub: ExtractedSubmission) -> str:
+def build_user_prompt(rubric: BriefingRubric, sub: ExtractedSubmission, language: str = "de") -> str:
     b1 = rubric.baustein("baustein1")
     b2 = rubric.baustein("baustein2")
     return SUBMISSION_TEMPLATE.format(
@@ -192,6 +202,7 @@ def build_user_prompt(rubric: BriefingRubric, sub: ExtractedSubmission) -> str:
         text1=sub.baustein1.strip() or "(leer)",
         title2=b2.title,
         text2=sub.baustein2.strip() or "(leer)",
+        reminder=USER_LANGUAGE_REMINDER[normalize_language(language)],
     )
 
 
@@ -222,6 +233,17 @@ def _empty_baustein(text: str) -> dict:
         "einschaetzung": text,
         "naechster_schritt": text,
     }
+
+
+def briefing_language(briefing: dict) -> str:
+    """Sprache der tutor-sichtbaren Texte eines Briefings (gleiche Erkennung wie für die Abgabe)."""
+    parts: list[str] = []
+    for key, value in briefing.items():
+        if not isinstance(value, dict):
+            continue
+        for field in value.values():
+            parts.extend(field if isinstance(field, list) else [str(field)])
+    return detect_language("\n".join(str(p) for p in parts))
 
 
 def _normalize_payload(
@@ -364,7 +386,7 @@ class BriefingGenerator:
             return result
 
         system = build_system_prompt(rubric, language)
-        user = build_user_prompt(rubric, sub)
+        user = build_user_prompt(rubric, sub, language)
 
         try:
             text = await self._call(system=system, messages=[{"role": "user", "content": user}])
@@ -402,8 +424,30 @@ class BriefingGenerator:
                 return fallback_result(rubric, sub, texts["json_failed"], language)
 
         briefing, assessment, hits = _normalize_payload(rubric, sub, data or {}, language)
-        needs_review = bool(assessment.get("needs_human_review")) or bool(hits)
+        wrong_language = briefing_language(briefing) != language
+        if wrong_language:
+            # Sprache der Abgabe = Sprache des Briefings: einmal in der richtigen Sprache neu anfordern.
+            logger.warning("briefing_language_mismatch", briefing_id=briefing_id, expected=language)
+            try:
+                redone = await self._call(
+                    system=system,
+                    messages=[
+                        {"role": "user", "content": user},
+                        {"role": "assistant", "content": json.dumps(data, ensure_ascii=False)},
+                        {"role": "user", "content": LANGUAGE_RETRY_PROMPT[language]},
+                    ],
+                    max_tokens=BRIEFING_MAX_TOKENS * 2,
+                )
+                redo = _normalize_payload(rubric, sub, parse_evaluation_payload(redone) or {}, language)
+                if briefing_language(redo[0]) == language:
+                    briefing, assessment, hits = redo
+                    wrong_language = False
+            except Exception as exc:
+                logger.error("briefing_language_retry_failed", briefing_id=briefing_id, error=str(exc))
+        needs_review = bool(assessment.get("needs_human_review")) or bool(hits) or wrong_language
         review_reason = assessment.get("review_reason")
+        if wrong_language:
+            review_reason = texts["wrong_language"] + (f" {review_reason}" if review_reason else "")
         if hits and not review_reason:
             review_reason = texts["guardrail"] + ", ".join(hits)
         if hits:

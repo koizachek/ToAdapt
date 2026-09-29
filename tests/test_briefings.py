@@ -588,7 +588,8 @@ def test_upload_by_tutor_visibility_by_uploader_docx_and_assessment(client, monk
     # Übersicht: keine Annahme über die Anzahl Stammgruppen
     overview = client.get("/briefings/overview?tp=1", headers=_tutor_headers("UEGL01")).json()
     row = next(o for o in overview if o["ueg"] == "UEG07")
-    assert row == {"target_tp": 1, "ueg": "UEG07", "briefed_count": 2, "review_count": 0,
+    # ohne_code.docx: Übungsgruppe UEG07 aus den übrigen Abgaben des Uploads, Stammgruppe offen
+    assert row == {"target_tp": 1, "ueg": "UEG07", "briefed_count": 3, "review_count": 1,
                    "groups": [3, 5], "latest_uploaded_at": row["latest_uploaded_at"]}
 
     # DOCX-Bundle für eigene Uploads: echtes DOCX, ohne Punkte/Stufen, ohne "fehlende Gruppen"
@@ -985,6 +986,90 @@ B2_TEXT_EN = (
 )
 
 
+def _llm_payload_en(**overrides) -> str:
+    def baustein(prefix: str, names: list[str]):
+        return {
+            "kernposition": f"{prefix}: The group has decided on X because of Y.",
+            "tragende_argumente": [f"{prefix}: The argument is based on the case and it holds.", f"{prefix}: The group links the chain to Exhibit A5."],
+            "duenne_stellen": [f"{prefix}: What makes the group sure that this is the most critical one?"],
+            "einschaetzung": f"{prefix}: The selection holds, but the chain is thin at the mechanism.",
+            "naechster_schritt": f"{prefix}: The group spells out the mechanism between the cause and the effect on sales.",
+            "kriterien": [{"name": n, "niveau": "tragfaehig", "begruendung": "Because."} for n in names],
+        }
+    rubric = load_rubric(1, "en")
+    data = {
+        "baustein1": baustein("B1", [c.name for c in rubric.baustein("baustein1").criteria]),
+        "baustein2": baustein("B2", [c.name for c in rubric.baustein("baustein2").criteria]),
+        "rueckfragen": {
+            "zu_staerken": ["What would have to happen for your argument to no longer hold?", "Where in the case do you see this confirmed?"],
+            "zu_schwaechen": ["What makes you sure that this is the case?", "Which step is missing between the cause and the pressure to act?", "Who bears the consequences if it fails?"],
+        },
+        "judge_confidence": "high",
+        "needs_human_review": False,
+        "review_reason": None,
+    }
+    data.update(overrides)
+    return json.dumps(data, ensure_ascii=False)
+
+
+def _mock_llm_sequence(monkeypatch, responses: list[str]):
+    """Briefing-Aufrufe erhalten der Reihe nach ``responses`` (letzte wiederholt)."""
+    calls: list[dict] = []
+
+    async def fake_complete(self, *, system, messages, max_tokens, cache_system=False):
+        if "Du prüfst für den Kurs" in system:
+            return ON_TOPIC
+        calls.append({"system": system, "messages": messages})
+        return responses[min(len(calls) - 1, len(responses) - 1)]
+
+    monkeypatch.setattr(OpenRouterClient, "complete", fake_complete)
+    return calls
+
+
+async def test_english_submission_german_model_answer_is_redone_in_english(monkeypatch):
+    from backend.briefings.generator import briefing_language
+
+    rubric = load_rubric(1, "en")
+    sub = _sub(b1=B1_TEXT_EN, b2=B2_TEXT_EN)
+    calls = _mock_llm_sequence(monkeypatch, [_llm_payload(), _llm_payload_en()])
+    result = await BriefingGenerator("k").generate(briefing_id="l1", rubric=rubric, sub=sub, language="en")
+    assert len(calls) == 2 and "Return the same JSON again" in calls[1]["messages"][-1]["content"]
+    assert briefing_language(result["briefing"]) == "en" and result["needs_human_review"] is False
+    assert calls[0]["system"].startswith("OUTPUT LANGUAGE: ENGLISH")
+    assert calls[0]["messages"][0]["content"].endswith("Every text value in English — no German.")
+
+    # Bleibt das Modell deutsch: Prüffall mit Hinweis, kein stilles deutsches Briefing
+    calls = _mock_llm_sequence(monkeypatch, [_llm_payload()])
+    result = await BriefingGenerator("k").generate(briefing_id="l2", rubric=rubric, sub=sub, language="en")
+    assert result["needs_human_review"] is True
+    assert result["review_reason"].startswith("The model did not answer in the language of the submission")
+
+    # Deutsche Abgabe, deutsche Antwort: kein zweiter Aufruf
+    calls = _mock_llm_sequence(monkeypatch, [_llm_payload()])
+    result = await BriefingGenerator("k").generate(briefing_id="l3", rubric=load_rubric(1), sub=_sub(), language="de")
+    assert len(calls) == 1 and result["needs_human_review"] is False
+    assert not calls[0]["system"].startswith("OUTPUT LANGUAGE")
+
+
+def test_missing_ueg_from_same_upload_and_sg_from_canvas_filename(client, monkeypatch):
+    _mock_llm(monkeypatch, _llm_payload())
+    files = {
+        "stammgruppe2_141246_4285581_TP1_UEG14_SG2.pptx": _template_pptx(1, code="TP1-UEG14-SG2", b1=B1_TEXT, b2=B2_TEXT),
+        "stammgruppe4_146346_4285232_Touchpoint 1_Abgabevorlage-Gruppe4.docx": _docx(["Baustein 1", B1_TEXT, "Baustein 2", B2_TEXT]),
+    }
+    body = _upload(client, files).json()
+    by_name = {b["filename"][:12]: b for b in body["briefings"]}
+    g4 = by_name["stammgruppe4"]
+    assert g4["ueg"] == "UEG14" and g4["sg"] == 4 and g4["code"] == "TP1-UEG14-SG4"
+    assert "Übungsgruppe UEG14 aus den übrigen Abgaben dieses Uploads übernommen." in g4["review_reason"]
+    assert "Stammgruppe SG4 aus dem Dateinamen übernommen." in g4["review_reason"]
+    # Mehrere Übungsgruppen im Upload: keine Übernahme
+    files["TP1_UEG20_SG5.pptx"] = _template_pptx(1, code="TP1-UEG20-SG5", b1=B1_TEXT, b2=B2_TEXT)
+    body = _upload(client, files).json()
+    g4 = {b["filename"][:12]: b for b in body["briefings"]}["stammgruppe4"]
+    assert g4["ueg"] == "" and g4["sg"] == 4 and g4["code"] is None
+
+
 def test_detect_language():
     from backend.briefings.i18n import detect_language
 
@@ -1014,7 +1099,16 @@ def test_english_rubrics_and_case_mirror_german():
 
 
 def test_english_submission_gets_english_briefing(client, monkeypatch):
-    calls = _mock_llm(monkeypatch, _llm_payload())
+    calls: list[dict] = []
+
+    async def fake_complete(self, *, system, messages, max_tokens, cache_system=False):
+        kind = "topic" if "Du prüfst für den Kurs" in system else "briefing"
+        calls.append({"system": system, "messages": messages, "kind": kind})
+        if kind == "topic":
+            return ON_TOPIC
+        return _llm_payload_en() if "SG5" in messages[0]["content"].split("\n")[0] else _llm_payload()
+
+    monkeypatch.setattr(OpenRouterClient, "complete", fake_complete)
     files = {
         "TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT),
         "TP1_UEG07_SG5.pptx": _template_pptx(1, code="TP1-UEG07-SG5", b1=B1_TEXT_EN, b2=B2_TEXT_EN),
@@ -1037,6 +1131,7 @@ def test_english_submission_gets_english_briefing(client, monkeypatch):
     assert "Home group SG5" in mixed and "Core position:" in mixed and "Next step:" in mixed
     assert "Building block 1 · Challenges and causal chain (slide 2, exam A1a)" in mixed
     assert "Formal pre-check (reported, not graded)" in mixed and "characters" in mixed
+    assert "The group has decided on X" in mixed and "Die Gruppe hat sich für X entschieden" in mixed
 
     # Einzel-Download eines englischen Briefings: komplett englisch
     single = _docx_text(client.get(f"/briefings/{by_sg[5]['briefing_id']}/docx", headers=_tutor_headers("UEGL01")).content)
@@ -1068,7 +1163,7 @@ async def test_english_guardrails_and_placeholders(monkeypatch):
     assert guardrails.check_briefing_text("Die Gruppe verdient eine gute Note.", "de") == ["grades"]
 
     rubric = load_rubric(1, "en")
-    payload = json.loads(_llm_payload())
+    payload = json.loads(_llm_payload_en())
     payload["baustein2"]["einschaetzung"] = "The right decision would have been specialist retail."
     _mock_llm(monkeypatch, json.dumps(payload, ensure_ascii=False))
     sub = _sub(b1=B1_TEXT_EN, b2=B2_TEXT_EN)
