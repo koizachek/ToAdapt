@@ -18,7 +18,8 @@ import { AlertTriangle, ChevronDown, ChevronRight, Download, FileUp, KeyRound, L
 //   herunter.
 // - Der Master sieht zusätzlich das Monitoring: je Konto Uploads/Downloads je
 //   Touchpoint und Gruppe, Passwort-Anfragen, Einmalcodes, dieselben Downloads.
-//   Nur der Master löscht Auswertungen und Uploads (Owner-Entscheidung 2026-09-30).
+//   Löschen: jeder seine eigenen Auswertungen und Uploads, der Master alle —
+//   immer erst nach Rückfrage per Knopf (Owner-Entscheidung 2026-09-30).
 // Keine Punkte, keine Stufen: Das Briefing ist Vorbereitungsmaterial, keine Note.
 
 const TPS = [1, 2, 3, 4, 5]
@@ -154,8 +155,8 @@ const TEXT = {
     running: (p: number, t: number) => `Verarbeitung läuft: ${p} von ${t} Dateien fertig. Sie dürfen die Seite schliessen.`,
     done: (b: BatchStatus) => `Fertig: ${b.briefed} ausgewertet · ${b.rejected ?? 0} abgelehnt · ${b.failed} nicht lesbar · ${b.review} bitte prüfen`,
     stale: 'Die Verarbeitung ist seit über 30 Minuten stehen geblieben — vermutlich durch einen Neustart abgebrochen. Bitte erneut hochladen; die neueste Auswertung je Stammgruppe zählt.',
-    batches: 'Ihr letzter Upload',
-    helpBatches: 'Ihr letzter Upload: Zeitpunkt, Dateiname, Stand. „done“ heisst fertig.',
+    batches: 'Ihre Uploads',
+    helpBatches: 'Ihre Uploads, der neueste zuerst: Zeitpunkt, Dateiname, Stand. „done“ heisst fertig. „Löschen“ entfernt den Upload mit allen seinen Auswertungen endgültig aus Ihrer Übersicht — Sie werden vorher gefragt.',
     errorGeneric: 'Upload fehlgeschlagen — bitte erneut versuchen.',
     // Konsistenz
     mismatchTitle: 'Bitte prüfen: Gruppen weichen von früheren Touchpoints ab',
@@ -238,7 +239,7 @@ const TEXT = {
     lastBriefingDl: 'Briefing geladen',
     never: 'nie',
     allUploads: (n: number) => `Uploads (${n})`,
-    helpAllUploads: 'Alle Uploads des gewählten Kontos (ohne Auswahl: aller Konten). „Löschen“ entfernt den Upload mit allen seinen Auswertungen endgültig. Nur der Master kann löschen.',
+    helpAllUploads: 'Alle Uploads des gewählten Kontos (ohne Auswahl: aller Konten). „Löschen“ entfernt den Upload mit allen seinen Auswertungen endgültig. Übungsgruppenleiter können nur ihre eigenen Uploads löschen.',
     clearInjection: 'Vermerk entfernen (Fehlalarm)',
     del: 'Löschen',
     delConfirm: 'Endgültig löschen?',
@@ -259,8 +260,8 @@ const TEXT = {
     running: (p: number, t: number) => `Processing: ${p} of ${t} files done. You may close this page.`,
     done: (b: BatchStatus) => `Done: ${b.briefed} evaluated · ${b.rejected ?? 0} rejected · ${b.failed} unreadable · ${b.review} to check`,
     stale: 'Processing has stalled for over 30 minutes — probably interrupted by a restart. Please upload again; the latest result per home group counts.',
-    batches: 'Your last upload',
-    helpBatches: 'Your last upload: time, file name, state. “done” means finished.',
+    batches: 'Your uploads',
+    helpBatches: 'Your uploads, newest first: time, file name, state. “done” means finished. “Delete” permanently removes the upload with all its results from your overview — you are asked first.',
     errorGeneric: 'Upload failed — please try again.',
     mismatchTitle: 'Please check: groups differ from earlier touchpoints',
     mismatchNew: (tp: number, groups: string[]) => `Touchpoint ${tp}: new ${groups.join(', ')}`,
@@ -339,7 +340,7 @@ const TEXT = {
     lastBriefingDl: 'briefing downloaded',
     never: 'never',
     allUploads: (n: number) => `Uploads (${n})`,
-    helpAllUploads: 'All uploads of the selected account (no selection: of all accounts). “Delete” permanently removes the upload with all its results. Only the master can delete.',
+    helpAllUploads: 'All uploads of the selected account (no selection: of all accounts). “Delete” permanently removes the upload with all its results. Tutorial group leads can only delete their own uploads.',
     clearInjection: 'Remove note (false alarm)',
     del: 'Delete',
     delConfirm: 'Delete permanently?',
@@ -727,7 +728,7 @@ export default function BriefingsPage() {
                 <Pencil size={12} /> {text.edit}
               </button>
             )}
-            {isMaster && renderDelete(r.briefing_id, `/briefings/${encodeURIComponent(r.briefing_id)}`)}
+            {renderDelete(r.briefing_id, `/briefings/${encodeURIComponent(r.briefing_id)}`)}
           </div>
         </div>
         {r.injection_suspected && (
@@ -932,14 +933,14 @@ export default function BriefingsPage() {
                 {isMaster ? text.allUploads(batches.length) : text.batches}
                 <HelpHint text={isMaster ? text.helpAllUploads : text.helpBatches} />
               </p>
-              <ul className="text-xs flex flex-col gap-1 overflow-y-auto" style={{ color: 'var(--muted)', maxHeight: isMaster ? 260 : undefined }}>
-                {(isMaster ? batches : batches.slice(0, 1)).map(b => (
+              <ul className="text-xs flex flex-col gap-1 overflow-y-auto" style={{ color: 'var(--muted)', maxHeight: 260 }}>
+                {batches.map(b => (
                   <li key={b.batch_id} className="font-mono flex flex-wrap items-center gap-x-3">
                     <span>
                       {fmtTime(b.started_at)}{isMaster && b.uploaded_by ? ` · ${b.uploaded_by}` : ''} · {b.filename || b.batch_id.slice(0, 8)} · {b.tps.length ? b.tps.map(n => `TP${n}`).join('+') : '–'} · {b.status}
                       {b.stale ? ' (stale)' : ''} · {b.processed}/{b.total} · {text.done(b)}
                     </span>
-                    {isMaster && renderDelete(`batch:${b.batch_id}`, `/briefings/batches/${encodeURIComponent(b.batch_id)}`)}
+                    {renderDelete(`batch:${b.batch_id}`, `/briefings/batches/${encodeURIComponent(b.batch_id)}`)}
                   </li>
                 ))}
               </ul>

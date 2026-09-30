@@ -8,8 +8,10 @@ Rollen (Owner-Entscheidung 2026-09-13):
   nicht durch eine Namensregel.
 - Der Master darf dasselbe und sieht zusätzlich alles: Monitoring je Konto
   (wer hat wann was hoch- und heruntergeladen), interne Einstufung, alle
-  Dokumente. Nur der Master löscht Auswertungen und Uploads
-  (Owner-Entscheidung 2026-09-30).
+  Dokumente.
+- Löschen (Owner-Entscheidung 2026-09-30): Jeder Übungsgruppenleiter löscht
+  seine EIGENEN Auswertungen und Uploads (endgültig, nach Rückfrage in der
+  Oberfläche); der Master die aller Konten.
 - Touchpoint, Übungsgruppe und Stammgruppe kommen vom Deckblatt der Datei
   (Code ``TPn-UEGxx-SGy``). Kein Auswahlfeld beim Upload. Ist etwas nicht
   erkennbar, wird die Datei als "bitte zuordnen" markiert und der
@@ -813,11 +815,12 @@ async def get_batch(batch_id: str, ctx: TeacherContext = Depends(teacher_context
 
 
 @router.delete("/batches/{batch_id}")
-async def delete_batch(batch_id: str, ctx: TeacherContext = Depends(require_master)):
-    """Löscht einen Upload mit allen seinen Auswertungen endgültig — nur Master."""
+async def delete_batch(batch_id: str, ctx: TeacherContext = Depends(teacher_context)):
+    """Löscht einen Upload mit allen seinen Auswertungen endgültig — den
+    eigenen; der Master jeden. Fremde Uploads gelten als nicht gefunden."""
     batch = batch_store.get(batch_id)
     records = [r for r in briefing_store.load_all() if r.get("batch_id") == batch_id]
-    if not batch and not records:
+    if (not batch and not records) or not all(ctx.owns(x) for x in ([batch] if batch else []) + records):
         raise HTTPException(status_code=404, detail="Upload nicht gefunden")
     if batch and batch.get("status") == "running" and not with_stale_flag(batch)["stale"]:
         raise HTTPException(status_code=409, detail="Upload wird noch verarbeitet — bitte warten")
@@ -1052,11 +1055,9 @@ async def download_single_briefing(briefing_id: str, ctx: TeacherContext = Depen
 
 
 @router.delete("/{briefing_id}")
-async def delete_briefing(briefing_id: str, ctx: TeacherContext = Depends(require_master)):
-    """Löscht eine einzelne Auswertung endgültig — nur Master."""
-    record = briefing_store.get(briefing_id)
-    if not record:
-        raise HTTPException(status_code=404, detail="Briefing nicht gefunden")
+async def delete_briefing(briefing_id: str, ctx: TeacherContext = Depends(teacher_context)):
+    """Löscht eine einzelne Auswertung endgültig — die eigene; der Master jede."""
+    record = _record_or_404(briefing_id, ctx)
     await asyncio.to_thread(briefing_store.delete, briefing_id)
     logger.info(
         "briefing_deleted", briefing_id=briefing_id, by=ctx.label,

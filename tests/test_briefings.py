@@ -1308,25 +1308,30 @@ def test_zip_names_without_utf8_flag_are_decoded():
     assert _zip_entry_name(info) == "Präsentation.pptx"
 
 
-def test_only_master_deletes_records_and_uploads(client, monkeypatch):
+def test_delete_own_uploads_master_deletes_all(client, monkeypatch):
     _mock_llm(monkeypatch, _llm_payload())
     files = {f"TP1_UEG07_SG{n}.pptx": _template_pptx(1, code=f"TP1-UEG07-SG{n}", b1=B1_TEXT, b2=B2_TEXT) for n in (1, 2, 3)}
     body = _upload(client, files).json()
     batch_id = body["batch_id"]
     first = body["briefings"][0]["briefing_id"]
-    tutor, master = _tutor_headers("UEGL01"), _master_headers()
-    # Übungsgruppenleiter dürfen nicht löschen — auch nicht die eigenen Uploads
-    assert client.delete(f"/briefings/{first}", headers=tutor).status_code == 403
-    assert client.delete(f"/briefings/batches/{batch_id}", headers=tutor).status_code == 403
+    other = _upload(client, files, headers=_tutor_headers("UEGL02")).json()
+    tutor, stranger, master = _tutor_headers("UEGL01"), _tutor_headers("UEGL02"), _master_headers()
+    # Fremde Uploads: nicht löschbar (gelten als nicht gefunden); ohne Anmeldung gar nicht
+    assert client.delete(f"/briefings/{first}", headers=stranger).status_code == 404
+    assert client.delete(f"/briefings/batches/{batch_id}", headers=stranger).status_code == 404
     assert client.delete(f"/briefings/{first}").status_code in (401, 503)
     assert len(client.get("/briefings", headers=tutor).json()) == 3
-    # Master: einzelne Auswertung, dann der ganze Upload
-    assert client.delete(f"/briefings/{first}", headers=master).json() == {"deleted": 1}
-    assert client.delete(f"/briefings/{first}", headers=master).status_code == 404
+    # Eigene: einzelne Auswertung, dann der ganze Upload — weg aus der eigenen Übersicht
+    assert client.delete(f"/briefings/{first}", headers=tutor).json() == {"deleted": 1}
+    assert client.delete(f"/briefings/{first}", headers=tutor).status_code == 404
     assert len(client.get("/briefings", headers=tutor).json()) == 2
-    assert client.delete(f"/briefings/batches/{batch_id}", headers=master).json() == {"deleted": 2}
+    assert client.delete(f"/briefings/batches/{batch_id}", headers=tutor).json() == {"deleted": 2}
     assert client.get("/briefings", headers=tutor).json() == []
     assert client.get("/briefings/batches", headers=tutor).json() == []
+    # Das andere Konto ist unberührt; der Master löscht auch dessen Upload
+    assert len(client.get("/briefings", headers=stranger).json()) == 3
+    assert client.delete(f"/briefings/batches/{other['batch_id']}", headers=master).json() == {"deleted": 3}
+    assert client.get("/briefings", headers=master).json() == []
     assert client.delete(f"/briefings/batches/{batch_id}", headers=master).status_code == 404
 
 

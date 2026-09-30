@@ -81,7 +81,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
   return proxy(request, path)
 }
 
-// Löschen von Auswertungen/Uploads — das Backend lässt es nur für den Master zu.
+// Löschen von Auswertungen/Uploads — das Backend lässt nur eigene zu (Master: alle).
 export async function DELETE(request: NextRequest, ctx: Ctx) {
   const { path } = await ctx.params
   return proxy(request, path)
