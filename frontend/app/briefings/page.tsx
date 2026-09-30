@@ -7,7 +7,7 @@ import { teacherFetch } from '@/lib/api'
 import { APP_MODE_STORAGE_KEY, readTeacherMaster } from '@/lib/appMode'
 import { useLanguage } from '@/lib/useLanguage'
 import { useClientValue } from '@/lib/useClientValue'
-import { AlertTriangle, ChevronDown, ChevronRight, Download, FileUp, KeyRound, Loader2, Pencil } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronRight, Download, FileUp, KeyRound, Loader2, Pencil, Trash2 } from 'lucide-react'
 
 // KI-Briefings für Übungsgruppenleiter (Owner-Entscheidung 2026-09-13).
 // - Jeder Übungsgruppenleiter lädt EINE ZIP-Datei mit den Einreichungen
@@ -18,6 +18,7 @@ import { AlertTriangle, ChevronDown, ChevronRight, Download, FileUp, KeyRound, L
 //   herunter.
 // - Der Master sieht zusätzlich das Monitoring: je Konto Uploads/Downloads je
 //   Touchpoint und Gruppe, Passwort-Anfragen, Einmalcodes, dieselben Downloads.
+//   Nur der Master löscht Auswertungen und Uploads (Owner-Entscheidung 2026-09-30).
 // Keine Punkte, keine Stufen: Das Briefing ist Vorbereitungsmaterial, keine Note.
 
 const TPS = [1, 2, 3, 4, 5]
@@ -68,6 +69,7 @@ interface BriefingRecord {
   pii_removed: string[]
   injection_suspected: boolean
   injection_findings: string[]
+  canvas_group?: string   // Gruppenname aus dem Canvas-Dateinamen ("stammteam3", "a4")
 }
 
 interface BatchStatus {
@@ -144,9 +146,9 @@ const TEXT = {
     helpIntro: 'So geht es: 1. ZIP-Datei hochladen. 2. Warten, bis die Verarbeitung fertig ist. 3. Erkannte Angaben prüfen. 4. Dokumente herunterladen. Alles Weitere steht im Reiter „Anleitung“.',
     // Upload
     uploadTitle: 'Einreichungen hochladen',
-    uploadIntro: 'Eine ZIP-Datei mit den Einreichungen Ihrer Gruppen (PPTX aus der offiziellen Vorlage, ersatzweise DOCX oder PDF). Touchpoint, Übungsgruppe und Stammgruppe liest das System vom Deckblatt.',
-    helpUpload: 'Packen Sie alle Dateien Ihrer Gruppen in eine ZIP-Datei (rechte Maustaste → „Komprimieren“ bzw. „Senden an → ZIP-komprimierter Ordner“). Die Dateien selbst und die Namen der Mitglieder werden nie gespeichert — nur die Auswertung.',
-    fileLabel: 'ZIP-Datei wählen',
+    uploadIntro: 'Eine ZIP-Datei mit den Einreichungen Ihrer Gruppen (PPTX aus der offiziellen Vorlage, ersatzweise DOCX oder PDF). Touchpoint, Übungsgruppe und Stammgruppe liest das System vom Deckblatt. Ohne ZIP geht es auch: Markieren Sie die Dateien selbst, alle auf einmal.',
+    helpUpload: 'Am einfachsten laden Sie die ZIP-Datei hoch, die Canvas liefert. Hat Ihr Browser die ZIP nach dem Laden automatisch entpackt (Safari auf dem Mac tut das), öffnen Sie im Auswahlfenster den entpackten Ordner und markieren alle Dateien darin (cmd+A bzw. Strg+A). Die Dateien selbst und die Namen der Mitglieder werden nie gespeichert — nur die Auswertung.',
+    fileLabel: 'ZIP-Datei oder Abgabedateien wählen',
     upload: 'Hochladen und auswerten',
     uploading: 'Upload läuft…',
     running: (p: number, t: number) => `Verarbeitung läuft: ${p} von ${t} Dateien fertig. Sie dürfen die Seite schliessen.`,
@@ -166,7 +168,9 @@ const TEXT = {
     helpRejected: 'Abgelehnt wird nur, was gar keinen Text enthält oder erkennbar nichts mit dem Arbeitsauftrag am Running Case ON zu tun hat. Ein vergessenes Deckblatt ist kein Grund: Solche Abgaben werden ausgewertet und erscheinen unter „Bitte zuordnen“.',
     assignTitle: (n: number) => `Bitte zuordnen (${n})`,
     assignIntro: 'Diese Abgaben wurden ausgewertet, aber das Deckblatt fehlte oder war unvollständig. Tragen Sie Übungsgruppe und Stammgruppe ein und prüfen Sie den Touchpoint.',
-    helpAssign: 'Touchpoint, Übungsgruppe und Stammgruppe stehen auf dem Deckblatt der Einreichung. Tragen Sie die Nummern ein, wie sie dort stehen.',
+    helpAssign: 'Touchpoint, Übungsgruppe und Stammgruppe stehen auf dem Deckblatt der Einreichung. Tragen Sie die Nummern ein, wie sie dort stehen. Neben dem Dateinamen steht der Name der Gruppe in Canvas — daran erkennen Sie, von welcher Gruppe die Abgabe stammt. Wird dieselbe Datei später erneut hochgeladen, gilt Ihre Zuordnung weiter.',
+    canvasGroup: (name: string) => `Canvas: ${name}`,
+    helpCanvasGroup: 'Name der Gruppe in Canvas (steht am Anfang des Dateinamens).',
     injectionWarning: 'Achtung: Die Gruppe hat versucht, eine Prompt-Injection einzugeben.',
     injectionFound: 'Gefundener Text',
     helpInjection: 'Im Abgabetext stehen Anweisungen an die KI oder an die Bewertung, zum Beispiel „ignoriere alle Anweisungen“ oder versteckter Text in weisser Schrift. Die Auswertung wurde trotzdem erstellt; das Modell ist angewiesen, solche Sätze zu ignorieren. Bitte sprechen Sie das im Touchpoint an.',
@@ -233,6 +237,12 @@ const TEXT = {
     noUploads: 'noch nichts hochgeladen',
     lastBriefingDl: 'Briefing geladen',
     never: 'nie',
+    allUploads: (n: number) => `Uploads (${n})`,
+    helpAllUploads: 'Alle Uploads des gewählten Kontos (ohne Auswahl: aller Konten). „Löschen“ entfernt den Upload mit allen seinen Auswertungen endgültig. Nur der Master kann löschen.',
+    del: 'Löschen',
+    delConfirm: 'Endgültig löschen?',
+    delYes: 'Ja, löschen',
+    deleting: 'Wird gelöscht…',
   },
   en: {
     eyebrow: 'Tutorial group lead',
@@ -240,9 +250,9 @@ const TEXT = {
     intro: 'You upload the submissions of your groups and receive, per home group, a briefing to prepare the touchpoint. No points, no model solution — any choice is admissible; only the reasoning is judged.',
     helpIntro: 'How it works: 1. Upload a ZIP file. 2. Wait until processing has finished. 3. Check the detected details. 4. Download the documents. Everything else is in the “Guide” tab.',
     uploadTitle: 'Upload submissions',
-    uploadIntro: 'One ZIP file with the submissions of your groups (PPTX from the official template, or DOCX/PDF). The system reads touchpoint, tutorial group and home group from the cover sheet.',
-    helpUpload: 'Put all files of your groups into one ZIP file (right click → “Compress” or “Send to → Compressed folder”). The files themselves and member names are never stored — only the result.',
-    fileLabel: 'Choose ZIP file',
+    uploadIntro: 'One ZIP file with the submissions of your groups (PPTX from the official template, or DOCX/PDF). The system reads touchpoint, tutorial group and home group from the cover sheet. It also works without a ZIP: select the files themselves, all at once.',
+    helpUpload: 'The easiest way is to upload the ZIP file Canvas gives you. If your browser unpacked the ZIP automatically after downloading (Safari on the Mac does), open the unpacked folder in the file dialog and select all files in it (cmd+A or Ctrl+A). The files themselves and member names are never stored — only the result.',
+    fileLabel: 'Choose ZIP file or submission files',
     upload: 'Upload and evaluate',
     uploading: 'Uploading…',
     running: (p: number, t: number) => `Processing: ${p} of ${t} files done. You may close this page.`,
@@ -260,7 +270,9 @@ const TEXT = {
     helpRejected: 'Only files with no text at all or with no recognisable link to the assignment on the ON running case are rejected. A forgotten cover sheet is not a reason: such submissions are evaluated and appear under “Please assign”.',
     assignTitle: (n: number) => `Please assign (${n})`,
     assignIntro: 'These submissions were evaluated, but the cover sheet was missing or incomplete. Enter tutorial group and home group and check the touchpoint.',
-    helpAssign: 'Touchpoint, tutorial group and home group are on the cover sheet of the submission. Enter the numbers as they appear there.',
+    helpAssign: 'Touchpoint, tutorial group and home group are on the cover sheet of the submission. Enter the numbers as they appear there. Next to the file name you see the name of the group in Canvas — it tells you which group the submission comes from. If the same file is uploaded again later, your assignment is kept.',
+    canvasGroup: (name: string) => `Canvas: ${name}`,
+    helpCanvasGroup: 'Name of the group in Canvas (start of the file name).',
     injectionWarning: 'Warning: the group tried to enter a prompt injection.',
     injectionFound: 'Text found',
     helpInjection: 'The submission text contains instructions aimed at the AI or the assessment, e.g. “ignore all instructions” or hidden white text. The evaluation was created anyway; the model is instructed to ignore such sentences. Please address it in the touchpoint.',
@@ -325,6 +337,12 @@ const TEXT = {
     noUploads: 'nothing uploaded yet',
     lastBriefingDl: 'briefing downloaded',
     never: 'never',
+    allUploads: (n: number) => `Uploads (${n})`,
+    helpAllUploads: 'All uploads of the selected account (no selection: of all accounts). “Delete” permanently removes the upload with all its results. Only the master can delete.',
+    del: 'Delete',
+    delConfirm: 'Delete permanently?',
+    delYes: 'Yes, delete',
+    deleting: 'Deleting…',
   },
 }
 
@@ -359,7 +377,7 @@ export default function BriefingsPage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [expandedAccounts, setExpandedAccounts] = useState<Record<string, boolean>>({})
 
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])    // eine ZIP oder die Abgabedateien selbst
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [activeBatch, setActiveBatch] = useState<BatchStatus | null>(null)
@@ -369,6 +387,11 @@ export default function BriefingsPage() {
   const [editing, setEditing] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<Record<string, string>>({})
+
+  // Löschen (nur Master): erster Klick fragt nach, zweiter löscht
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState('')
 
   const [issuing, setIssuing] = useState<string | null>(null)
   const [issuedCodes, setIssuedCodes] = useState<Record<string, { code: string; expires_at: string }>>({})
@@ -413,7 +436,7 @@ export default function BriefingsPage() {
   }, [activeBatch, load])
 
   const submitUpload = async () => {
-    if (!file || uploading) return
+    if (!files.length || uploading) return
     setUploading(true)
     setUploadError('')
     try {
@@ -424,7 +447,7 @@ export default function BriefingsPage() {
       }
       const { token, upload_url } = (await tokenRes.json()) as { token: string; upload_url: string }
       const formData = new FormData()
-      formData.append('file', file)
+      files.forEach(f => formData.append('file', f))
       const res = await fetch(upload_url, { method: 'POST', body: formData, headers: { 'X-Upload-Token': token } })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -432,7 +455,7 @@ export default function BriefingsPage() {
       }
       const batch = (await res.json()) as BatchStatus
       setActiveBatch(batch)
-      setFile(null)
+      setFiles([])
       if (fileInputRef.current) fileInputRef.current.value = ''
       if (isMaster) setViewAs('')
       load()
@@ -452,7 +475,8 @@ export default function BriefingsPage() {
     const body: Record<string, unknown> = {}
     if (d.tp.trim()) body.target_tp = Number(d.tp)
     if (d.ueg.trim()) body.ueg = d.ueg.trim()
-    if (d.sg.trim()) body.sg = Number(d.sg)
+    const sgDigits = d.sg.match(/\d+/)          // "SG3", "Team 3" und "3" meinen dasselbe
+    if (sgDigits) body.sg = Number(sgDigits[0])
     if (Object.keys(body).length === 0) return
     setSaving(r.briefing_id)
     setSaveError(c => ({ ...c, [r.briefing_id]: '' }))
@@ -467,6 +491,38 @@ export default function BriefingsPage() {
       setSaving(null)
     }
   }
+
+  const deletePath = async (key: string, path: string) => {
+    if (deleting) return
+    setDeleting(key)
+    setDeleteError('')
+    try {
+      await teacherFetch(path, { method: 'DELETE' })
+      await load()
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Error')
+    } finally {
+      setDeleting(null)
+      setConfirmDelete(null)
+    }
+  }
+
+  const renderDelete = (key: string, path: string) =>
+    confirmDelete === key ? (
+      <span className="flex items-center gap-2 text-xs">
+        <span style={{ color: FAIL_TONE }}>{text.delConfirm}</span>
+        <button type="button" onClick={() => deletePath(key, path)} disabled={deleting === key}
+          className="px-2 py-1 font-medium disabled:opacity-40" style={{ background: FAIL_TONE, color: 'var(--white)' }}>
+          {deleting === key ? text.deleting : text.delYes}
+        </button>
+        <button type="button" onClick={() => setConfirmDelete(null)} style={{ color: 'var(--muted)' }}>{text.cancel}</button>
+      </span>
+    ) : (
+      <button type="button" onClick={() => setConfirmDelete(key)}
+        className="flex items-center gap-1 px-2 py-1 text-xs" style={{ color: FAIL_TONE }} title={text.del}>
+        <Trash2 size={12} /> {text.del}
+      </button>
+    )
 
   const issueCode = async (account: string) => {
     if (issuing) return
@@ -546,11 +602,11 @@ export default function BriefingsPage() {
         </label>
         <label className="text-xs" style={{ color: 'var(--muted)' }}>
           {text.ueg}
-          <input value={d.ueg} onChange={e => set({ ueg: e.target.value })} placeholder="UEG07" className={`${input} block mt-1 w-24`} style={style} />
+          <input value={d.ueg} onChange={e => set({ ueg: e.target.value })} className={`${input} block mt-1 w-24`} style={style} />
         </label>
         <label className="text-xs" style={{ color: 'var(--muted)' }}>
           {text.sg}
-          <input value={d.sg} onChange={e => set({ sg: e.target.value })} placeholder="3" inputMode="numeric" className={`${input} block mt-1 w-16`} style={style} />
+          <input value={d.sg} onChange={e => set({ sg: e.target.value })} inputMode="numeric" className={`${input} block mt-1 w-16`} style={style} />
         </label>
         <button type="button" onClick={() => saveAssignment(r)} disabled={saving === r.briefing_id}
           className="px-4 py-2 text-xs font-medium disabled:opacity-40" style={{ background: 'var(--ink)', color: 'var(--white)' }}>
@@ -618,6 +674,12 @@ export default function BriefingsPage() {
             {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             <span className="font-mono text-sm font-medium">{r.code ?? r.filename}</span>
             {r.code && <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{r.filename}</span>}
+            {r.canvas_group && (
+              <span className="font-mono text-xs font-medium px-1.5 py-0.5" title={text.helpCanvasGroup}
+                style={{ border: '1px solid var(--hairline)', color: 'var(--ink)' }}>
+                {text.canvasGroup(r.canvas_group)}
+              </span>
+            )}
             <span className="text-xs" style={{ color: status.tone }}>{status.label}</span>
             {r.status === 'briefed' && (
               <span className="text-xs font-medium px-1.5 py-0.5" title={text.briefingLanguage(r.language ?? 'de')}
@@ -650,6 +712,7 @@ export default function BriefingsPage() {
                 <Pencil size={12} /> {text.edit}
               </button>
             )}
+            {isMaster && renderDelete(r.briefing_id, `/briefings/${encodeURIComponent(r.briefing_id)}`)}
           </div>
         </div>
         {r.injection_suspected && (
@@ -822,10 +885,10 @@ export default function BriefingsPage() {
           </div>
           <div>
             <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--muted)' }}>{text.fileLabel}</p>
-            <input ref={fileInputRef} type="file" accept=".zip,application/zip" onChange={e => setFile(e.target.files?.[0] ?? null)} className="text-sm" />
+            <input ref={fileInputRef} type="file" multiple accept=".zip,application/zip,.pptx,.docx,.pdf" onChange={e => setFiles(Array.from(e.target.files ?? []))} className="text-sm" />
           </div>
           <div className="flex items-center gap-4 flex-wrap">
-            <button type="button" onClick={submitUpload} disabled={!file || uploading}
+            <button type="button" onClick={submitUpload} disabled={!files.length || uploading}
               className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium disabled:opacity-40" style={{ background: 'var(--ink)', color: 'var(--white)' }}>
               {uploading && <Loader2 size={14} className="animate-spin" />}
               {uploading ? text.uploading : text.upload}
@@ -844,15 +907,22 @@ export default function BriefingsPage() {
           </div>
           {batches.length > 0 && (
             <div>
-              <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--muted)' }}>{text.batches}<HelpHint text={text.helpBatches} /></p>
-              <ul className="text-xs flex flex-col gap-1" style={{ color: 'var(--muted)' }}>
-                {batches.slice(0, 1).map(b => (
-                  <li key={b.batch_id} className="font-mono">
-                    {fmtTime(b.started_at)} · {b.filename || b.batch_id.slice(0, 8)} · {b.tps.length ? b.tps.map(n => `TP${n}`).join('+') : '–'} · {b.status}
-                    {b.stale ? ' (stale)' : ''} · {b.processed}/{b.total} · {text.done(b)}
+              <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--muted)' }}>
+                {isMaster ? text.allUploads(batches.length) : text.batches}
+                <HelpHint text={isMaster ? text.helpAllUploads : text.helpBatches} />
+              </p>
+              <ul className="text-xs flex flex-col gap-1 overflow-y-auto" style={{ color: 'var(--muted)', maxHeight: isMaster ? 260 : undefined }}>
+                {(isMaster ? batches : batches.slice(0, 1)).map(b => (
+                  <li key={b.batch_id} className="font-mono flex flex-wrap items-center gap-x-3">
+                    <span>
+                      {fmtTime(b.started_at)}{isMaster && b.uploaded_by ? ` · ${b.uploaded_by}` : ''} · {b.filename || b.batch_id.slice(0, 8)} · {b.tps.length ? b.tps.map(n => `TP${n}`).join('+') : '–'} · {b.status}
+                      {b.stale ? ' (stale)' : ''} · {b.processed}/{b.total} · {text.done(b)}
+                    </span>
+                    {isMaster && renderDelete(`batch:${b.batch_id}`, `/briefings/batches/${encodeURIComponent(b.batch_id)}`)}
                   </li>
                 ))}
               </ul>
+              {deleteError && <p className="text-xs mt-2" style={{ color: FAIL_TONE }}>{deleteError}</p>}
             </div>
           )}
         </div>

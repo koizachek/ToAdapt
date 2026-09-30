@@ -57,6 +57,12 @@ class IntakeDecision:
     notes: list[str] = field(default_factory=list)
 
 
+NO_TEXT_ONLY_PICTURES = (
+    "Folie 2 und 3 enthalten nur Bilder, keinen Text — Text in Bildern wird nicht gelesen. "
+    "Die Gruppe muss die Antworten als Text einreichen."
+)
+
+
 def validate_submission(sub: ExtractedSubmission) -> IntakeDecision:
     """Formale Voraussetzungen ohne Modell. Bewusst NICHT streng
     (Owner-Entscheidung 2026-09-14): Ein vergessenes Deckblatt oder fehlende
@@ -64,6 +70,8 @@ def validate_submission(sub: ExtractedSubmission) -> IntakeDecision:
     Übungsgruppenleiter trägt die Angaben nach. Abgelehnt wird nur, was gar
     keinen Text enthält (die Themenprüfung lehnt zusätzlich Fremdes ab)."""
     if not sub.has_content:
+        if sub.picture_count:
+            return IntakeDecision(False, NO_TEXT_ONLY_PICTURES)
         return IntakeDecision(False, "Kein Text in Baustein 1 und 2 gefunden — die Datei ist keine ausgefüllte Abgabe.")
     notes: list[str] = []
     kd = sub.kenndaten
@@ -191,8 +199,8 @@ class TopicClassifier:
 # ---------------------------------------------------------------------------
 
 _INJECTION_PATTERNS: list[re.Pattern[str]] = [
-    re.compile(r"\b(ignorier\w*|vergiss|missachte|übergeh\w*|uebergeh\w*)\b.{0,40}\b(anweisung|instruktion|regel|vorgabe|prompt|leitplanke)", re.IGNORECASE),
-    re.compile(r"\b(ignore|disregard|forget|override|bypass)\b.{0,40}\b(instruction|rule|prompt|guideline|previous|above|system)", re.IGNORECASE),
+    re.compile(r"\b(ignorier\w*|vergiss|missachte|übergeh\w*|uebergeh\w*)\b.{0,40}\b(anweisung(en)?|instruktion(en)?|regeln?|vorgaben?|prompts?|leitplanken?)\b", re.IGNORECASE),
+    re.compile(r"\b(ignore|disregard|forget|override|bypass)\b.{0,40}\b(instructions?|rules?|prompts?|guidelines?|previous|above|system)\b", re.IGNORECASE),
     re.compile(r"\bsystem\s?-?\s?prompt\b", re.IGNORECASE),
     re.compile(r"\b(du bist|you are)\s+(jetzt|now|ab jetzt|from now on)\b", re.IGNORECASE),
     re.compile(r"\b(als|an (die|das|den)|liebe[rs]?|hallo|hi|dear)\s+(ki|ai|sprachmodell|llm|chatgpt|claude|gpt|mistral|assistent|assistant|bewertungs\w*|modell|model|tutor-?ki)\b", re.IGNORECASE),

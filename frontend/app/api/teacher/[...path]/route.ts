@@ -80,3 +80,9 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
   const { path } = await ctx.params
   return proxy(request, path)
 }
+
+// Löschen von Auswertungen/Uploads — das Backend lässt es nur für den Master zu.
+export async function DELETE(request: NextRequest, ctx: Ctx) {
+  const { path } = await ctx.params
+  return proxy(request, path)
+}

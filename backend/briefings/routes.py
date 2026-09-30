@@ -8,7 +8,8 @@ Rollen (Owner-Entscheidung 2026-09-13):
   nicht durch eine Namensregel.
 - Der Master darf dasselbe und sieht zusätzlich alles: Monitoring je Konto
   (wer hat wann was hoch- und heruntergeladen), interne Einstufung, alle
-  Dokumente.
+  Dokumente. Nur der Master löscht Auswertungen und Uploads
+  (Owner-Entscheidung 2026-09-30).
 - Touchpoint, Übungsgruppe und Stammgruppe kommen vom Deckblatt der Datei
   (Code ``TPn-UEGxx-SGy``). Kein Auswahlfeld beim Upload. Ist etwas nicht
   erkennbar, wird die Datei als "bitte zuordnen" markiert und der
@@ -46,6 +47,7 @@ import io
 import re
 import uuid
 import zipfile
+from collections import Counter
 from dataclasses import dataclass
 
 import structlog
@@ -63,9 +65,13 @@ from backend.briefings.batches import (
 )
 from backend.briefings.docx_render import render_briefing_docx
 from backend.briefings.extraction import (
+    MAX_FILE_BYTES,
+    MAX_ZIP_ENTRIES,
+    SUPPORTED_EXTENSIONS,
     ExtractedSubmission,
     ZipValidationError,
     build_code,
+    canvas_group,
     extract_submission,
     iter_submission_entries,
     normalize_ueg,
@@ -107,6 +113,9 @@ TEACHER_MASTER_HEADER = "X-Teacher-Master"
 DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 STATUS_REJECTED = "rejected"                     # keine echte Abgabe → kein Briefing
+DUPLICATE_GROUP_NOTE = (
+    "Mehrere Abgaben dieses Uploads tragen dieselbe Stammgruppe — bitte Deckblätter prüfen und Zuordnung korrigieren."
+)
 
 
 # ---------------------------------------------------------------------------
@@ -250,6 +259,7 @@ class BriefingPublic(BaseModel):
     pii_removed: list[str] = Field(default_factory=list)
     injection_suspected: bool = False
     injection_findings: list[str] = Field(default_factory=list)
+    canvas_group: str = ""            # Gruppenname aus dem Canvas-Dateinamen ("stammteam3", "a4")
 
 
 class BatchStatus(BaseModel):
@@ -302,24 +312,40 @@ class BriefingOverviewRow(BaseModel):
 
 def _public(record: dict) -> BriefingPublic:
     data = {k: v for k, v in record.items() if k in BriefingPublic.model_fields}
+    data["canvas_group"] = canvas_group(str(record.get("filename", "")))
     return BriefingPublic(**data)
 
 
 def _latest_per_group(records: list[dict]) -> list[dict]:
     """Bei Mehrfach-Uploads derselben Stammgruppe durch DENSELBEN
-    Übungsgruppenleiter gewinnt der neueste Datensatz. Uploads verschiedener
+    Übungsgruppenleiter gewinnt der neueste Upload. Uploads verschiedener
     Konten bleiben nebeneinander bestehen; nicht zuordenbare Datensätze
-    bleiben alle erhalten."""
-    latest: dict[tuple, dict] = {}
+    bleiben alle erhalten. Tragen mehrere Abgaben DESSELBEN Uploads dieselbe
+    Stammgruppe (falsch ausgefüllte Deckblätter), bleiben alle sichtbar und
+    werden zur Prüfung markiert — keine verdrängt die andere."""
+    latest: dict[tuple, list[dict]] = {}
     unassigned: list[dict] = []
     for r in records:
         if r.get("target_tp") and r.get("ueg") and r.get("sg"):
             key = (int(r["target_tp"]), r.get("uploaded_by"), r["ueg"], int(r["sg"]))
-            if key not in latest or str(r.get("uploaded_at", "")) > str(latest[key].get("uploaded_at", "")):
-                latest[key] = r
+            current = latest.get(key)
+            if current is None:
+                latest[key] = [r]
+            elif r.get("batch_id") and r.get("batch_id") == current[0].get("batch_id"):
+                current.append(r)
+            elif str(r.get("uploaded_at", "")) > max(str(c.get("uploaded_at", "")) for c in current):
+                latest[key] = [r]
         else:
             unassigned.append(r)
-    return list(latest.values()) + unassigned
+    out: list[dict] = []
+    for group in latest.values():
+        if len(group) == 1:
+            out.append(group[0])
+            continue
+        for r in group:
+            reason = " ".join(x for x in (DUPLICATE_GROUP_NOTE, r.get("review_reason")) if x)
+            out.append({**r, "needs_human_review": True, "review_reason": reason})
+    return out + unassigned
 
 
 def _tutor_filter_value(tutor: str | None) -> str | None:
@@ -438,27 +464,47 @@ async def _generate_into(
     return record
 
 
-_CANVAS_GROUP_RE = re.compile(r"^(?:stammgruppe|core\s*team|home\s*group|gruppe|group)\s*[-_ ]?0?([1-8])(?!\d)", re.IGNORECASE)
+# Canvas stellt dem Dateinamen den Gruppennamen voran ("stammteam3_…", "sg3_…").
+# Nur Namen mit eindeutiger Nummer 1–8; "a4"/"b2" bleiben offen (nachtragen).
+_CANVAS_GROUP_RE = re.compile(
+    r"^(?:stamm\s*gruppe|stamm\s*team|core\s*team|home\s*group|home\s*team|projekt\s*gruppe|projekt\s*team|"
+    r"gruppe|group|team|sg)\s*[-_ ]?0?([1-8])(?!\d)",
+    re.IGNORECASE,
+)
 
 
-def _upload_ueg(entries: list[tuple[str, bytes]]) -> str:
-    """Die Übungsgruppe, die alle erkannten Deckblätter eines Uploads gemeinsam
-    haben (Canvas-Export einer Übungsgruppe); leer bei keiner oder mehreren."""
-    uegs: set[str] = set()
+def _majority(values: list) -> object | None:
+    """Der Wert, den mindestens zwei Drittel der erkannten Deckblätter tragen:
+    einzelne falsch ausgefüllte Deckblätter kippen ihn nicht, ein ZIP mit
+    zwei Übungsgruppen ergibt keinen."""
+    if not values:
+        return None
+    value, count = Counter(values).most_common(1)[0]
+    return value if count * 3 >= len(values) * 2 else None
+
+
+def _upload_consensus(entries: list[tuple[str, bytes]]) -> tuple[str, int | None]:
+    """Übungsgruppe und Touchpoint, die die Mehrheit der erkannten Deckblätter
+    eines Uploads trägt (Canvas-Export einer Übungsgruppe zu einem Touchpoint)."""
+    uegs: list[str] = []
+    tps: list[int] = []
     for filename, payload in entries:
         try:
-            ueg = _extract(filename, payload).kenndaten.ueg
+            kd = _extract(filename, payload).kenndaten
         except ValueError:
             continue
-        if ueg:
-            uegs.add(ueg)
-    return uegs.pop() if len(uegs) == 1 else ""
+        if kd.ueg:
+            uegs.append(kd.ueg)
+        if kd.tp in SUPPORTED_TPS:
+            tps.append(kd.tp)
+    return str(_majority(uegs) or ""), _majority(tps)
 
 
-def _fill_group(sub: ExtractedSubmission, filename: str, upload_ueg: str) -> list[str]:
-    """Deckblatt ohne Übungs-/Stammgruppe: Übungsgruppe aus den übrigen
-    Abgaben desselben Uploads, Stammgruppe aus dem Canvas-Präfix des
-    Dateinamens (``stammgruppe4_…``, ``coreteam5_…``). Rückgabe: Hinweise."""
+def _fill_group(sub: ExtractedSubmission, filename: str, upload_ueg: str, upload_tp: int | None = None) -> list[str]:
+    """Deckblatt ohne Übungs-/Stammgruppe/Touchpoint: Übungsgruppe und
+    Touchpoint aus den übrigen Abgaben desselben Uploads, Stammgruppe aus dem
+    Canvas-Präfix des Dateinamens (``stammteam4_…``, ``coreteam5_…``).
+    Rückgabe: Hinweise."""
     kd = sub.kenndaten
     notes: list[str] = []
     if not kd.ueg and upload_ueg:
@@ -468,7 +514,27 @@ def _fill_group(sub: ExtractedSubmission, filename: str, upload_ueg: str) -> lis
     if not kd.sg and group:
         kd.sg = int(group.group(1))
         notes.append(f"Stammgruppe SG{kd.sg} aus dem Dateinamen übernommen.")
+    if kd.tp not in SUPPORTED_TPS and upload_tp in SUPPORTED_TPS:
+        kd.tp = upload_tp
+        notes.append(f"Touchpoint {upload_tp} aus den übrigen Abgaben dieses Uploads übernommen.")
+    if notes and not kd.source:
+        kd.source = "upload"
     return notes
+
+
+def _manual_assignments(uploaded_by: str | None) -> dict[str, tuple[int, str, int]]:
+    """Zuordnungen, die dieses Konto früher von Hand eingetragen hat, je
+    Dateiname (neueste zuerst gewinnt). Wird dieselbe Datei erneut
+    hochgeladen, gilt die Korrektur weiter und muss nicht wiederholt werden."""
+    out: dict[str, tuple[int, str, int]] = {}
+    records = [
+        r for r in briefing_store.load_all()
+        if r.get("uploaded_by") == uploaded_by and r.get("code_source") == "manual"
+        and r.get("target_tp") and r.get("ueg") and r.get("sg")
+    ]
+    for r in sorted(records, key=lambda r: str(r.get("uploaded_at", ""))):
+        out[str(r.get("filename", ""))] = (int(r["target_tp"]), r["ueg"], int(r["sg"]))
+    return out
 
 
 def _rejected(base: dict, sub: ExtractedSubmission | None, reason: str) -> BriefingRecord:
@@ -501,6 +567,8 @@ async def _process_entry(
     data: bytes,
     uploaded_by: str | None,
     upload_ueg: str = "",
+    upload_tp: int | None = None,
+    manual: dict[str, tuple[int, str, int]] | None = None,
 ) -> BriefingRecord:
     briefing_id = str(uuid.uuid4())
     uploaded_at = naive_utcnow().isoformat()
@@ -516,7 +584,7 @@ async def _process_entry(
     try:
         sub = await asyncio.to_thread(_extract, filename, data)
     except ValueError as exc:
-        logger.warning("briefing_extraction_failed", filename=filename, error=str(exc))
+        logger.warning("briefing_extraction_failed", filename=filename, error=str(exc), cause=repr(exc.__cause__))
         return BriefingRecord(
             **base,
             status="extraction_failed",
@@ -526,7 +594,13 @@ async def _process_entry(
             formal={"filename": filename},
         )
 
-    fill_notes = _fill_group(sub, filename, upload_ueg)
+    if manual and filename in manual:
+        kd = sub.kenndaten
+        kd.tp, kd.ueg, kd.sg = manual[filename]
+        kd.code, kd.source = build_code(kd.tp, kd.ueg, kd.sg), "manual"
+        fill_notes: list[str] = []
+    else:
+        fill_notes = _fill_group(sub, filename, upload_ueg, upload_tp)
 
     # 1. Formale Eingangsprüfung: nur leere Dateien werden abgelehnt; fehlendes
     #    Deckblatt oder fehlende Marker geben Hinweise (nachtragen statt ablehnen)
@@ -591,13 +665,15 @@ async def _process_entry(
 
 @upload_router.post("/upload", response_model=BriefingBatchResponse, status_code=202)
 async def upload_submissions(
-    file: UploadFile = File(...),
+    file: list[UploadFile] = File(...),
     sync: bool = Form(default=False),
     ctx: TeacherContext = Depends(upload_auth),
 ):
     """Upload einer ZIP-Datei mit Einreichungen (PPTX/DOCX/PDF) → je Datei ein
-    Briefing. Touchpoint, Übungsgruppe und Stammgruppe werden
-    vom Deckblatt gelesen. Speichert nur die Auswertung, nie die Dateien.
+    Briefing. Statt der ZIP gehen auch die Dateien selbst, einzeln oder
+    mehrere auf einmal (Safari entpackt geladene ZIPs automatisch — dann gibt
+    es keine ZIP mehr zum Auswählen). Touchpoint, Übungsgruppe und Stammgruppe
+    werden vom Deckblatt gelesen. Speichert nur die Auswertung, nie die Dateien.
 
     Standard ist asynchron: Antwort 202 mit Batch-Status, Verarbeitung im
     Hintergrund (Fortschritt über GET /briefings/batches/{batch_id}).
@@ -606,16 +682,40 @@ async def upload_submissions(
     if not api_key:
         raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
 
-    data = await file.read()
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="ZIP ist zu gross (max. 400 MB).")
-
+    names = [(f.filename or "").rsplit("/", 1)[-1] for f in file]
+    upload_name = names[0] if len(names) == 1 else f"{len(names)} Dateien"
+    entries: list[tuple[str, bytes]] = []
+    total_bytes = 0
     try:
-        entries = list(iter_submission_entries(data))
+        for name, part in zip(names, file):
+            data = await part.read()
+            total_bytes += len(data)
+            if total_bytes > MAX_UPLOAD_BYTES:
+                raise HTTPException(status_code=413, detail="Upload ist zu gross (max. 400 MB).")
+            if name.lower().endswith(SUPPORTED_EXTENSIONS):
+                # Abgabe direkt statt ZIP (eine PPTX ist selbst ein ZIP-Container)
+                if len(data) > MAX_FILE_BYTES:
+                    raise ZipValidationError(
+                        f"'{name}' überschreitet das Dateilimit von {MAX_FILE_BYTES // (1024 * 1024)} MB."
+                    )
+                entries.append((name, data))
+                continue
+            try:
+                entries.extend(iter_submission_entries(data))
+            except ZipValidationError:
+                if len(file) == 1:
+                    raise
+                # Mehrfachauswahl: Fremddateien im Ordner überspringen
+                logger.info("briefing_upload_file_skipped", filename=name, uploaded_by=ctx.label)
+        if not entries:
+            raise ZipValidationError("Keine PPTX-, DOCX- oder PDF-Dateien im Upload.")
+        if len(entries) > MAX_ZIP_ENTRIES:
+            raise ZipValidationError(f"Upload enthält zu viele Dateien (max. {MAX_ZIP_ENTRIES}).")
     except ZipValidationError as exc:
+        logger.info("briefing_upload_rejected", reason=str(exc), filename=upload_name, uploaded_by=ctx.label)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    del data
-    upload_ueg = await asyncio.to_thread(_upload_ueg, entries)
+    upload_ueg, upload_tp = await asyncio.to_thread(_upload_consensus, entries)
+    manual = await asyncio.to_thread(_manual_assignments, ctx.tutor_id)
 
     generator = BriefingGenerator(api_key=api_key)
     topic_classifier = TopicClassifier(api_key=api_key)
@@ -626,7 +726,7 @@ async def upload_submissions(
         target_tp=0,
         total=len(entries),
         uploaded_by=ctx.tutor_id,
-        filename=file.filename or "",
+        filename=upload_name,
     )
     batch["tps"] = []
     await asyncio.to_thread(batch_store.save, batch)
@@ -650,6 +750,8 @@ async def upload_submissions(
             data=payload,
             uploaded_by=ctx.tutor_id,
             upload_ueg=upload_ueg,
+            upload_tp=upload_tp,
+            manual=manual,
         )
         dumped = record.model_dump()
         records.append(dumped)
@@ -705,6 +807,26 @@ async def get_batch(batch_id: str, ctx: TeacherContext = Depends(teacher_context
     out = with_stale_flag(batch)
     out.setdefault("tps", [out["target_tp"]] if out.get("target_tp") else [])
     return BatchStatus(**out)
+
+
+@router.delete("/batches/{batch_id}")
+async def delete_batch(batch_id: str, ctx: TeacherContext = Depends(require_master)):
+    """Löscht einen Upload mit allen seinen Auswertungen endgültig — nur Master."""
+    batch = batch_store.get(batch_id)
+    records = [r for r in briefing_store.load_all() if r.get("batch_id") == batch_id]
+    if not batch and not records:
+        raise HTTPException(status_code=404, detail="Upload nicht gefunden")
+    if batch and batch.get("status") == "running" and not with_stale_flag(batch)["stale"]:
+        raise HTTPException(status_code=409, detail="Upload wird noch verarbeitet — bitte warten")
+    deleted = 0
+    for r in records:
+        deleted += int(await asyncio.to_thread(briefing_store.delete, str(r["briefing_id"])))
+    await asyncio.to_thread(batch_store.delete, batch_id)
+    logger.info(
+        "briefing_batch_deleted", batch_id=batch_id, records=deleted, by=ctx.label,
+        uploaded_by=(batch or {}).get("uploaded_by") or (records[0].get("uploaded_by") if records else None),
+    )
+    return {"deleted": deleted}
 
 
 # ---------------------------------------------------------------------------
@@ -926,6 +1048,20 @@ async def download_single_briefing(briefing_id: str, ctx: TeacherContext = Depen
     )
 
 
+@router.delete("/{briefing_id}")
+async def delete_briefing(briefing_id: str, ctx: TeacherContext = Depends(require_master)):
+    """Löscht eine einzelne Auswertung endgültig — nur Master."""
+    record = briefing_store.get(briefing_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Briefing nicht gefunden")
+    await asyncio.to_thread(briefing_store.delete, briefing_id)
+    logger.info(
+        "briefing_deleted", briefing_id=briefing_id, by=ctx.label,
+        uploaded_by=record.get("uploaded_by"), code=record.get("code"), status=record.get("status"),
+    )
+    return {"deleted": 1}
+
+
 @router.patch("/{briefing_id}", response_model=BriefingPublic)
 async def patch_assignment(
     briefing_id: str, patch: AssignmentPatch, ctx: TeacherContext = Depends(teacher_context)
@@ -944,7 +1080,9 @@ async def patch_assignment(
     tp = patch.target_tp or old_tp
     ueg = record.get("ueg") or ""
     if patch.ueg is not None:
-        ueg = normalize_ueg(patch.ueg)
+        # "ÜG 6", "Gruppe 06", "UEG06" und "6" meinen dasselbe
+        number = re.search(r"\d{1,2}", patch.ueg)
+        ueg = normalize_ueg(number.group(0)) if number else ""
         if not ueg:
             raise HTTPException(status_code=422, detail="Übungsgruppe ungültig (erwartet z.B. UEG07)")
     sg = patch.sg if patch.sg is not None else record.get("sg")

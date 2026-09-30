@@ -49,6 +49,13 @@ FILENAME_RE = re.compile(
     r"TP\s*([1-5])[-_ ]UEG\s*(\d{1,2})[-_ ]SG\s*([1-8])",
     re.IGNORECASE,
 )
+# Code mit erkennbarem Touchpoint und Übungsgruppe, aber abweichender
+# Stammgruppen-Schreibweise ("TP1-UEG06-SGA4", "TP1_UEG06_Team B2"): TP und
+# UEG werden trotzdem übernommen, die Stammgruppe bleibt offen.
+PARTIAL_CODE_RE = re.compile(r"TP\s*([1-5])\s*[-_– ]\s*UEG\s*(\d{1,2})(?!\d)", re.IGNORECASE)
+_FILENAME_TP_RE = re.compile(r"(?<![A-Za-z])(?:TP|Touchpoint)[\s_+-]*([1-5])(?!\d)", re.IGNORECASE)
+# Canvas-Export: "<gruppenname>_[LATE_]<id>_<abgabe-id>_<originalname>"
+_CANVAS_PREFIX_RE = re.compile(r"^([^_]+)_(?:LATE_)?\d+_\d+_")
 _BAUSTEIN_MARK = {
     1: re.compile(r"^\s*(?:folie\s*2\s*[-–:·]?\s*)?baustein\s*1\b", re.IGNORECASE),
     2: re.compile(r"^\s*(?:folie\s*3\s*[-–:·]?\s*)?baustein\s*2\b", re.IGNORECASE),
@@ -87,6 +94,8 @@ class ExtractedSubmission:
     hidden_text: list[dict] = field(default_factory=list)
     # Labels entfernter personenbezogener Angaben (E-Mail, Matrikel, Namenszeile).
     pii_hits: list[str] = field(default_factory=list)
+    # Bilder auf den Baustein-Folien (PPTX) — Text in Bildern wird nicht gelesen.
+    picture_count: int = 0
 
     @property
     def has_content(self) -> bool:
@@ -160,6 +169,63 @@ def parse_code_from_filename(filename: str) -> tuple[int, str, int] | None:
     if not match:
         return None
     return int(match.group(1)), normalize_ueg(match.group(2)), int(match.group(3))
+
+
+def parse_partial_code(text: str) -> tuple[int, str] | None:
+    """Touchpoint und Übungsgruppe aus einem Code, dessen Stammgruppe nicht
+    dem Muster SG1–SG8 folgt."""
+    match = PARTIAL_CODE_RE.search(_without_format_hints(text))
+    if not match:
+        return None
+    return int(match.group(1)), normalize_ueg(match.group(2))
+
+
+def canvas_group(filename: str) -> str:
+    """Gruppenname, den Canvas dem Dateinamen voranstellt ('stammteam3',
+    'a4'); leer, wenn der Dateiname nicht aus einem Canvas-Export stammt."""
+    match = _CANVAS_PREFIX_RE.match(filename or "")
+    return match.group(1) if match else ""
+
+
+def _original_name(filename: str) -> str:
+    """Dateiname ohne Canvas-Präfix (Gruppenname und IDs)."""
+    return _CANVAS_PREFIX_RE.sub("", filename or "")
+
+
+def _merge_kenndaten(kd: Kenndaten, source: str, tp: int | None = None, ueg: str = "", sg: int | None = None) -> None:
+    """Füllt nur, was noch fehlt; die erste Quelle, die etwas beiträgt, wird vermerkt."""
+    changed = False
+    if tp in SUPPORTED_TPS and not kd.tp:
+        kd.tp, changed = tp, True
+    if ueg and not kd.ueg:
+        kd.ueg, changed = ueg, True
+    if sg and not kd.sg:
+        kd.sg, changed = sg, True
+    if changed and not kd.source:
+        kd.source = source
+
+
+def _merge_from_text(kd: Kenndaten, source: str, text: str) -> None:
+    parsed = parse_code(text)
+    if parsed:
+        _merge_kenndaten(kd, source, *parsed)
+        return
+    partial = parse_partial_code(text)
+    if partial:
+        _merge_kenndaten(kd, source, *partial)
+
+
+def _merge_from_filename(kd: Kenndaten, filename: str) -> None:
+    parsed = parse_code_from_filename(filename)
+    if parsed:
+        _merge_kenndaten(kd, "filename", *parsed)
+        return
+    # Sonst nur der Touchpoint ("…_TP1_…", "Touchpoint 1"): Die Übungsgruppe im
+    # Dateinamen ist zu oft falsch — sie kommt vom Deckblatt oder aus den
+    # übrigen Abgaben desselben Uploads.
+    tp = _FILENAME_TP_RE.search(_original_name(filename))
+    if tp:
+        _merge_kenndaten(kd, "filename", tp=int(tp.group(1)))
 
 
 def split_bausteine(text: str) -> tuple[str, str, bool]:
@@ -250,7 +316,18 @@ def iter_submission_entries(zip_bytes: bytes) -> Iterator[tuple[str, bytes]]:
             raise ZipValidationError("ZIP-Inhalt überschreitet das Gesamt-Limit.")
 
     for info in selected:
-        yield info.filename.rsplit("/", 1)[-1], archive.read(info)
+        yield _zip_entry_name(info).rsplit("/", 1)[-1], archive.read(info)
+
+
+def _zip_entry_name(info: zipfile.ZipInfo) -> str:
+    """zipfile liest Namen ohne UTF-8-Flag als CP437 — Umlaute und
+    Gedankenstriche aus macOS/Canvas-Archiven kämen sonst verstümmelt an."""
+    if info.flag_bits & 0x800:
+        return info.filename
+    try:
+        return info.filename.encode("cp437").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return info.filename
 
 
 # ---------------------------------------------------------------------------
@@ -275,6 +352,17 @@ def _shape_texts(shape) -> list[tuple[str, str]]:
         if text.strip():
             out.append((shape.name, text))
     return out
+
+
+def _picture_count(shapes) -> int:
+    """Bilder auf einer Folie, rekursiv über Gruppen (PICTURE oder gefüllter Bildplatzhalter)."""
+    count = 0
+    for shape in shapes:
+        if getattr(shape, "shape_type", None) == 6 and hasattr(shape, "shapes"):
+            count += _picture_count(shape.shapes)
+        elif getattr(shape, "shape_type", None) == 13 or type(shape).__name__ == "PlaceholderPicture":
+            count += 1
+    return count
 
 
 def _is_pptx_boilerplate(shape, text: str, boilerplate: set[str]) -> bool:
@@ -373,34 +461,27 @@ def _kenndaten_from_pptx(slide, filename: str) -> tuple[Kenndaten, bool]:
     kd = Kenndaten()
     # Vom Deckblatt wird AUSSCHLIESSLICH der Code gelesen. Das Namensfeld
     # (KENN_NAMEN) wird nicht angefasst — keine personenbezogenen Daten.
-    parsed = parse_code(fields.get("KENN_CODE", ""))
-    if parsed:
-        kd.tp, kd.ueg, kd.sg = parsed
-        kd.source = "kenndaten"
-    else:
-        ueg = normalize_ueg(fields.get("KENN_UEG", ""))
-        sg_match = re.fullmatch(r"\s*0?([1-8])\s*", fields.get("KENN_SG", "") or "")
-        tp_match = re.fullmatch(r"\s*([1-5])\s*", fields.get("KENN_TP", "") or "")
-        if ueg and sg_match:
-            kd.ueg, kd.sg = ueg, int(sg_match.group(1))
-            kd.tp = int(tp_match.group(1)) if tp_match else None
-            kd.source = "kenndaten"
-    if not kd.source:
+    # Jede Quelle füllt nur, was noch fehlt: Code-Feld → Einzelfelder →
+    # übriger Deckblatt-Text → Dateiname.
+    _merge_from_text(kd, "kenndaten", fields.get("KENN_CODE", ""))
+    sg_match = re.fullmatch(r"\s*(?:SG)?\s*0?([1-8])\s*", fields.get("KENN_SG", "") or "", re.IGNORECASE)
+    tp_match = re.fullmatch(r"\s*(?:TP)?\s*([1-5])\s*", fields.get("KENN_TP", "") or "", re.IGNORECASE)
+    _merge_kenndaten(
+        kd, "kenndaten",
+        tp=int(tp_match.group(1)) if tp_match else None,
+        ueg=normalize_ueg(fields.get("KENN_UEG", "")),
+        sg=int(sg_match.group(1)) if sg_match else None,
+    )
+    if not (kd.tp and kd.ueg and kd.sg):
         # Nur Nicht-Vorlagen-Shapes: Labels (L_*), Hinweise (H_*) und die
         # Fusszeile (DECK_FUSS) tragen Beispielcodes, keine Kenndaten.
         all_text = "\n".join(
             t for shape in slide.shapes for name, t in _shape_texts(shape)
             if not name.upper().startswith(("L_", "H_", "DECK_", "KOPF_"))
         )
-        parsed = parse_code(all_text)
-        if parsed:
-            kd.tp, kd.ueg, kd.sg = parsed
-            kd.source = "text"
-    if not kd.source:
-        parsed = parse_code_from_filename(filename)
-        if parsed:
-            kd.tp, kd.ueg, kd.sg = parsed
-            kd.source = "filename"
+        _merge_from_text(kd, "text", all_text)
+    if not (kd.tp and kd.ueg and kd.sg):
+        _merge_from_filename(kd, filename)
     if kd.ueg and kd.sg and kd.tp:
         kd.code = build_code(kd.tp, kd.ueg, kd.sg)
     return kd, template
@@ -428,6 +509,11 @@ def extract_pptx(filename: str, data: bytes, expected_tp: int | None = None) -> 
         w, h = prs.slide_width, prs.slide_height
         sub.baustein1 = _slide_content(slides[1], boilerplate, sub.hidden_text, w, h)
         sub.baustein2 = _slide_content(slides[2], boilerplate, sub.hidden_text, w, h)
+        sub.picture_count = _picture_count(slides[1].shapes) + _picture_count(slides[2].shapes)
+        if sub.picture_count:
+            sub.notes.append(
+                f"Folie 2 und 3 enthalten {sub.picture_count} Bild(er) — Text in Bildern wurde nicht gelesen."
+            )
         if len(slides) > 3:
             sub.notes.append(f"Abgabe hat {len(slides)} Folien (Vorlage: 3); nur Folie 2 und 3 wurden gelesen.")
     else:
@@ -517,15 +603,9 @@ def extract_pdf(filename: str, data: bytes, expected_tp: int | None = None) -> E
 
 def _kenndaten_from_text(text: str, filename: str) -> Kenndaten:
     kd = Kenndaten()
-    parsed = parse_code(text)
-    if parsed:
-        kd.tp, kd.ueg, kd.sg = parsed
-        kd.source = "text"
-    else:
-        parsed = parse_code_from_filename(filename)
-        if parsed:
-            kd.tp, kd.ueg, kd.sg = parsed
-            kd.source = "filename"
+    _merge_from_text(kd, "text", text)
+    if not (kd.tp and kd.ueg and kd.sg):
+        _merge_from_filename(kd, filename)
     if kd.ueg and kd.sg and kd.tp:
         kd.code = build_code(kd.tp, kd.ueg, kd.sg)
     return kd

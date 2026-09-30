@@ -31,6 +31,7 @@ from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt, RGBColor
 
+from backend.briefings.extraction import canvas_group
 from backend.briefings.i18n import DOC_LABELS, FEED_FORWARD_EN, format_date_long, normalize_language, translate_note
 from backend.briefings.rubrics import BRIEFING_SCHEDULE, FEED_FORWARD, KI_RUBRICS_DIR, BriefingRubric, load_rubric
 
@@ -157,7 +158,10 @@ def _formal_table(doc, formal: dict, rubric: BriefingRubric, language: str) -> N
     else:
         label = L["code_missing"]
     rows.append((L["row_group"], label))
-    rows.append((L["row_filename"], str(formal.get("filename", ""))))
+    filename = str(formal.get("filename", ""))
+    rows.append((L["row_filename"], filename))
+    if canvas_group(filename):
+        rows.append((L["row_canvas_group"], canvas_group(filename)))
     fmt = str(formal.get("format", "")).upper()
     rows.append((L["row_format"], fmt + (L["official_template"] if formal.get("template_detected") else "")))
     if formal.get("full_sentences_hint"):

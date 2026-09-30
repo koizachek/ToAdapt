@@ -80,6 +80,19 @@ class BatchStore:
                 pass
         return results
 
+    def delete(self, batch_id: str) -> bool:
+        path = BATCH_DIR / f"{batch_id}.json"
+        existed = path.exists()
+        path.unlink(missing_ok=True)
+        collection = mongo.get_collection(self.collection_name)
+        if collection is not None:
+            try:
+                existed = bool(collection.delete_one({"batch_id": batch_id}).deleted_count) or existed
+            except Exception as exc:  # pragma: no cover - external service failure
+                logger.warning("briefing_batch_store_delete_failed", batch_id=batch_id, error=str(exc))
+                return False
+        return existed
+
     def get(self, batch_id: str) -> dict[str, Any] | None:
         for batch in self.load_all():
             if str(batch.get("batch_id", "")) == batch_id:

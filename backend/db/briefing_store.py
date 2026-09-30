@@ -67,6 +67,20 @@ class BriefingStore:
                 pass
         return results
 
+    def delete(self, briefing_id: str) -> bool:
+        """Löscht einen Datensatz endgültig (Mongo und Datei-Fallback)."""
+        path = RESULTS_DIR / f"{briefing_id}.json"
+        existed = path.exists()
+        path.unlink(missing_ok=True)
+        collection = mongo.get_collection(self.collection_name)
+        if collection is not None:
+            try:
+                existed = bool(collection.delete_one({"briefing_id": briefing_id}).deleted_count) or existed
+            except Exception as exc:  # pragma: no cover - external service failure
+                logger.warning("briefing_store_delete_failed", briefing_id=briefing_id, error=str(exc))
+                return False
+        return existed
+
     def get(self, briefing_id: str) -> dict[str, Any] | None:
         for record in self.load_all():
             if str(record.get("briefing_id", "")) == briefing_id:
