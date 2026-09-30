@@ -22,11 +22,12 @@ import io
 import re
 import zipfile
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Iterator
 
 from pypdf import PdfReader
 
-from backend.briefings.rubrics import SUPPORTED_TPS, template_boilerplate
+from backend.briefings.rubrics import SUPPORTED_TPS, load_rubric, template_boilerplate
 
 SUPPORTED_EXTENSIONS = (".pptx", ".docx", ".pdf")
 
@@ -94,8 +95,10 @@ class ExtractedSubmission:
     hidden_text: list[dict] = field(default_factory=list)
     # Labels entfernter personenbezogener Angaben (E-Mail, Matrikel, Namenszeile).
     pii_hits: list[str] = field(default_factory=list)
-    # Bilder auf den Baustein-Folien (PPTX) — Text in Bildern wird nicht gelesen.
+    # Grosse Bilder auf den Baustein-Folien (PPTX) — Text in Bildern wird nicht gelesen.
     picture_count: int = 0
+    pictures_baustein1: int = 0
+    pictures_baustein2: int = 0
 
     @property
     def has_content(self) -> bool:
@@ -354,15 +357,62 @@ def _shape_texts(shape) -> list[tuple[str, str]]:
     return out
 
 
-def _picture_count(shapes) -> int:
-    """Bilder auf einer Folie, rekursiv über Gruppen (PICTURE oder gefüllter Bildplatzhalter)."""
+# Ab diesem Anteil an der Folienfläche gilt ein Bild als Träger von Inhalt
+# (Screenshot einer gestalteten Folie); kleinere sind Icons oder Logos.
+LARGE_PICTURE_SHARE = 0.15
+
+
+def _picture_count(shapes, slide_area: int, max_area: int | None = None) -> int:
+    """Grosse Bilder auf einer Folie, rekursiv über Gruppen (PICTURE oder
+    gefüllter Bildplatzhalter). In Gruppen zählt höchstens die Gruppenfläche."""
     count = 0
     for shape in shapes:
+        area = (shape.width or 0) * (shape.height or 0)
+        if max_area is not None:
+            area = min(area, max_area)
         if getattr(shape, "shape_type", None) == 6 and hasattr(shape, "shapes"):
-            count += _picture_count(shape.shapes)
+            count += _picture_count(shape.shapes, slide_area, area)
         elif getattr(shape, "shape_type", None) == 13 or type(shape).__name__ == "PlaceholderPicture":
-            count += 1
+            count += int(bool(slide_area) and area / slide_area >= LARGE_PICTURE_SHARE)
     return count
+
+
+# Vorlagentitel der Baustein-Folien ("Baustein 1 - …", "Building block 2 - …")
+_TEMPLATE_TITLE_RE = re.compile(r"^\s*(?:baustein|building\s+block)\s*[12]\b", re.IGNORECASE)
+
+
+def _is_title(shape) -> bool:
+    return bool(getattr(shape, "is_placeholder", False)) and shape.placeholder_format.type in (1, 3)
+
+
+@lru_cache(maxsize=None)
+def _baustein_titles() -> tuple[str, ...]:
+    """Bausteintitel aller Touchpoints (deutsch und englisch), längste zuerst."""
+    titles: set[str] = set()
+    for tp in SUPPORTED_TPS:
+        for language in ("de", "en"):
+            try:
+                titles.update(b.title.strip().lower() for b in load_rubric(tp, language).bausteine)
+            except ValueError:
+                continue
+    return tuple(sorted((t for t in titles if t), key=len, reverse=True))
+
+
+def _own_title_lines(text: str, boilerplate: set[str]) -> str:
+    """Titelfeld einer Baustein-Folie: Der Vorlagentitel fällt weg ("Baustein 1
+    - …", auch ohne Nummer), eine eigene Überschrift der Gruppe gehört zur Antwort."""
+    lines: list[str] = []
+    for line in text.splitlines():
+        if _TEMPLATE_TITLE_RE.match(line):
+            continue
+        rest = line.strip()
+        for title in _baustein_titles():
+            if rest.lower().startswith(title):
+                rest = rest[len(title):].lstrip(" -–—:·")
+                break
+        if rest:
+            lines.append(rest)
+    return _strip_boilerplate_lines("\n".join(lines), boilerplate)
 
 
 def _is_pptx_boilerplate(shape, text: str, boilerplate: set[str]) -> bool:
@@ -432,17 +482,32 @@ def _has_dark_fill(shape) -> bool:
         return False
 
 
+def _is_instruction(text: str) -> bool:
+    from backend.briefings.intake import injection_scan  # lazy: intake importiert dieses Modul
+
+    return bool(injection_scan(text))
+
+
 def _slide_content(slide, boilerplate: set[str], hidden_out: list[dict] | None = None,
-                   slide_w: int | None = None, slide_h: int | None = None) -> str:
+                   slide_w: int | None = None, slide_h: int | None = None, own_titles: bool = False) -> str:
+    """Text einer Folie ohne Vorlagentexte. ``own_titles``: eigene
+    Überschriften im Titelfeld zählen zur Antwort (Baustein-Folien)."""
     parts: list[str] = []
     for shape in slide.shapes:
         reason = _hidden_reason(shape, slide_w, slide_h) if hidden_out is not None else None
         for _, text in _shape_texts(shape):
-            if _is_pptx_boilerplate(shape, text, boilerplate):
+            if own_titles and _is_title(shape):
+                cleaned = _own_title_lines(text, boilerplate)
+            elif _is_pptx_boilerplate(shape, text, boilerplate):
                 continue
-            cleaned = _strip_boilerplate_lines(text, boilerplate)
+            else:
+                cleaned = _strip_boilerplate_lines(text, boilerplate)
             if not cleaned:
                 continue
+            if reason == "weisse Schrift" and not _is_instruction(cleaned):
+                # Weisse Schrift steht meist auf einer dunklen Fläche dahinter
+                # (gestaltete Folien) — das ist Antworttext, kein Versteck.
+                reason = None
             if reason:
                 hidden_out.append({"grund": reason, "text": re.sub(r"\s+", " ", cleaned)[:160]})
                 continue
@@ -487,6 +552,49 @@ def _kenndaten_from_pptx(slide, filename: str) -> tuple[Kenndaten, bool]:
     return kd, template
 
 
+_BAUSTEIN_TITLE_MARK = {
+    1: re.compile(r"(?:baustein|building\s+block)\s*1\b", re.IGNORECASE),
+    2: re.compile(r"(?:baustein|building\s+block)\s*2\b", re.IGNORECASE),
+}
+
+
+def _baustein_keywords(tp: int | None) -> tuple[set[str], set[str]]:
+    """Kennwörter je Baustein aus den Bausteintiteln der Rubric (deutsch und
+    englisch), ohne Wörter, die in beiden Titeln vorkommen."""
+    words: dict[str, set[str]] = {"baustein1": set(), "baustein2": set()}
+    if tp in SUPPORTED_TPS:
+        for language in ("de", "en"):
+            try:
+                rubric = load_rubric(tp, language)
+            except ValueError:
+                continue
+            for b in rubric.bausteine:
+                if b.key in words:
+                    words[b.key].update(w for w in re.findall(r"[a-zäöüß]{6,}", b.title.lower()))
+    common = words["baustein1"] & words["baustein2"]
+    return words["baustein1"] - common, words["baustein2"] - common
+
+
+def _baustein2_start(slides: list, tp: int | None) -> int:
+    """Index der ersten Folie von Baustein 2, wenn die Abgabe mehr Folien hat
+    als die Vorlage. Massgeblich sind die Bausteintitel der Vorlage und die
+    Kennwörter der Rubric je Folie; ohne Anhaltspunkt gilt die Vorlage
+    (Folie 2 = Baustein 1, alles danach = Baustein 2)."""
+    kw1, kw2 = _baustein_keywords(tp)
+    lean: list[int] = []        # > 0: Folie spricht für Baustein 1, < 0: für Baustein 2
+    for slide in slides:
+        text = "\n".join(t for shape in slide.shapes for _, t in _shape_texts(shape)).lower()
+        s1 = sum(1 for k in kw1 if k in text) + 3 * bool(_BAUSTEIN_TITLE_MARK[1].search(text))
+        s2 = sum(1 for k in kw2 if k in text) + 3 * bool(_BAUSTEIN_TITLE_MARK[2].search(text))
+        lean.append(s1 - s2)
+    best, best_score = 2, None
+    for start in range(2, len(slides)):
+        score = sum(lean[1:start]) - sum(lean[start:])
+        if best_score is None or score > best_score:
+            best, best_score = start, score
+    return best
+
+
 def extract_pptx(filename: str, data: bytes, expected_tp: int | None = None) -> ExtractedSubmission:
     from pptx import Presentation  # lazy: schwerer Import
 
@@ -507,15 +615,31 @@ def extract_pptx(filename: str, data: bytes, expected_tp: int | None = None) -> 
 
     if len(slides) >= 3:
         w, h = prs.slide_width, prs.slide_height
-        sub.baustein1 = _slide_content(slides[1], boilerplate, sub.hidden_text, w, h)
-        sub.baustein2 = _slide_content(slides[2], boilerplate, sub.hidden_text, w, h)
-        sub.picture_count = _picture_count(slides[1].shapes) + _picture_count(slides[2].shapes)
-        if sub.picture_count:
+        # Mehr Folien als die Vorlage: nichts weglassen, sondern zuordnen
+        start2 = _baustein2_start(slides, kd.tp or expected_tp) if len(slides) > 3 else 2
+
+        def _read(part: list) -> str:
+            texts = (_slide_content(s, boilerplate, sub.hidden_text, w, h, own_titles=True) for s in part)
+            return "\n".join(t for t in texts if t).strip()
+
+        sub.baustein1 = _read(slides[1:start2])
+        sub.baustein2 = _read(slides[start2:])
+        if sub.hidden_text:
             sub.notes.append(
-                f"Folie 2 und 3 enthalten {sub.picture_count} Bild(er) — Text in Bildern wurde nicht gelesen."
+                f"{len(sub.hidden_text)} Textfeld(er) ausserhalb der Folie oder unlesbar klein — nicht gelesen."
             )
+        area = (w or 0) * (h or 0)
+        sub.pictures_baustein1 = sum(_picture_count(s.shapes, area) for s in slides[1:start2])
+        sub.pictures_baustein2 = sum(_picture_count(s.shapes, area) for s in slides[start2:])
+        sub.picture_count = sub.pictures_baustein1 + sub.pictures_baustein2
         if len(slides) > 3:
-            sub.notes.append(f"Abgabe hat {len(slides)} Folien (Vorlage: 3); nur Folie 2 und 3 wurden gelesen.")
+            def _span(first: int, last: int) -> str:
+                return f"Folie {first}" if first == last else f"Folie {first}–{last}"
+
+            sub.notes.append(
+                f"Abgabe hat {len(slides)} Folien (Vorlage: 3); {_span(2, start2)} als Baustein 1, "
+                f"{_span(start2 + 1, len(slides))} als Baustein 2 gelesen — bitte prüfen."
+            )
     else:
         text = "\n".join(_slide_content(s, boilerplate) for s in slides)
         b1, b2, found = split_bausteine(text)

@@ -58,9 +58,24 @@ class IntakeDecision:
 
 
 NO_TEXT_ONLY_PICTURES = (
-    "Folie 2 und 3 enthalten nur Bilder, keinen Text — Text in Bildern wird nicht gelesen. "
+    "Die Gruppe hat nur Bilder abgegeben, keinen Text — Text in Bildern wird nicht gelesen. "
     "Die Gruppe muss die Antworten als Text einreichen."
 )
+
+
+def picture_notes(sub: ExtractedSubmission) -> list[str]:
+    """Je Baustein: hat die Gruppe (nur) ein Bild abgegeben? Text in Bildern
+    wird nicht gelesen — der Übungsgruppenleiter muss das wissen, bevor er
+    das Briefing liest (Owner-Entscheidung 2026-09-30)."""
+    notes: list[str] = []
+    for n, text, pictures in ((1, sub.baustein1, sub.pictures_baustein1), (2, sub.baustein2, sub.pictures_baustein2)):
+        if not pictures:
+            continue
+        if not text.strip():
+            notes.append(f"Baustein {n}: Die Gruppe hat nur ein Bild abgegeben — der Inhalt wurde nicht gelesen.")
+        else:
+            notes.append(f"Baustein {n}: Die Gruppe hat einen Teil als Bild abgegeben — Text im Bild wurde nicht gelesen.")
+    return notes
 
 
 def validate_submission(sub: ExtractedSubmission) -> IntakeDecision:
@@ -79,9 +94,11 @@ def validate_submission(sub: ExtractedSubmission) -> IntakeDecision:
         notes.append(
             "Auf dem Deckblatt fehlen Touchpoint, Übungsgruppe oder Stammgruppe — bitte prüfen und nachtragen."
         )
+    pictures = picture_notes(sub)
+    notes.extend(pictures)
     if sub.format in ("docx", "pdf") and any("Marker gefunden" in n for n in sub.notes):
         notes.append("Keine 'Baustein 1'/'Baustein 2'-Abschnitte erkannt — der gesamte Text wurde als Baustein 1 gelesen.")
-    elif not sub.baustein1.strip() or not sub.baustein2.strip():
+    elif (not sub.baustein1.strip() or not sub.baustein2.strip()) and not any("nur ein Bild" in n for n in pictures):
         notes.append("Einer der beiden Bausteine ist leer.")
     return IntakeDecision(True, notes=notes)
 

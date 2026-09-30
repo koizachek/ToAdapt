@@ -45,7 +45,6 @@ interface Formal {
   baustein2_max?: number
   baustein2_within_limit?: boolean
   notes?: string[]
-  full_sentences_hint?: string | null
 }
 
 interface BriefingRecord {
@@ -757,7 +756,6 @@ export default function BriefingsPage() {
             {r.review_reason && r.status !== 'rejected' && <p className="text-xs mb-4" style={{ color: REVIEW_TONE }}>{r.review_reason}</p>}
             {(r.pii_removed ?? []).length > 0 && <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>{text.piiRemoved}</p>}
             {(f.notes ?? []).length > 0 && <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>{f.notes!.join(' ')}</p>}
-            {f.full_sentences_hint && <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>{f.full_sentences_hint}</p>}
             {r.status === 'briefed' && (
               <>
                 {renderBaustein(1, r.briefing?.baustein1 as BausteinBriefing | undefined)}

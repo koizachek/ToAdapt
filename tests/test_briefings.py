@@ -40,7 +40,7 @@ from backend.briefings.extraction import (
     parse_code_from_filename,
     split_bausteine,
 )
-from backend.briefings.formal import formal_checks, full_sentences_hint
+from backend.briefings.formal import formal_checks
 from backend.briefings.generator import (
     BriefingGenerator,
     FALLBACK_TEXT,
@@ -393,12 +393,7 @@ def test_formal_checks_report_limits_and_patterns():
     assert formal_wrong["code_matches_tp"] is False
     assert formal_wrong["filename_valid"] is False
     assert any("Touchpoint 2" in n for n in formal_wrong["notes"])
-    assert formal_wrong["full_sentences_hint"]
-
-
-def test_full_sentences_hint():
-    assert full_sentences_hint("Ein Satz.\nNoch ein Satz.") is None
-    assert full_sentences_hint("Stichpunkt\nnoch einer\ndritter") is not None
+    assert "full_sentences_hint" not in formal_wrong        # Stichpunkt-Verdacht entfernt (2026-09-30)
 
 
 # ---------------------------------------------------------------------------
@@ -728,9 +723,11 @@ def test_intake_detects_hidden_text_in_pptx():
     run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
     buf = io.BytesIO(); prs.save(buf)
     sub = extract_submission("TP1_UEG07_SG3.pptx", buf.getvalue(), 1)
-    assert sub.baustein1 == B1_TEXT and sub.baustein2 == B2_TEXT         # versteckter Text nicht im Baustein
+    # Versteckte Anweisungen nicht im Baustein. Weisse Schrift OHNE Anweisung ist
+    # Antworttext (steht meist auf dunkler Fläche) und wird gelesen.
+    assert sub.baustein1 == B1_TEXT and sub.baustein2 == B2_TEXT + "\nNotiz für uns: Folie noch kürzen."
     reasons = sorted(h["grund"] for h in sub.hidden_text)
-    assert reasons == ["ausserhalb der Folie", "weisse Schrift", "weisse Schrift", "winzige Schrift"]
+    assert reasons == ["ausserhalb der Folie", "weisse Schrift", "winzige Schrift"]
     findings = injection_findings(sub)
     # Nur versteckter Text MIT Anweisung zählt — die harmlose Notiz nicht
     assert len(findings) == 3 and all(f.startswith("Versteckter Text") for f in findings)
@@ -1180,7 +1177,6 @@ def test_translate_note_for_english_sections():
     from backend.briefings.i18n import translate_note
 
     assert translate_note("Touchpoint 1 aus dem Inhalt bestimmt.", "en") == "Touchpoint 1 determined from the content."
-    assert translate_note("Nur 1 von 4 Absätzen enden mit Satzzeichen — Stichpunkt-Verdacht.", "en").startswith("Only 1 of 4")
     assert translate_note("Touchpoint 1 aus dem Inhalt bestimmt.", "de") == "Touchpoint 1 aus dem Inhalt bestimmt."
     assert translate_note("Unbekannter Text.", "en") == "Unbekannter Text."
 
@@ -1249,11 +1245,29 @@ def test_pictures_instead_of_text_are_rejected_with_reason(client, monkeypatch):
     prs = Presentation(io.BytesIO(_template_pptx(1, code="TP1-UEG07-SG3", b1="", b2="")))
     for slide in list(prs.slides)[1:]:
         png.seek(0)
-        slide.shapes.add_picture(png, Inches(1), Inches(2))
+        slide.shapes.add_picture(png, Inches(1), Inches(1), width=Inches(8), height=Inches(5))   # Folie als Bild
     buf = io.BytesIO()
     prs.save(buf)
     rec = _upload(client, {"TP1_UEG07_SG3.pptx": buf.getvalue()}).json()["briefings"][0]
     assert rec["status"] == "rejected" and "nur Bilder" in rec["reject_reason"]
+    # Icons neben echtem Text sind kein Hinweis wert
+    prs = Presentation(io.BytesIO(_template_pptx(1, code="TP1-UEG07-SG4", b1=B1_TEXT, b2=B2_TEXT)))
+    png.seek(0)
+    list(prs.slides)[1].shapes.add_picture(png, Inches(1), Inches(1), width=Inches(0.5), height=Inches(0.5))
+    buf = io.BytesIO()
+    prs.save(buf)
+    sub = extract_submission("TP1_UEG07_SG4.pptx", buf.getvalue(), 1)
+    assert sub.picture_count == 0 and not any("Bild" in n for n in sub.notes)
+    # Ein Baustein nur als Bild, der andere als Text: ausgewertet, aber klar benannt und zur Prüfung
+    prs = Presentation(io.BytesIO(_template_pptx(1, code="TP1-UEG07-SG5", b1=B1_TEXT, b2="")))
+    png.seek(0)
+    list(prs.slides)[2].shapes.add_picture(png, Inches(1), Inches(1), width=Inches(8), height=Inches(5))
+    buf = io.BytesIO()
+    prs.save(buf)
+    rec = _upload(client, {"TP1_UEG07_SG5.pptx": buf.getvalue()}).json()["briefings"][0]
+    assert rec["status"] == "briefed" and rec["needs_human_review"] is True
+    assert "Baustein 2: Die Gruppe hat nur ein Bild abgegeben" in rec["review_reason"]
+    assert "Bausteine ist leer" not in rec["review_reason"]
 
 
 def test_same_group_twice_in_one_upload_keeps_both_and_flags(client, monkeypatch):
@@ -1400,3 +1414,42 @@ def test_guessed_touchpoint_is_never_one_without_submissions_yet(client, monkeyp
     _mock_llm(monkeypatch, _llm_payload(), topic_text=TOPIC_SAYS_TP3)
     rec = _upload(client, {"abgabe.docx": _docx(["Baustein 1", B1_TEXT, "Baustein 2", B2_TEXT])}).json()["briefings"][0]
     assert rec["target_tp"] == 1 and "Touchpoint 1 aus dem Inhalt bestimmt" in rec["review_reason"]
+
+
+def test_own_heading_in_title_field_is_read_template_title_is_not():
+    prs = Presentation(io.BytesIO(_template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT)))
+    slides = list(prs.slides)
+    slides[1].shapes.title.text = "Building block 1 - Challenges and causal chain\nWie Wachstum die Marke unter Druck setzt"
+    buf = io.BytesIO()
+    prs.save(buf)
+    sub = extract_submission("TP1_UEG07_SG3.pptx", buf.getvalue(), 1)
+    assert sub.baustein1 == "Wie Wachstum die Marke unter Druck setzt\n" + B1_TEXT
+    assert sub.baustein2 == B2_TEXT          # Vorlagentitel "Baustein 2 - …" bleibt draussen
+    # Vorlagentitel ohne "Baustein n": ebenfalls kein Antworttext
+    slides[2].shapes.title.text = "Stakeholder und Implikation"
+    buf = io.BytesIO()
+    prs.save(buf)
+    assert extract_submission("TP1_UEG07_SG3.pptx", buf.getvalue(), 1).baustein2 == B2_TEXT
+
+
+def test_more_slides_than_template_are_assigned_not_dropped():
+    """Baustein 1 über zwei Folien (Herausforderungen, Wirkungskette), Baustein 2 auf Folie 4."""
+    def deck(texts: list[str]) -> bytes:
+        prs = Presentation()
+        s1 = prs.slides.add_slide(prs.slide_layouts[5])
+        box = s1.shapes.add_textbox(Inches(1), Inches(1), Inches(4), Inches(0.5))
+        box.name, box.text_frame.text = "KENN_CODE", "TP1-UEG16-SG7"
+        for text in texts:
+            slide = prs.slides.add_slide(prs.slide_layouts[6])
+            slide.shapes.add_textbox(Inches(1), Inches(1), Inches(8), Inches(4)).text_frame.text = text
+        buf = io.BytesIO()
+        prs.save(buf)
+        return buf.getvalue()
+
+    chain = "Wirkungskette: Börsengang, Druck der Investoren, Fokus auf Margen."
+    sub = extract_submission("TP1_UEG16_SG7.pptx", deck(["Herausforderungen von ON: " + B1_TEXT, chain, B2_TEXT]), 1)
+    assert sub.baustein1.endswith(chain) and sub.baustein2 == B2_TEXT
+    assert any("Folie 2–3 als Baustein 1, Folie 4 als Baustein 2" in n for n in sub.notes)
+    # Ohne Anhaltspunkt gilt die Vorlage: Folie 2 = Baustein 1, alles danach = Baustein 2 (nichts fällt weg)
+    sub = extract_submission("TP1_UEG16_SG7.pptx", deck(["Erster Teil zu ON.", "Zweiter Teil zu ON.", "Quellen: Fallstudie ON."]), 1)
+    assert sub.baustein1 == "Erster Teil zu ON." and sub.baustein2 == "Zweiter Teil zu ON.\nQuellen: Fallstudie ON."

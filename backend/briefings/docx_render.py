@@ -164,8 +164,6 @@ def _formal_table(doc, formal: dict, rubric: BriefingRubric, language: str) -> N
         rows.append((L["row_canvas_group"], canvas_group(filename)))
     fmt = str(formal.get("format", "")).upper()
     rows.append((L["row_format"], fmt + (L["official_template"] if formal.get("template_detected") else "")))
-    if formal.get("full_sentences_hint"):
-        rows.append((L["row_sentences"], translate_note(str(formal["full_sentences_hint"]), language)))
 
     table = doc.add_table(rows=0, cols=2)
     table.style = _style(doc, "Table Grid") or table.style
