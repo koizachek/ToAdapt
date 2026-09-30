@@ -86,7 +86,7 @@ from backend.briefings.intake import (
     topic_screen,
     validate_submission,
 )
-from backend.briefings.rubrics import SUPPORTED_TPS, BriefingRubric, load_rubric
+from backend.briefings.rubrics import SUPPORTED_TPS, BriefingRubric, load_rubric, open_touchpoints
 from backend.briefings.upload_token import UPLOAD_TOKEN_HEADER, UploadTokenError, verify_upload_token
 from backend.config.tutor_accounts import MASTER_ACCOUNT, TUTOR_ACCOUNTS
 from backend.db.briefing_store import briefing_store
@@ -295,6 +295,8 @@ class AssignmentPatch(BaseModel):
     target_tp: int | None = Field(default=None, ge=1, le=5)
     ueg: str | None = None
     sg: int | None = Field(default=None, ge=1, le=99)
+    # Nur Master, nur False: einen falschen Prompt-Injection-Vermerk entfernen
+    injection_suspected: bool | None = None
 
 
 class BriefingOverviewRow(BaseModel):
@@ -623,14 +625,15 @@ async def _process_entry(
     if topic.on_topic is False:
         logger.info("briefing_rejected", filename=filename, reason="topic_classifier", uploaded_by=uploaded_by)
         return _rejected(base, sub, "Kein Bezug zum Arbeitsauftrag am Running Case ON: " + (topic.reason or "laut Themenprüfung."))
-    if topic.tp not in SUPPORTED_TPS:
-        logger.info("briefing_rejected", filename=filename, reason="tp_unknown", uploaded_by=uploaded_by)
-        return _rejected(base, sub, "Touchpoint nicht bestimmbar — weder Deckblatt noch Inhalt lassen erkennen, zu welchem Touchpoint die Abgabe gehört.")
     if sub.kenndaten.tp not in SUPPORTED_TPS:
-        sub.kenndaten.tp = topic.tp
+        # Nur das Modell kennt den Touchpoint: nie einer, für den es noch keine
+        # Abgaben geben kann — sonst der zuletzt eröffnete.
+        opened = open_touchpoints()
+        guessed = topic.tp if topic.tp in opened else opened[-1]
+        sub.kenndaten.tp = guessed
         sub.kenndaten.source = sub.kenndaten.source or "inhalt"
-        intake_notes.append(f"Touchpoint {topic.tp} aus dem Inhalt bestimmt.")
-    rubric = rubrics[topic.tp]
+        intake_notes.append(f"Touchpoint {guessed} aus dem Inhalt bestimmt.")
+    rubric = rubrics[sub.kenndaten.tp]
     topic_reason = topic.reason
     on_topic = topic.on_topic
 
@@ -1067,46 +1070,68 @@ async def patch_assignment(
     briefing_id: str, patch: AssignmentPatch, ctx: TeacherContext = Depends(teacher_context)
 ):
     """Deckblatt-Angaben (Touchpoint, Übungsgruppe, Stammgruppe) einer
-    ausgewerteten Abgabe verifizieren oder korrigieren — für eigene Uploads.
-    Abgelehnte oder unlesbare Dateien werden nicht korrigiert, sondern mit
-    korrigiertem Deckblatt erneut hochgeladen."""
+    ausgewerteten Abgabe verifizieren oder korrigieren — für eigene Uploads;
+    der Master für alle Konten (die Änderung erscheint beim jeweiligen
+    Übungsgruppenleiter). Einzelne Angaben genügen, z.B. nur der Touchpoint.
+    Der Master kann zusätzlich einen falschen Prompt-Injection-Vermerk
+    entfernen. Abgelehnte oder unlesbare Dateien werden nicht korrigiert,
+    sondern mit korrigiertem Deckblatt erneut hochgeladen."""
     record = _record_or_404(briefing_id, ctx)
     if record.get("status") in ("extraction_failed", STATUS_REJECTED):
         raise HTTPException(status_code=409, detail="Diese Datei wurde nicht ausgewertet — bitte korrigiert erneut hochladen")
-    if patch.target_tp is None and patch.ueg is None and patch.sg is None:
+    assignment = not (patch.target_tp is None and patch.ueg is None and patch.sg is None)
+    if not assignment and patch.injection_suspected is None:
         raise HTTPException(status_code=422, detail="Nichts zu ändern")
+
+    if patch.injection_suspected is not None:
+        if not ctx.is_master:
+            raise HTTPException(status_code=403, detail="Nur für den Master-Tutor")
+        if patch.injection_suspected:
+            raise HTTPException(status_code=422, detail="Der Vermerk kann nur entfernt werden")
+        rest = (record.get("review_reason") or "").replace(INJECTION_NOTE, "").strip()
+        record.update(
+            injection_suspected=False, injection_findings=[], review_reason=rest or None,
+            needs_human_review=bool(rest) or not (record.get("ueg") and record.get("sg")),
+        )
+        logger.info("briefing_injection_cleared", briefing_id=briefing_id, by=ctx.label)
 
     old_tp = int(record.get("target_tp", 0) or 0)
     tp = patch.target_tp or old_tp
     ueg = record.get("ueg") or ""
-    if patch.ueg is not None:
-        # "ÜG 6", "Gruppe 06", "UEG06" und "6" meinen dasselbe
-        number = re.search(r"\d{1,2}", patch.ueg)
-        ueg = normalize_ueg(number.group(0)) if number else ""
-        if not ueg:
-            raise HTTPException(status_code=422, detail="Übungsgruppe ungültig (erwartet z.B. UEG07)")
     sg = patch.sg if patch.sg is not None else record.get("sg")
-    if not (tp and ueg and sg):
-        raise HTTPException(status_code=422, detail="Touchpoint, Übungsgruppe und Stammgruppe müssen gesetzt sein")
-
-    record.update(target_tp=tp, ueg=ueg, sg=sg, code=build_code(tp, ueg, int(sg)), code_source="manual")
-    formal = dict(record.get("formal") or {})
-    formal.update(code=record["code"], code_valid=True, code_matches_tp=True)
-    notes = [n for n in formal.get("notes", []) if "Touchpoint" not in n or "hochgeladen" not in n]
-    if old_tp and tp != old_tp:
-        notes.append(f"Touchpoint von {old_tp} auf {tp} geändert — die Auswertung wurde mit der Rubric von Touchpoint {old_tp} erstellt.")
-        record["needs_human_review"] = True
-        record["review_reason"] = notes[-1]
-    intake_marks = ("Auf dem Deckblatt fehlen", "aus dem Inhalt bestimmt",
-                    "aus den übrigen Abgaben dieses Uploads übernommen", "aus dem Dateinamen übernommen")
-    formal["notes"] = [n for n in notes if not any(m in n for m in intake_marks)]
-    record["formal"] = formal
-    if record.get("review_reason") and not (old_tp and tp != old_tp):
-        # Nachtrage-Hinweise sind mit der Bestätigung erledigt; andere Gründe bleiben.
-        sentences = re.split(r"(?<=\.)\s+", record["review_reason"])
-        rest = " ".join(x for x in sentences if not any(m in x for m in intake_marks)).strip()
-        record["review_reason"] = rest or None
-        record["needs_human_review"] = bool(rest)
+    if assignment:
+        if patch.ueg is not None:
+            # "ÜG 6", "Gruppe 06", "UEG06" und "6" meinen dasselbe
+            number = re.search(r"\d{1,2}", patch.ueg)
+            ueg = normalize_ueg(number.group(0)) if number else ""
+            if not ueg:
+                raise HTTPException(status_code=422, detail="Übungsgruppe ungültig (erwartet z.B. UEG07)")
+        complete = bool(tp and ueg and sg)
+        record.update(
+            target_tp=tp, ueg=ueg, sg=sg,
+            code=build_code(tp, ueg, int(sg)) if complete else None, code_source="manual",
+        )
+        formal = dict(record.get("formal") or {})
+        if complete:
+            formal.update(code=record["code"], code_valid=True, code_matches_tp=True)
+        notes = [n for n in formal.get("notes", []) if "Touchpoint" not in n or "hochgeladen" not in n]
+        tp_changed = bool(old_tp and tp != old_tp)
+        if tp_changed:
+            notes.append(f"Touchpoint von {old_tp} auf {tp} geändert — die Auswertung wurde mit der Rubric von Touchpoint {old_tp} erstellt.")
+            record["needs_human_review"] = True
+            record["review_reason"] = notes[-1]
+        intake_marks = ("Auf dem Deckblatt fehlen", "aus dem Inhalt bestimmt",
+                        "aus den übrigen Abgaben dieses Uploads übernommen", "aus dem Dateinamen übernommen")
+        if complete:
+            notes = [n for n in notes if not any(m in n for m in intake_marks)]
+        formal["notes"] = notes
+        record["formal"] = formal
+        if complete and record.get("review_reason") and not tp_changed:
+            # Nachtrage-Hinweise sind mit der Bestätigung erledigt; andere Gründe bleiben.
+            sentences = re.split(r"(?<=\.)\s+", record["review_reason"])
+            rest = " ".join(x for x in sentences if not any(m in x for m in intake_marks)).strip()
+            record["review_reason"] = rest or None
+            record["needs_human_review"] = bool(rest)
 
     await asyncio.to_thread(briefing_store.save, record)
     logger.info("briefing_assigned", briefing_id=briefing_id, target_tp=tp, ueg=ueg, sg=sg, by=ctx.label)

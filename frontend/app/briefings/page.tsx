@@ -216,7 +216,7 @@ const TEXT = {
     // Master
     masterTitle: 'Monitoring (Kursleitung)',
     masterIntro: 'Je Konto: was wann hochgeladen und heruntergeladen wurde, offene Prüffälle, Passwort-Anfragen. Klappen Sie ein Konto auf, um die Gruppen je Touchpoint zu sehen und dieselben Dokumente herunterzuladen.',
-    helpMaster: 'Nur der Master sieht diese Tabelle. Rot markiert sind Konten, die „Passwort vergessen“ angefragt haben — erzeugen Sie dort einen Einmalcode und schicken Sie ihn der Person per E-Mail.',
+    helpMaster: 'Nur der Master sieht diese Tabelle. Als Master können Sie unten bei jeder Auswertung die Angaben ändern (auch nur den Touchpoint) — die Änderung erscheint genauso beim jeweiligen Übungsgruppenleiter. Rot markiert sind Konten, die „Passwort vergessen“ angefragt haben — erzeugen Sie dort einen Einmalcode und schicken Sie ihn der Person per E-Mail.',
     colAccount: 'Konto',
     colUploads: 'Uploads',
     colLastUpload: 'Letzter Upload',
@@ -239,6 +239,7 @@ const TEXT = {
     never: 'nie',
     allUploads: (n: number) => `Uploads (${n})`,
     helpAllUploads: 'Alle Uploads des gewählten Kontos (ohne Auswahl: aller Konten). „Löschen“ entfernt den Upload mit allen seinen Auswertungen endgültig. Nur der Master kann löschen.',
+    clearInjection: 'Vermerk entfernen (Fehlalarm)',
     del: 'Löschen',
     delConfirm: 'Endgültig löschen?',
     delYes: 'Ja, löschen',
@@ -316,7 +317,7 @@ const TEXT = {
     briefingLanguage: (lang: string) => (lang === 'en' ? 'Briefing in English' : 'Briefing in German'),
     masterTitle: 'Monitoring (course lead)',
     masterIntro: 'Per account: what was uploaded and downloaded when, open checks, password requests. Expand an account to see its groups per touchpoint and download the same documents.',
-    helpMaster: 'Only the master sees this table. Accounts that requested “forgot password” are marked red — generate a one-time code there and e-mail it to the person.',
+    helpMaster: 'Only the master sees this table. As master you can change the details of every result below (even just the touchpoint) — the change appears identically for the respective tutorial group lead. Accounts that requested “forgot password” are marked red — generate a one-time code there and e-mail it to the person.',
     colAccount: 'Account',
     colUploads: 'Uploads',
     colLastUpload: 'Last upload',
@@ -339,6 +340,7 @@ const TEXT = {
     never: 'never',
     allUploads: (n: number) => `Uploads (${n})`,
     helpAllUploads: 'All uploads of the selected account (no selection: of all accounts). “Delete” permanently removes the upload with all its results. Only the master can delete.',
+    clearInjection: 'Remove note (false alarm)',
     del: 'Delete',
     delConfirm: 'Delete permanently?',
     delYes: 'Yes, delete',
@@ -523,6 +525,19 @@ export default function BriefingsPage() {
         <Trash2 size={12} /> {text.del}
       </button>
     )
+
+  const clearInjection = async (r: BriefingRecord) => {
+    if (saving) return
+    setSaving(r.briefing_id)
+    try {
+      await teacherFetch(`/briefings/${encodeURIComponent(r.briefing_id)}`, { method: 'PATCH', body: JSON.stringify({ injection_suspected: false }) })
+      await load()
+    } catch (e) {
+      setSaveError(c => ({ ...c, [r.briefing_id]: e instanceof Error ? e.message : 'Error' }))
+    } finally {
+      setSaving(null)
+    }
+  }
 
   const issueCode = async (account: string) => {
     if (issuing) return
@@ -723,6 +738,12 @@ export default function BriefingsPage() {
               {(r.injection_findings ?? []).map((f, i) => (
                 <p key={i} className="text-xs mt-1" style={{ color: 'var(--ink)' }}>{text.injectionFound}: „{f}“</p>
               ))}
+              {isMaster && (
+                <button type="button" onClick={() => clearInjection(r)} disabled={saving === r.briefing_id}
+                  className="mt-2 px-2 py-1 text-xs font-medium disabled:opacity-40" style={{ border: `1px solid ${FAIL_TONE}`, color: FAIL_TONE }}>
+                  {saving === r.briefing_id ? text.saving : text.clearInjection}
+                </button>
+              )}
             </div>
           </div>
         )}

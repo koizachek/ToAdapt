@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date
+from datetime import date, timedelta
 from functools import lru_cache
 from pathlib import Path
 
@@ -56,6 +56,21 @@ BRIEFING_SCHEDULE: dict[int, dict[str, date]] = {
     4: {"abgabe": date(2026, 12, 8), "termin": date(2026, 12, 11)},
     5: {"abgabe": date(2026, 12, 15), "termin": date(2026, 12, 18)},
 }
+
+# So viele Tage vor dem Abgabetermin gilt ein Touchpoint als eröffnet.
+TP_OPEN_DAYS_BEFORE = 14
+
+
+def open_touchpoints(today: date | None = None) -> list[int]:
+    """Touchpoints, für die es schon Abgaben geben kann (aufsteigend). Ohne
+    Deckblatt-Angabe wird eine Abgabe nie einem späteren Touchpoint zugeordnet."""
+    today = today or date.today()
+    opened = [
+        tp for tp, dates in sorted(BRIEFING_SCHEDULE.items())
+        if today >= dates["abgabe"] - timedelta(days=TP_OPEN_DAYS_BEFORE)
+    ]
+    return opened or [min(BRIEFING_SCHEDULE)]
+
 
 # Ausblick je Touchpoint (KI_Paket, Abschnitt "Formale Vorprüfung /
 # Feed-forward"): wofür die geübte Denkoperation später gebraucht wird. Steht

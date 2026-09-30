@@ -104,7 +104,10 @@ _TOPIC_TERMS = [
     r"section \d", r"chapter [a-e]\b", r"zurich", r"switzerland", r"growth", r"revenue", r"home group",
 ]
 _TOPIC_RE = re.compile("|".join(_TOPIC_TERMS), re.IGNORECASE)
-TOPIC_MIN_HITS = 3
+# Ohne Modell abgelehnt wird nur, was KEINEN einzigen Kernbegriff enthält.
+# Kurze echte Abgaben mit ein, zwei Treffern prüft das Modell (bis 2026-09-30
+# lag die Schwelle bei 3 und lehnte eine kurze TP1-Abgabe fälschlich ab).
+TOPIC_MIN_HITS = 1
 
 
 def topic_screen(text: str) -> tuple[bool, int]:
