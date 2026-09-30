@@ -482,6 +482,33 @@ def _has_dark_fill(shape) -> bool:
         return False
 
 
+_DGM_NS = "http://schemas.openxmlformats.org/drawingml/2006/diagram"
+_A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
+
+
+def _smartart_text(slide) -> str:
+    """Text aus SmartArt-Grafiken der Folie. python-pptx liefert für
+    SmartArt nur einen leeren Rahmen; der Text liegt im Diagramm-Datenteil
+    (Knoten ``dgm:pt``). Ganze Abgaben kamen so als "kein Text" zurück."""
+    from lxml import etree
+
+    lines: list[str] = []
+    for rel in slide.part.rels.values():
+        if not rel.reltype.endswith("/diagramData"):
+            continue
+        try:
+            root = etree.fromstring(rel.target_part.blob)
+        except Exception:
+            continue
+        for pt in root.iter(f"{{{_DGM_NS}}}pt"):
+            paragraphs = [
+                "".join(t.text or "" for t in p.iter(f"{{{_A_NS}}}t")).strip()
+                for p in pt.iter(f"{{{_A_NS}}}p")
+            ]
+            lines.extend(p for p in paragraphs if p)
+    return "\n".join(lines)
+
+
 def _is_instruction(text: str) -> bool:
     from backend.briefings.intake import injection_scan  # lazy: intake importiert dieses Modul
 
@@ -512,6 +539,9 @@ def _slide_content(slide, boilerplate: set[str], hidden_out: list[dict] | None =
                 hidden_out.append({"grund": reason, "text": re.sub(r"\s+", " ", cleaned)[:160]})
                 continue
             parts.append(cleaned)
+    smartart = _strip_boilerplate_lines(_smartart_text(slide), boilerplate)
+    if smartart:
+        parts.append(smartart)
     return "\n".join(parts).strip()
 
 

@@ -1453,3 +1453,29 @@ def test_more_slides_than_template_are_assigned_not_dropped():
     # Ohne Anhaltspunkt gilt die Vorlage: Folie 2 = Baustein 1, alles danach = Baustein 2 (nichts fällt weg)
     sub = extract_submission("TP1_UEG16_SG7.pptx", deck(["Erster Teil zu ON.", "Zweiter Teil zu ON.", "Quellen: Fallstudie ON."]), 1)
     assert sub.baustein1 == "Erster Teil zu ON." and sub.baustein2 == "Zweiter Teil zu ON.\nQuellen: Fallstudie ON."
+
+
+def test_smartart_text_is_read():
+    """SmartArt: python-pptx zeigt nur einen leeren Rahmen, der Text liegt im
+    Diagramm-Datenteil — eine echte Abgabe kam so als 'kein Text' zurück."""
+    from pptx.opc.constants import RELATIONSHIP_TYPE as RT
+    from pptx.opc.package import Part
+    from pptx.opc.packuri import PackURI
+
+    prs = Presentation(io.BytesIO(_template_pptx(1, code="TP1-UEG09-SG4", b1="", b2=B2_TEXT)))
+    slide = list(prs.slides)[1]
+    xml = (
+        '<dgm:dataModel xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram" '
+        'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><dgm:ptLst>'
+        '<dgm:pt modelId="0" type="doc"/>'
+        '<dgm:pt modelId="1"><dgm:t><a:p><a:r><a:t>Herausforderung 1: Premiummarke vs. Expansion</a:t></a:r></a:p></dgm:t></dgm:pt>'
+        '<dgm:pt modelId="2"><dgm:t><a:p><a:r><a:t>' + B1_TEXT + '</a:t></a:r></a:p></dgm:t></dgm:pt>'
+        '</dgm:ptLst></dgm:dataModel>'
+    ).encode("utf-8")
+    part = Part(PackURI("/ppt/diagrams/data1.xml"), "application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml", prs.part.package, xml)
+    slide.part.relate_to(part, RT.DIAGRAM_DATA)
+    buf = io.BytesIO()
+    prs.save(buf)
+    sub = extract_submission("TP1_UEG09_SG4.pptx", buf.getvalue(), 1)
+    assert sub.baustein1 == "Herausforderung 1: Premiummarke vs. Expansion\n" + B1_TEXT
+    assert sub.baustein2 == B2_TEXT
