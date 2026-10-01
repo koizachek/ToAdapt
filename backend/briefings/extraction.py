@@ -99,6 +99,10 @@ class ExtractedSubmission:
     picture_count: int = 0
     pictures_baustein1: int = 0
     pictures_baustein2: int = 0
+    # Zeichen im Notizenfeld unter den Baustein-Folien (PPTX) — Notizen gehören
+    # nicht zur Abgabe und werden nicht gelesen, nur gemeldet.
+    speaker_notes_baustein1: int = 0
+    speaker_notes_baustein2: int = 0
 
     @property
     def has_content(self) -> bool:
@@ -509,6 +513,24 @@ def _smartart_text(slide) -> str:
     return "\n".join(lines)
 
 
+# Ab dieser Länge gilt Text im Notizenfeld als Inhalt (nicht als Tippfehler).
+SPEAKER_NOTES_MIN_CHARS = 30
+
+
+def _speaker_notes_chars(slides: list) -> int:
+    """Zeichen im Notizenfeld der Folien. Der Text selbst wird nicht übernommen."""
+    total = 0
+    for slide in slides:
+        try:
+            if not slide.has_notes_slide:
+                continue
+            frame = slide.notes_slide.notes_text_frame
+            total += len(re.sub(r"\s+", " ", frame.text).strip()) if frame is not None else 0
+        except Exception:
+            continue
+    return total if total >= SPEAKER_NOTES_MIN_CHARS else 0
+
+
 def _is_instruction(text: str) -> bool:
     from backend.briefings.intake import injection_scan  # lazy: intake importiert dieses Modul
 
@@ -662,6 +684,8 @@ def extract_pptx(filename: str, data: bytes, expected_tp: int | None = None) -> 
         sub.pictures_baustein1 = sum(_picture_count(s.shapes, area) for s in slides[1:start2])
         sub.pictures_baustein2 = sum(_picture_count(s.shapes, area) for s in slides[start2:])
         sub.picture_count = sub.pictures_baustein1 + sub.pictures_baustein2
+        sub.speaker_notes_baustein1 = _speaker_notes_chars(slides[1:start2])
+        sub.speaker_notes_baustein2 = _speaker_notes_chars(slides[start2:])
         if len(slides) > 3:
             def _span(first: int, last: int) -> str:
                 return f"Folie {first}" if first == last else f"Folie {first}–{last}"

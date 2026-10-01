@@ -1555,3 +1555,72 @@ async def test_case_quote_called_fictitious_is_corrected(monkeypatch):
     assert len(calls) == 2 and "vollwertiger Beleg" in calls[1]["messages"][-1]["content"]
     assert "fiktiv" not in json.dumps(result["briefing"], ensure_ascii=False)
     assert result["needs_human_review"] is False
+
+
+# ---------------------------------------------------------------------------
+# Notizenfeld, Belege je Kriterium, Fallprüfung (Rückmeldung 2026-10-01)
+# ---------------------------------------------------------------------------
+
+def _with_speaker_notes(pptx_bytes: bytes, slide_index: int, text: str) -> bytes:
+    from pptx import Presentation
+
+    prs = Presentation(io.BytesIO(pptx_bytes))
+    prs.slides[slide_index].notes_slide.notes_text_frame.text = text
+    buf = io.BytesIO()
+    prs.save(buf)
+    return buf.getvalue()
+
+
+def test_speaker_notes_are_reported_but_not_read():
+    from backend.briefings.generator import speaker_notes_reminder
+    from backend.briefings.intake import validate_submission
+
+    notes = "Wirkungskette zur zweiten Herausforderung: Die Stakeholder erwarten Wachstum und steigende Margen."
+    data = _with_speaker_notes(_template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT), 1, notes)
+    sub = extract_submission("TP1_UEG07_SG3.pptx", data, 1)
+    assert sub.speaker_notes_baustein1 > 0 and sub.speaker_notes_baustein2 == 0
+    assert "zweiten Herausforderung" not in sub.baustein1          # Notizen werden nicht gelesen
+    decision = validate_submission(sub)
+    assert decision.accepted
+    assert any(n.startswith("Baustein 1: Die Gruppe hat zusätzlich Text in das Notizenfeld") for n in decision.notes)
+    assert "Zu Baustein 1 hat die Gruppe zusätzlich Text in das Notizenfeld" in speaker_notes_reminder(sub)
+    user = build_user_prompt(load_rubric(1), sub)
+    assert "Notizen zählen nicht zur Abgabe" in user and "zweiten Herausforderung" not in user
+    # Ohne Notizen: kein Hinweis
+    plain = _sub()
+    assert plain.speaker_notes_baustein1 == 0 and speaker_notes_reminder(plain) == ""
+    assert not any("Notizenfeld" in n for n in validate_submission(plain).notes)
+
+
+async def test_misreading_of_case_becomes_first_thin_spot_and_evidence_is_kept(monkeypatch):
+    data = json.loads(_llm_payload())
+    data["baustein1"]["fallpruefung"] = [
+        {"aussage": "Händler sehen ON-Produkte als Konkurrenz zu eigenen Produkten", "fallstelle": "Abschnitt 2.5",
+         "im_fall": "Fachhändler fühlen sich durch ONs Direktvertrieb übergangen.", "stimmt": False},
+        {"aussage": "Der Fachhandel hat ON aufgebaut", "fallstelle": "Abschnitt 2.6", "im_fall": "Stimmt.", "stimmt": True},
+    ]
+    data["baustein2"]["fallpruefung"] = [
+        {"aussage": "Die Marge lag 2025 bei 18.8 %", "fallstelle": "Exhibit A2", "im_fall": "Exhibit A2 endet 2024.", "stimmt": False},
+    ]
+    data["baustein1"]["kriterien"][0]["beleg"] = ["Zitat eins", "Zitat zwei"]
+    _mock_llm_sequence(monkeypatch, [json.dumps(data, ensure_ascii=False)])
+    result = await BriefingGenerator("k").generate(briefing_id="m-1", rubric=load_rubric(1), sub=_sub(), language="de")
+    thin = result["briefing"]["baustein1"]["duenne_stellen"]
+    assert thin[0] == (
+        "Wiedergabe des Falls: Die Gruppe schreibt «Händler sehen ON-Produkte als Konkurrenz zu eigenen Produkten». "
+        "Abschnitt 2.5: Fachhändler fühlen sich durch ONs Direktvertrieb übergangen. Worauf stützt die Gruppe ihre Lesart?"
+    )
+    assert len(thin) == 2                                            # Obergrenze bleibt
+    # Zahlen-Befunde bleiben intern (hinterlegter Fall kann von der Quelle der Gruppe abweichen)
+    assert not any(t.startswith("Wiedergabe des Falls") for t in result["briefing"]["baustein2"]["duenne_stellen"])
+    assert [f["aussage"] for f in result["assessment"]["baustein2"]["fallpruefung"]] == ["Die Marge lag 2025 bei 18.8 %"]
+    assert len(result["assessment"]["baustein1"]["fallpruefung"]) == 1   # nur Aussagen mit stimmt=false
+    assert result["assessment"]["baustein1"]["kriterien"][0]["beleg"] == ["Zitat eins", "Zitat zwei"]
+    assert "fallpruefung" not in result["briefing"]["baustein1"] and "kriterien" not in result["briefing"]["baustein1"]
+
+
+def test_prompt_orders_check_before_rating_before_text():
+    system = build_system_prompt(load_rubric(1))
+    order = [system.index(f'"{key}":') for key in ("fallpruefung", "kriterien", "kernposition", "duenne_stellen")]
+    assert order == sorted(order)
+    assert 'Fordert ein Deskriptor etwas für "mindestens eine"' in system

@@ -36,6 +36,7 @@ from backend.briefings.i18n import FALLBACK_TEXT as _FALLBACK
 from backend.briefings.i18n import NO_CONTENT_TEXT as _NO_CONTENT
 from backend.briefings.i18n import (
     LANGUAGE_RETRY_PROMPT,
+    MISREADING_TEMPLATE,
     PROMPT_LANGUAGE_HEADER,
     PROMPT_LANGUAGE_RULE,
     REVIEW_TEXTS,
@@ -49,8 +50,10 @@ from backend.llm import OpenRouterClient
 
 logger = structlog.get_logger(__name__)
 
-BRIEFING_MAX_TOKENS = 3000
+BRIEFING_MAX_TOKENS = 4000
 MAX_ITEMS = 2  # tragende Argumente / dünne Stellen je Baustein
+MAX_EVIDENCE_CHARS = 400  # interne Belege und Fallprüfung je Eintrag
+MAX_QUOTES = 6           # Belegstellen je Kriterium
 QUESTIONS_STRENGTHS = 2   # Beispiel-Rückfragen je Gruppe, die an Stärken anknüpfen
 QUESTIONS_WEAKNESSES = 3  # Beispiel-Rückfragen je Gruppe, die dünne Stellen aufdecken
 
@@ -90,27 +93,35 @@ Du erhältst den Text der Abgabe je Baustein. Verankere JEDE Aussage präzise an
 - Nenne bei jedem Fallbezug die Stelle im Fallmaterial (Abschnitt, Exhibit), auf die du dich stützt, z.B. "Abschnitt 2.8" oder "Exhibit A6".
 - Bleibe bei der Kernposition und der Einschätzung ebenfalls konkret: keine allgemeinen Aussagen, die auf jede Abgabe passen würden.
 
-Erstelle je Baustein:
-1. "kernposition": EIN Satz — wofür sich die Gruppe entschieden hat (ihre Behauptung), in eigenen Worten.
-2. "tragende_argumente": höchstens {max_items} Argumente, die die Position wirklich stützen (fallbezogen, konkret). Leere Liste, wenn nichts trägt.
-3. "duenne_stellen": höchstens {max_items} Stellen, an denen die Begründung dünn bleibt. Jede Stelle beginnt mit dem betroffenen Kriterium der Rubric in eigenen Worten, gefolgt von einem Doppelpunkt (z.B. "Wirkungskette: …", "Einordnung des Stakeholders: …"), und ist danach formuliert als Ansatz für eine Rückfrage der ÜGL (z.B. "Woran macht die Gruppe fest, dass …?"). Leere Liste, wenn nichts dünn ist.
-4. "einschaetzung": zwei bis vier Sätze Fliesstext entlang der Kriterien: wo trägt die Begründung, wo bleibt sie dünn. Ohne Stufenbezeichnungen, ohne Punkte, ohne Empfehlung einer anderen Entscheidung.
-5. "naechster_schritt": ein bis zwei Sätze — die kleinste konkrete Verbesserung, die die Gruppe an ihrer Begründung vornehmen kann, als Handlung der Gruppe formuliert (z.B. "Die Gruppe formuliert den Mechanismus zwischen … und … aus."). Die ÜGL nutzt ihn für ihr Feedback an die Gruppe. Er gibt die Entscheidung selbst NIE vor und empfiehlt keine andere Wahl. Ist nichts dünn, nenne den Schritt, der die Begründung noch belastbarer macht.
-6. "kriterien": INTERN (nicht Teil des Briefings) — für jedes Kriterium der Rubric ein Objekt mit "name" (exakt wie in der Rubric), "niveau" (ueberzeugend | tragfaehig | ansatzweise) und "begruendung" (ein Satz, warum genau dieses Niveau).
+Arbeite je Baustein in dieser Reihenfolge — erst prüfen, dann einstufen, dann schreiben:
+1. "fallpruefung": INTERN (nicht Teil des Briefings) — prüfe die wichtigsten Tatsachenaussagen der Gruppe über den Fall (Akteure, wer was tut, will oder erwartet, was der Fall als Ursache nennt, Zahlen, Jahre) gegen das Fallmaterial, höchstens vier je Baustein. Je Aussage ein Objekt mit "aussage" (wörtliches Zitat der Gruppe), "fallstelle" (Abschnitt oder Exhibit), "im_fall" (was dort tatsächlich steht, nachgelesen, als ganzer Satz) und "stimmt" (true oder false). Aussagen mit "stimmt": false stehen zuerst, die für die Begründung der Gruppe wichtigste ganz vorn.
+   - "stimmt" ist nur dann false, wenn das Fallmaterial zu genau diesem Punkt eindeutig etwas anderes sagt und du die Stelle nachlesen kannst: ein anderer Akteur, ein anderes Motiv, ein anderer Zusammenhang, eine andere Zahl oder ein anderes Jahr für dieselbe Sache. Im Zweifel true.
+   - Eine Zahl, ein Jahr oder eine Angabe, die im Fallmaterial gar nicht vorkommt, ist kein Widerspruch (die Gruppe kann eine weitere Quelle nutzen): true.
+   - Eigene Schlussfolgerungen, Wertungen, Zuspitzungen und Empfehlungen der Gruppe (was daraus für ON folgt, wie gross eine Gefahr ist) sind keine Tatsachenaussagen über den Fall. Eine bewusste, als solche benannte Abweichung von einer Einordnung des Falls (z.B. von einem Exhibit) ist eine eigene Wertung und kein Fehler: true.
+2. "kriterien": INTERN (nicht Teil des Briefings) — für jedes Kriterium der Rubric ein Objekt, die Felder in dieser Reihenfolge: "name" (exakt wie in der Rubric); "beleg" (Liste der für dieses Kriterium massgeblichen Stellen der Abgabe, jede wörtlich zitiert; leere Liste nur, wenn du den ganzen Text des Bausteins danach abgesucht und nichts gefunden hast); "begruendung" (ein Satz, warum genau dieses Niveau, gestützt auf den Beleg); "niveau" (ueberzeugend | tragfaehig | ansatzweise). Dabei gilt:
+   - Was die Gruppe ausdrücklich schreibt, ist vorhanden — auch knapp, als Stichwort, Zwischenüberschrift oder Beschriftung, und auch in eigenen Begriffen statt denen der Rubric. Text aus gestalteten Folien kommt als lose Zeilen an; eine kurze Zeile wie "Umwelt" oder "Interne Gestaltung" ist eine Überschrift der Gruppe für die Zeilen, die folgen. Bezeichne nichts als fehlend, implizit oder nur angedeutet, was im Beleg ausdrücklich steht.
+   - Wende die Deskriptoren wörtlich an und verlange nicht mehr, als dort steht. Fordert ein Deskriptor etwas für "mindestens eine" (Herausforderung, Entscheidung o.ä.), genügt eine: Dass es bei der anderen fehlt, senkt das Niveau nicht und ist keine dünne Stelle.
+   - Verlangt der Auftrag eine bestimmte Anzahl (z.B. zwei Herausforderungen), zähle, wie viele die Gruppe auf der Folie tatsächlich benennt und ausführt; fehlt eine, halte das im Kriterium fest und benenne es ausdrücklich in der Einschätzung und als dünne Stelle.
+3. "kernposition": EIN Satz — wofür sich die Gruppe entschieden hat (ihre Behauptung), in eigenen Worten.
+4. "tragende_argumente": höchstens {max_items} Argumente, die die Position wirklich stützen (fallbezogen, konkret). Leere Liste, wenn nichts trägt. Eine Aussage, die in der fallpruefung nicht stimmt, ist kein tragendes Argument.
+5. "duenne_stellen": höchstens {max_items} Stellen, an denen die Begründung dünn bleibt. Jede Stelle beginnt mit dem betroffenen Kriterium der Rubric in eigenen Worten, gefolgt von einem Doppelpunkt (z.B. "Wirkungskette: …", "Einordnung des Stakeholders: …"), und ist danach formuliert als Ansatz für eine Rückfrage der ÜGL (z.B. "Woran macht die Gruppe fest, dass …?"). Eine Aussage, die in der fallpruefung nicht stimmt, führst du hier NICHT auf — sie wird dem Briefing automatisch als eigene dünne Stelle vorangestellt. Ein Kriterium, das du in "kriterien" als ueberzeugend eingestuft hast, ist keine dünne Stelle. Leere Liste, wenn nichts dünn ist.
+6. "einschaetzung": zwei bis vier Sätze Fliesstext entlang der Kriterien: wo trägt die Begründung, wo bleibt sie dünn — im Einklang mit deinen Einstufungen in "kriterien" und mit der fallpruefung. Ohne Stufenbezeichnungen, ohne Punkte, ohne Empfehlung einer anderen Entscheidung.
+7. "naechster_schritt": ein bis zwei Sätze — die kleinste konkrete Verbesserung, die die Gruppe an ihrer Begründung vornehmen kann, als Handlung der Gruppe formuliert (z.B. "Die Gruppe formuliert den Mechanismus zwischen … und … aus."). Die ÜGL nutzt ihn für ihr Feedback an die Gruppe. Er gibt die Entscheidung selbst NIE vor und empfiehlt keine andere Wahl. Ist nichts dünn, nenne den Schritt, der die Begründung noch belastbarer macht.
 
-Ist der Text eines Bausteins leer, setze kernposition auf "{no_content}", beide Listen leer, einschaetzung und naechster_schritt auf "{no_content}" und kriterien auf eine leere Liste.
+Ist der Text eines Bausteins leer, setze kernposition auf "{no_content}", tragende_argumente und duenne_stellen leer, einschaetzung und naechster_schritt auf "{no_content}" und fallpruefung und kriterien auf leere Listen.
 
 Erstelle ausserdem für die ganze Abgabe "rueckfragen": Beispiel-Rückfragen, die die ÜGL im Gespräch dieser Gruppe stellen kann (Oxford-Tutorial). Genau {q_strengths} Fragen unter "zu_staerken", die an tragende Argumente anknüpfen und die Gruppe ihre Begründung vertiefen oder verallgemeinern lassen ("Sie begründen X mit Y — was müsste eintreten, damit Y nicht mehr gilt?"). Genau {q_weaknesses} Fragen unter "zu_schwaechen", die dünne Stellen aufdecken, ohne die Antwort vorzugeben ("Woran machen Sie fest, dass …?"). Jede Frage bezieht sich konkret auf den Text dieser Abgabe und das Fallmaterial, ist eine echte offene Frage (kein Vorwurf, keine Suggestivfrage, keine versteckte Musterlösung) und steht für sich als ganzer Satz mit Fragezeichen.
 
 Antworte NUR mit einem JSON-Objekt dieser Form:
 {{
   "baustein1": {{
+    "fallpruefung": [{{"aussage": "<Zitat der Gruppe>", "fallstelle": "<Abschnitt/Exhibit>", "im_fall": "<was dort steht>", "stimmt": <true|false>}}],
+    "kriterien": [{{"name": "<Kriterium>", "beleg": ["<Zitat aus der Abgabe>", "<Zitat aus der Abgabe>"], "begruendung": "<ein Satz>", "niveau": "ueberzeugend|tragfaehig|ansatzweise"}}],
     "kernposition": "<ein Satz>",
     "tragende_argumente": ["<Argument>", "<Argument>"],
     "duenne_stellen": ["<Kriterium>: <Rückfrage-Ansatz>", "<Kriterium>: <Rückfrage-Ansatz>"],
     "einschaetzung": "<2–4 Sätze Prosa>",
-    "naechster_schritt": "<1–2 Sätze>",
-    "kriterien": [{{"name": "<Kriterium>", "niveau": "ueberzeugend|tragfaehig|ansatzweise", "begruendung": "<ein Satz>"}}]
+    "naechster_schritt": "<1–2 Sätze>"
   }},
   "baustein2": {{ ...gleiche Struktur... }},
   "rueckfragen": {{
@@ -365,6 +376,21 @@ def build_system_prompt(rubric: BriefingRubric, language: str = "de") -> str:
     )
 
 
+def speaker_notes_reminder(sub: ExtractedSubmission) -> str:
+    """Notizen unter der Folie zählen nicht zur Abgabe und liegen dem Modell
+    nicht vor; es soll wissen, dass es sie gibt, und nur den Folientext werten."""
+    with_notes = [str(n) for n, chars in ((1, sub.speaker_notes_baustein1), (2, sub.speaker_notes_baustein2)) if chars]
+    if not with_notes:
+        return ""
+    return (
+        f"Hinweis: Zu Baustein {' und '.join(with_notes)} hat die Gruppe zusätzlich Text in das Notizenfeld unter "
+        "der Folie geschrieben. Notizen zählen nicht zur Abgabe und liegen dir nicht vor: Beurteile nur den "
+        "Folientext oben. Zähle, wie viele der verlangten Teile (z.B. Herausforderungen) der Folientext selbst "
+        "benennt und ausführt. Sind es weniger als verlangt, sage in der Einschätzung ausdrücklich, was auf der "
+        "Folie fehlt, und stufe das betroffene Kriterium nach dem ein, was auf der Folie steht.\n\n"
+    )
+
+
 def build_user_prompt(rubric: BriefingRubric, sub: ExtractedSubmission, language: str = "de") -> str:
     b1 = rubric.baustein("baustein1")
     b2 = rubric.baustein("baustein2")
@@ -374,7 +400,8 @@ def build_user_prompt(rubric: BriefingRubric, sub: ExtractedSubmission, language
         text1=sub.baustein1.strip() or "(leer)",
         title2=b2.title,
         text2=sub.baustein2.strip() or "(leer)",
-        reminder=stakeholder_row_reminder(stakeholder_table(case_context_for_tp(rubric.tp, normalize_language(language))))
+        reminder=speaker_notes_reminder(sub)
+        + stakeholder_row_reminder(stakeholder_table(case_context_for_tp(rubric.tp, normalize_language(language))))
         + USER_LANGUAGE_REMINDER[normalize_language(language)],
     )
 
@@ -388,6 +415,13 @@ def _strings(value: object, limit: int | None = None) -> list[str]:
         return []
     items = [str(v).strip() for v in value if str(v).strip()]
     return items[:limit] if limit else items
+
+
+def _quotes(value: object) -> list[str]:
+    """Belegstellen eines Kriteriums: Liste von Zitaten (ein einzelner Text gilt als ein Zitat)."""
+    if isinstance(value, str):
+        value = [value]
+    return _strings(value, MAX_QUOTES)
 
 
 def _normalize_level(value: object, allowed: list[str]) -> str:
@@ -469,9 +503,26 @@ def _normalize_payload(
                 "name": name,
                 "niveau": _normalize_level(item.get("niveau"), rubric.levels),
                 "begruendung": sanitize_swiss(str(item.get("begruendung", "")).strip()),
+                "beleg": [sanitize_swiss(q)[:MAX_EVIDENCE_CHARS] for q in _quotes(item.get("beleg"))],
             })
         missing = [n for n in allowed_names if n not in {k["name"] for k in kriterien}]
-        assessment[b.key] = {"kriterien": kriterien, "fehlende_kriterien": missing}
+        fallpruefung = [
+            {key: sanitize_swiss(str(item.get(key, "") or "").strip())[:MAX_EVIDENCE_CHARS]
+             for key in ("aussage", "fallstelle", "im_fall")}
+            for item in (raw.get("fallpruefung") if isinstance(raw.get("fallpruefung"), list) else [])
+            if isinstance(item, dict) and str(item.get("aussage", "") or "").strip() and item.get("stimmt") is False
+        ]
+        assessment[b.key] = {"kriterien": kriterien, "fehlende_kriterien": missing, "fallpruefung": fallpruefung}
+        # Die wichtigste Fehllesung des Falls steht als erste dünne Stelle im Briefing
+        # (Rückmeldung 2026-10-01: falsch gelesener Fall blieb unerwähnt). Nur Aussagen
+        # ohne Zahlen: Gruppen nennen Zahlen, die im hinterlegten Fall nicht stehen
+        # (z.B. EBITDA-Marge 2025) — ob aus anderer Quelle oder neuerer Fallfassung,
+        # lässt sich hier nicht entscheiden; solche Befunde bleiben intern.
+        qualitative = [f for f in fallpruefung if not re.search(r"\d", f["aussage"])]
+        if qualitative:
+            misreading, misreading_hits = apply_guardrails(MISREADING_TEMPLATE[language].format(**qualitative[0]), language)
+            hits.extend(h for h in misreading_hits if h not in hits)
+            briefing[b.key]["duenne_stellen"] = [misreading, *briefing[b.key]["duenne_stellen"]][:MAX_ITEMS]
 
     raw_q = data.get("rueckfragen") if isinstance(data.get("rueckfragen"), dict) else {}
     if sub.has_content:

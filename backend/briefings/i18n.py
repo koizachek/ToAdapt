@@ -120,6 +120,11 @@ USER_LANGUAGE_REMINDER: dict[str, str] = {
     "de": "Erstelle jetzt das JSON. Alle Textfelder auf Deutsch.",
     "en": "Now write the JSON. Every text value in English — no German.",
 }
+# Dünne Stelle aus der Fallprüfung: Aussage der Gruppe, die dem Fall widerspricht.
+MISREADING_TEMPLATE: dict[str, str] = {
+    "de": "Wiedergabe des Falls: Die Gruppe schreibt «{aussage}». {fallstelle}: {im_fall} Worauf stützt die Gruppe ihre Lesart?",
+    "en": "Reading of the case: The group writes “{aussage}”. {fallstelle}: {im_fall} What does the group base its reading on?",
+}
 LANGUAGE_RETRY_PROMPT: dict[str, str] = {
     "de": (
         "Deine Antwort ist nicht auf Deutsch. Die Gruppe hat auf Deutsch abgegeben. Gib dasselbe "
@@ -307,6 +312,10 @@ _NOTE_TRANSLATIONS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"Stammgruppe SG(\d+) aus dem Dateinamen übernommen\."), r"Home group SG\1 taken from the file name."),
     (re.compile(r"(?:Folie 2 und 3|Die Antwortfolien) enthalten (\d+) (?:grosse\(s\) )?Bild\(er\) — Text in Bildern wurde nicht gelesen\."),
      r"The answer slides contain \1 large picture(s) — text inside pictures was not read."),
+    (re.compile(r"Baustein (\d): Die Gruppe hat zusätzlich Text in das Notizenfeld unter der Folie geschrieben — "
+                r"Notizen gehören nicht zur Abgabe und wurden nicht gelesen\."),
+     r"Building block \1: the group also wrote text into the notes field below the slide — "
+     r"notes are not part of the submission and were not read."),
     (re.compile(r"Baustein (\d): Die Gruppe hat nur ein Bild abgegeben — der Inhalt wurde nicht gelesen\."),
      r"Building block \1: the group submitted only a picture — its content was not read."),
     (re.compile(r"Baustein (\d): Die Gruppe hat einen Teil als Bild abgegeben — Text im Bild wurde nicht gelesen\."),

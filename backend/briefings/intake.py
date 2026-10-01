@@ -78,6 +78,18 @@ def picture_notes(sub: ExtractedSubmission) -> list[str]:
     return notes
 
 
+def speaker_notes_notes(sub: ExtractedSubmission) -> list[str]:
+    """Je Baustein: steht Text im Notizenfeld unter der Folie? Notizen gehören
+    nicht zur Abgabe und werden nicht gelesen — der Übungsgruppenleiter muss
+    das wissen (Rückmeldung 2026-10-01: zweite Herausforderung stand nur in
+    den Notizen, das Briefing liess es unerwähnt)."""
+    return [
+        f"Baustein {n}: Die Gruppe hat zusätzlich Text in das Notizenfeld unter der Folie geschrieben — "
+        "Notizen gehören nicht zur Abgabe und wurden nicht gelesen."
+        for n, chars in ((1, sub.speaker_notes_baustein1), (2, sub.speaker_notes_baustein2)) if chars
+    ]
+
+
 def validate_submission(sub: ExtractedSubmission) -> IntakeDecision:
     """Formale Voraussetzungen ohne Modell. Bewusst NICHT streng
     (Owner-Entscheidung 2026-09-14): Ein vergessenes Deckblatt oder fehlende
@@ -96,6 +108,7 @@ def validate_submission(sub: ExtractedSubmission) -> IntakeDecision:
         )
     pictures = picture_notes(sub)
     notes.extend(pictures)
+    notes.extend(speaker_notes_notes(sub))
     if sub.format in ("docx", "pdf") and any("Marker gefunden" in n for n in sub.notes):
         notes.append("Keine 'Baustein 1'/'Baustein 2'-Abschnitte erkannt — der gesamte Text wurde als Baustein 1 gelesen.")
     elif (not sub.baustein1.strip() or not sub.baustein2.strip()) and not any("nur ein Bild" in n for n in pictures):
