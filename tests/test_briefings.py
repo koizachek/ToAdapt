@@ -1479,3 +1479,79 @@ def test_smartart_text_is_read():
     sub = extract_submission("TP1_UEG09_SG4.pptx", buf.getvalue(), 1)
     assert sub.baustein1 == "Herausforderung 1: Premiummarke vs. Expansion\n" + B1_TEXT
     assert sub.baustein2 == B2_TEXT
+
+
+# ---------------------------------------------------------------------------
+# Faktenprüfung: Exhibit A5 (Dynamikvermerk) und Belege aus dem Fall
+# (Rückmeldung der Übungsgruppenleiter, 2026-10-01)
+# ---------------------------------------------------------------------------
+
+def test_stakeholder_table_reads_dynamics_notes_from_case():
+    from backend.briefings.generator import stakeholder_dynamics_guardrail, stakeholder_table
+    from backend.briefings.rubrics import case_context_for_tp
+
+    table = stakeholder_table(case_context_for_tp(1, "de"))
+    assert [n for n, r in table.items() if r["vermerk"]] == ["Fachhandel", "Endkunden (Lifestyle)", "Regulatoren"]
+    assert table["Investoren"] == {"einordnung": "Einfluss auf ON: Sehr hoch; Betroffenheit: Mittel", "vermerk": []}
+    assert table["Fachhandel"]["vermerk"] == ["Einfluss auf ON: Hoch (sinkend)"]
+    assert stakeholder_table(case_context_for_tp(1, "en"))["Investors"]["vermerk"] == []
+    assert stakeholder_table(case_context_for_tp(2, "de")) == {}   # Kapitel B enthält die Tabelle nicht
+
+    system = build_system_prompt(load_rubric(1))
+    assert "KEINEN Dynamikvermerk tragen: Investoren (Einfluss auf ON: Sehr hoch; Betroffenheit: Mittel)" in system
+    assert "auch die Stimmen und Zitate der Führungskräfte" in system
+    assert stakeholder_dynamics_guardrail(case_context_for_tp(2, "de")) == ""
+    assert "Exhibit A5, verbindlich" not in build_system_prompt(load_rubric(2))
+    user = build_user_prompt(load_rubric(1), _sub())
+    assert '"exhibit_a5_zeile"' in user and user.endswith("Alle Textfelder auf Deutsch.")
+    assert "exhibit_a5_zeile" not in build_user_prompt(load_rubric(2), _sub(tp=2))
+
+
+def _payload_with(b2_field: str, text: str, **top) -> str:
+    data = json.loads(_llm_payload(**top))
+    data["baustein2"][b2_field] = text if b2_field in ("kernposition", "einschaetzung", "naechster_schritt") else [text]
+    return json.dumps(data, ensure_ascii=False)
+
+
+async def test_dynamics_claim_for_stakeholder_without_note_is_corrected(monkeypatch):
+    wrong = _payload_with("duenne_stellen", "Einordnung: Die Dynamik aus Exhibit A5 (steigend) wird übersehen.",
+                          exhibit_a5_zeile="Investoren")
+    calls = _mock_llm_sequence(monkeypatch, [wrong, _llm_payload(exhibit_a5_zeile="Investoren")])
+    result = await BriefingGenerator("k").generate(briefing_id="a5-1", rubric=load_rubric(1), sub=_sub(), language="de")
+    assert len(calls) == 2
+    correction = calls[1]["messages"][-1]["content"]
+    assert "«Investoren»" in correction and "Sehr hoch" in correction and "OHNE Dynamikvermerk" in correction
+    assert "Dynamik" not in json.dumps(result["briefing"], ensure_ascii=False)
+    assert result["needs_human_review"] is False
+
+    # Stakeholder MIT Vermerk (Fachhandel): Dynamik ist ein zulässiger Prüfpunkt, keine Korrektur
+    retail = _payload_with("duenne_stellen", "Einordnung: Die Dynamik aus Exhibit A5 (sinkend) wird übersehen.",
+                           exhibit_a5_zeile="Fachhandel")
+    calls = _mock_llm_sequence(monkeypatch, [retail])
+    result = await BriefingGenerator("k").generate(briefing_id="a5-2", rubric=load_rubric(1), sub=_sub(), language="de")
+    assert len(calls) == 1 and "Dynamik" in result["briefing"]["baustein2"]["duenne_stellen"][0]
+
+
+async def test_dynamics_claim_is_stripped_when_correction_does_not_help(monkeypatch):
+    data = json.loads(_llm_payload(exhibit_a5_zeile="Investoren"))
+    data["baustein2"]["einschaetzung"] = (
+        "Die Einordnung trägt, z. B. beim Einfluss. Die Dynamik aus Exhibit A5 wird übersehen. Die Implikation bleibt allgemein."
+    )
+    data["rueckfragen"]["zu_schwaechen"][0] = "Warum wird die Dynamik der Investoren nicht adressiert?"
+    calls = _mock_llm_sequence(monkeypatch, [json.dumps(data, ensure_ascii=False)])
+    result = await BriefingGenerator("k").generate(briefing_id="a5-3", rubric=load_rubric(1), sub=_sub(), language="de")
+    assert len(calls) == 2   # eine Korrektur-Anfrage, danach wird entfernt
+    assert result["briefing"]["baustein2"]["einschaetzung"] == (
+        "Die Einordnung trägt, z. B. beim Einfluss. Die Implikation bleibt allgemein."
+    )
+    assert len(result["briefing"]["rueckfragen"]["zu_schwaechen"]) == 2
+    assert result["needs_human_review"] is True and "Rückfragen" in result["review_reason"]
+
+
+async def test_case_quote_called_fictitious_is_corrected(monkeypatch):
+    doubted = _payload_with("duenne_stellen", "Erwartung: Wo belegt die Gruppe die 20 % über die «fiktive Finanzstimme» hinaus?")
+    calls = _mock_llm_sequence(monkeypatch, [doubted, _llm_payload()])
+    result = await BriefingGenerator("k").generate(briefing_id="f-1", rubric=load_rubric(1), sub=_sub(), language="de")
+    assert len(calls) == 2 and "vollwertiger Beleg" in calls[1]["messages"][-1]["content"]
+    assert "fiktiv" not in json.dumps(result["briefing"], ensure_ascii=False)
+    assert result["needs_human_review"] is False
