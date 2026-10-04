@@ -233,6 +233,8 @@ def _render_group(doc, record: dict, rubric: BriefingRubric) -> None:
         _bullets(doc, list(data.get("tragende_argumente", []) or []), L["argumente_none"])
         _para(doc, "", bold_label=L["duenn"])
         _bullets(doc, list(data.get("duenne_stellen", []) or []), L["duenn_none"])
+        if data.get("im_fall_nicht_gefunden"):
+            _para(doc, ", ".join(str(n) for n in data["im_fall_nicht_gefunden"]), bold_label=L["numbers_not_found"])
         _para(doc, str(data.get("einschaetzung", "")), bold_label=L["einschaetzung"])
         if data.get("naechster_schritt"):   # Alt-Datensätze vor 2026-09-28 ohne dieses Feld
             _para(doc, str(data["naechster_schritt"]), bold_label=L["naechster_schritt"])

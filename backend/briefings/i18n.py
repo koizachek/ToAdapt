@@ -120,6 +120,27 @@ USER_LANGUAGE_REMINDER: dict[str, str] = {
     "de": "Erstelle jetzt das JSON. Alle Textfelder auf Deutsch.",
     "en": "Now write the JSON. Every text value in English — no German.",
 }
+# Beispielformulierungen im Arbeitsauftrag des Prompts. Die Anweisung bleibt
+# deutsch; die Beispiele müssen in der Briefingsprache stehen, sonst übernimmt
+# das Modell sie wörtlich («Woran make you fast that …», Lauf 2026-10-02).
+PROMPT_EXAMPLES: dict[str, dict[str, str]] = {
+    "de": {
+        "anchor": 'Beispiel: Die Gruppe schreibt auf Folie 2 "…" — woran macht sie fest, dass …?',
+        "thin_prefix": '"Wirkungskette: …", "Einordnung des Stakeholders: …"',
+        "thin": "Woran macht die Gruppe fest, dass …?",
+        "next_step": "Die Gruppe formuliert den Mechanismus zwischen … und … aus.",
+        "strength": "Sie begründen X mit Y — was müsste eintreten, damit Y nicht mehr gilt?",
+        "weakness": "Woran machen Sie fest, dass …?",
+    },
+    "en": {
+        "anchor": 'Example: On slide 2 the group writes "…" — what does it base the claim that … on?',
+        "thin_prefix": '"Causal chain: …", "Classification of the stakeholder: …"',
+        "thin": "What does the group base the claim that … on?",
+        "next_step": "The group spells out the mechanism between … and ….",
+        "strength": "You justify X with Y — what would have to happen for Y to no longer hold?",
+        "weakness": "What do you base the claim that … on?",
+    },
+}
 # Dünne Stelle aus der Fallprüfung: Aussage der Gruppe, die dem Fall widerspricht.
 MISREADING_TEMPLATE: dict[str, str] = {
     "de": "Wiedergabe des Falls: Die Gruppe schreibt «{aussage}». {fallstelle}: {im_fall} Worauf stützt die Gruppe ihre Lesart?",
@@ -187,6 +208,7 @@ DOC_LABELS: dict[str, dict[str, str]] = {
         "argumente_none": "Keine tragenden Argumente identifiziert.",
         "duenn": "Dünne Stellen (Ansatz für Rückfragen):",
         "duenn_none": "Keine dünnen Stellen identifiziert.",
+        "numbers_not_found": "Im Fall nicht gefunden:",
         "einschaetzung": "Einschätzung:",
         "naechster_schritt": "Nächster Schritt:",
         "questions_heading": "Beispiel-Rückfragen an die Gruppe",
@@ -242,6 +264,7 @@ DOC_LABELS: dict[str, dict[str, str]] = {
         "argumente_none": "No supporting arguments identified.",
         "duenn": "Thin spots (prompts for follow-up questions):",
         "duenn_none": "No thin spots identified.",
+        "numbers_not_found": "Not found in the case:",
         "einschaetzung": "Assessment:",
         "naechster_schritt": "Next step:",
         "questions_heading": "Example follow-up questions for the group",

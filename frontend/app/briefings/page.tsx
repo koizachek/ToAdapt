@@ -30,6 +30,7 @@ interface BausteinBriefing {
   duenne_stellen: string[]
   einschaetzung: string
   naechster_schritt?: string   // seit 2026-09-28; ältere Briefings ohne
+  im_fall_nicht_gefunden?: string[]   // seit 2026-10-04: Zahlen der Gruppe ohne Fundstelle im Fall
 }
 
 interface Rueckfragen {
@@ -205,6 +206,7 @@ const TEXT = {
     duenn: 'Dünne Stellen (Ansatz für Rückfragen)',
     einschaetzung: 'Einschätzung',
     naechsterSchritt: 'Nächster Schritt',
+    imFallNichtGefunden: 'Im Fall nicht gefunden',
     none: '—',
     baustein: (n: number) => `Baustein ${n}`,
     questionsTitle: 'Beispiel-Rückfragen an die Gruppe',
@@ -307,6 +309,7 @@ const TEXT = {
     duenn: 'Thin spots (prompts for follow-up questions)',
     einschaetzung: 'Assessment',
     naechsterSchritt: 'Next step',
+    imFallNichtGefunden: 'Not found in the case',
     none: '—',
     baustein: (n: number) => `Building block ${n}`,
     questionsTitle: 'Example follow-up questions for the group',
@@ -650,6 +653,9 @@ export default function BriefingsPage() {
       <ul className="list-disc pl-5 text-sm mb-2">
         {(b?.duenne_stellen ?? []).length ? b!.duenne_stellen.map((a, i) => <li key={i}>{a}</li>) : <li style={{ color: 'var(--muted)' }}>{text.none}</li>}
       </ul>
+      {(b?.im_fall_nicht_gefunden ?? []).length > 0 && (
+        <p className="text-sm mb-2"><span className="font-medium">{text.imFallNichtGefunden}: </span>{b!.im_fall_nicht_gefunden!.join(', ')}</p>
+      )}
       <p className="text-sm"><span className="font-medium">{text.einschaetzung}: </span>{b?.einschaetzung ?? text.none}</p>
       {b?.naechster_schritt && (
         <p className="text-sm mt-2"><span className="font-medium">{text.naechsterSchritt}: </span>{b.naechster_schritt}</p>

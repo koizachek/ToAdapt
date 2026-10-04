@@ -68,7 +68,7 @@ Dozent → POST /admin/cases/generate  (Branche, Land, TP-Ziel)
 |-------|-------------|
 | Frontend | Next.js, Tailwind, Vercel |
 | Backend | Python 3.11+, FastAPI, Pydantic v2 |
-| LLM | OpenRouter, Default `mistralai/mistral-large-2512` (EU; Modellvergleich 2026-09-13 in `docs/beispiele/modellvergleich/`) |
+| LLM | OpenRouter, Default `mistralai/mistral-medium-3-5` (EU; Modellvergleich 2026-09-13 in `docs/beispiele/modellvergleich/`) |
 | Case Pool | JSON-Dateien (pool/) |
 | Scoring Storage | JSON (db/submissions/) |
 | Experiment Logging | Optional MongoDB (`MONGODB_URI`) |
@@ -206,8 +206,9 @@ Kalibrierung beider Sprachen: `scripts/calibrate_briefings.py --all --language b
   Download-Protokoll `backend/db/download_log.py` (Mongo `briefing_downloads`: Konto, Zeitpunkt,
   Touchpoint, Art — für das Master-Monitoring, keine Inhalte).
 - Config: `backend/config/ki_rubrics/` — `ki_rubrics_tp{n}.json` (Kursleitung, 2026-08-28),
-  Case-Kapitel des Running Case ON (`case/kapitel_{a..e}.md`, nur Tutor-Pipeline, nie
-  studierendensichtbar), Vorlagentexte (`template_texts.json`); Konten
+  Case-Kapitel des Running Case ON (`case/kapitel_{a..e}.md` und `case/en/`, Fassung vom
+  2026-10-04 mit Fussnoten, erzeugt aus den Word-Dateien per `scripts/convert_case_docx.py`;
+  nur Tutor-Pipeline, nie studierendensichtbar), Vorlagentexte (`template_texts.json`); Konten
   `backend/config/tutor_accounts.py`.
 - Sichtbarkeit: Der Teacher-Proxy schickt `X-Teacher-Id` (Konto) und `X-Teacher-Master` mit.
   Jeder sieht genau die Datensätze mit `uploaded_by == eigenes Konto`; der Master alles
@@ -233,6 +234,11 @@ Kalibrierung beider Sprachen: `scripts/calibrate_briefings.py --all --language b
   Gruppen und Status, letzter Upload, letzter Briefing-Download, offene Prüffälle, Kontostatus.
 - Kalibrierung (Pflicht vor Prompt-/Rubric-Änderungen): `python scripts/calibrate_briefings.py --all`
   schickt die drei Beispielabgaben je TP durch den Generator und vergleicht die Einstufung.
+- Neue Fallfassung einspielen: `python scripts/convert_case_docx.py --de <DE.docx> --en <EN.docx>`
+  schreibt die Kapiteldateien neu (Abschnittsnummern, Exhibit-Tabellen, Textboxen, Fussnoten).
+- Zahlenabgleich (`backend/briefings/case_numbers.py`, seit 2026-10-04): Zahlen der Abgabe, die
+  nirgends im Fall stehen, meldet das Briefing neutral als «Im Fall nicht gefunden»; das Modell
+  prüft keine Zahlen mehr und nennt keine Gegenzahlen.
 - **Upload-Weg (Vercel-Limit):** Vercel begrenzt Request-Bodies von Route-Handlern auf 4,5 MB
   (Infrastruktur-Limit). Der Upload geht deshalb **direkt vom Browser an Railway**:
   `POST /api/teacher/upload-token` (Frontend, jede Tutor-Session) signiert ein 15-Minuten-Token mit

@@ -452,6 +452,46 @@ def test_system_prompt_is_cached_and_contains_rubric_case_examples(monkeypatch):
     assert B1_TEXT in user and "TP1-UEG07-SG3" in user
 
 
+def test_case_numbers_lookup_matches_case_in_any_spelling():
+    from backend.briefings.case_numbers import extract_numbers, normalize_number, numbers_not_in_case
+
+    assert normalize_number("3.000") == "3000" and normalize_number("3'250") == "3250"
+    assert normalize_number("1,222") == "1222" and normalize_number("12.000") == "12000"
+    assert normalize_number("18,8") == "18.8" and normalize_number("16.7") == "16.7"
+    # Nur prüfwürdige Zahlen: Prozent, Dezimal, ab 1000 — keine Folien- oder Anzahlangaben
+    assert [key for _, key in extract_numbers("Folie 2, zwei Herausforderungen, 15 Jahre, 55%, 18.8 %, über 3.000")] == ["55", "18.8", "3000"]
+    # Fallversion vom 2026-10-04: 64 % (Exhibit A4), 18.8 % (2.2 und Fussnote), 3'250 (2.6),
+    # 3'254 (Fussnote), minus 51.6 % (2.5) stehen im Fall — in beliebiger Schreibweise.
+    text = ("Nordamerika (64% des Umsatzes), Marge 18,8 % (2025), Belegschaft 3.250 (2024), 3,254 employees, "
+            "minus 51.6%, Patente laufen 2027–2029 aus, Anteil 77,7 %, 9'999 Paar, Jahr 1999")
+    assert numbers_not_in_case(text) == ["77,7%", "9'999", "1999"]
+
+
+def test_prompt_examples_follow_briefing_language_and_numbers_are_not_checked_by_model():
+    de = build_system_prompt(load_rubric(1), "de")
+    en = build_system_prompt(load_rubric(1, "en"), "en")
+    assert "Woran macht die Gruppe fest, dass …?" in de and "Woran" not in en
+    assert "What does the group base the claim that … on?" in en and "Causal chain: …" in en
+    for system in (de, en):
+        assert "Zahlen und Jahre der Gruppe prüfst du nicht" in system
+        assert "Zahlen, Jahre" not in system and "eine andere Zahl oder ein anderes Jahr" not in system
+
+
+async def test_generator_reports_numbers_missing_from_case_without_counter_figure(monkeypatch):
+    _mock_llm(monkeypatch, _llm_payload())
+    b1 = B1_TEXT + " Nordamerika steht für 64% des Umsatzes, Europa für 77,7 %; die Marge lag 2016 bei 18.8 %."
+    sub = _sub(b1=b1, b2=B2_TEXT)
+    result = await BriefingGenerator("k").generate(briefing_id="n1", rubric=load_rubric(1), sub=sub)
+    assert result["briefing"]["baustein1"]["im_fall_nicht_gefunden"] == ["77,7%", "2016"]   # 64 % und 18.8 % stehen im Fall
+    assert result["briefing"]["baustein2"]["im_fall_nicht_gefunden"] == []
+    assert result["needs_human_review"] is False       # neutrale Meldung, kein Vorbehalt
+    record = {"sg": 3, "code": "TP1-UEG07-SG3", "status": "briefed", "briefing": result["briefing"],
+              "formal": {}, "language": "de"}
+    text = _docx_text(render_briefing_docx([record], rubric=load_rubric(1), ueg="UEG07"))
+    assert "Im Fall nicht gefunden: 77,7%, 2016" in text
+    assert "64%" not in text and "18.8" not in text     # gefundene Zahlen werden nicht gemeldet, keine Gegenzahl
+
+
 async def test_generator_valid_payload_splits_briefing_and_assessment(monkeypatch):
     calls = _mock_llm(monkeypatch, _llm_payload())
     result = await BriefingGenerator("k").generate(briefing_id="b1", rubric=load_rubric(1), sub=_sub())
