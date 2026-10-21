@@ -90,6 +90,28 @@ interface BatchStatus {
   finished_at: string | null
   error: string | null
   stale: boolean
+  skipped?: string[]
+}
+
+// Nicht gelesene Dateien (z.B. .ppt aus PowerPoint 97-2003): Formatrat je Endung.
+const SKIP_HINTS: Record<string, { de: string; en: string }> = {
+  ppt: { de: 'Dateien mit der Endung .ppt sind im alten PowerPoint-Format: in PowerPoint mit „Speichern unter“ als .pptx sichern und einzeln hochladen.',
+    en: 'Files ending in .ppt are in the old PowerPoint format: in PowerPoint use "Save As" to save them as .pptx and upload them individually.' },
+  pps: { de: 'Dateien mit der Endung .pps in PowerPoint mit „Speichern unter“ als .pptx sichern.',
+    en: 'Save .pps files as .pptx in PowerPoint via "Save As".' },
+  doc: { de: 'Dateien mit der Endung .doc sind im alten Word-Format: in Word mit „Speichern unter“ als .docx sichern.',
+    en: 'Files ending in .doc are in the old Word format: in Word use "Save As" to save them as .docx.' },
+  key: { de: 'Keynote-Dateien als .pptx oder .pdf exportieren.', en: 'Export Keynote files as .pptx or .pdf.' },
+  odp: { de: 'Impress-Dateien als .pptx exportieren.', en: 'Export Impress files as .pptx.' },
+  odt: { de: 'Writer-Dateien als .docx exportieren.', en: 'Export Writer files as .docx.' },
+  pages: { de: 'Pages-Dateien als .docx oder .pdf exportieren.', en: 'Export Pages files as .docx or .pdf.' },
+}
+
+function skipHints(names: string[], lang: 'de' | 'en'): string {
+  const exts = [...new Set(names.map(n => (n.includes('.') ? n.split('.').pop()!.toLowerCase() : '')))]
+  const hints = exts.map(e => SKIP_HINTS[e]?.[lang]).filter((h): h is string => !!h)
+  const generic = lang === 'de' ? 'Gelesen werden nur .pptx, .docx und .pdf.' : 'Only .pptx, .docx and .pdf are read.'
+  return [generic, ...hints].join(' ')
 }
 
 interface MonitoringGroup {
@@ -153,7 +175,8 @@ const TEXT = {
     upload: 'Hochladen und auswerten',
     uploading: 'Upload läuft…',
     running: (p: number, t: number) => `Verarbeitung läuft: ${p} von ${t} Dateien fertig. Sie dürfen die Seite schliessen.`,
-    done: (b: BatchStatus) => `Fertig: ${b.briefed} ausgewertet · ${b.rejected ?? 0} abgelehnt · ${b.failed} nicht lesbar · ${b.review} bitte prüfen`,
+    done: (b: BatchStatus) => `Fertig: ${b.briefed} ausgewertet · ${b.rejected ?? 0} abgelehnt · ${b.failed} nicht lesbar · ${b.review} bitte prüfen${b.skipped?.length ? ` · ${b.skipped.length} nicht gelesen` : ''}`,
+    skipped: (names: string[]) => `${names.length === 1 ? 'Eine Datei wurde' : `${names.length} Dateien wurden`} nicht gelesen: ${names.join(', ')}. ${skipHints(names, 'de')}`,
     stale: 'Die Verarbeitung ist seit über 30 Minuten stehen geblieben — vermutlich durch einen Neustart abgebrochen. Bitte erneut hochladen; die neueste Auswertung je Stammgruppe zählt.',
     batches: 'Ihre Uploads',
     helpBatches: 'Ihre Uploads, der neueste zuerst: Zeitpunkt, Dateiname, Stand. „done“ heisst fertig. „Löschen“ entfernt den Upload mit allen seinen Auswertungen endgültig aus Ihrer Übersicht — Sie werden vorher gefragt.',
@@ -259,7 +282,8 @@ const TEXT = {
     upload: 'Upload and evaluate',
     uploading: 'Uploading…',
     running: (p: number, t: number) => `Processing: ${p} of ${t} files done. You may close this page.`,
-    done: (b: BatchStatus) => `Done: ${b.briefed} evaluated · ${b.rejected ?? 0} rejected · ${b.failed} unreadable · ${b.review} to check`,
+    done: (b: BatchStatus) => `Done: ${b.briefed} evaluated · ${b.rejected ?? 0} rejected · ${b.failed} unreadable · ${b.review} to check${b.skipped?.length ? ` · ${b.skipped.length} not read` : ''}`,
+    skipped: (names: string[]) => `${names.length === 1 ? 'One file was' : `${names.length} files were`} not read: ${names.join(', ')}. ${skipHints(names, 'en')}`,
     stale: 'Processing has stalled for over 30 minutes — probably interrupted by a restart. Please upload again; the latest result per home group counts.',
     batches: 'Your uploads',
     helpBatches: 'Your uploads, newest first: time, file name, state. “done” means finished. “Delete” permanently removes the upload with all its results from your overview — you are asked first.',
@@ -931,6 +955,12 @@ export default function BriefingsPage() {
               <span className="text-sm" style={{ color: FAIL_TONE }}>{activeBatch.error ?? text.stale}</span>
             )}
           </div>
+          {activeBatch && (activeBatch.skipped?.length ?? 0) > 0 && (
+            <div className="p-3 mb-6 flex gap-3 text-sm" style={{ border: `1px solid ${REVIEW_TONE}`, background: 'rgba(184,134,11,0.06)' }}>
+              <AlertTriangle size={18} style={{ color: REVIEW_TONE, flexShrink: 0 }} />
+              <span style={{ color: 'var(--ink)' }}>{text.skipped(activeBatch.skipped!)}</span>
+            </div>
+          )}
           {batches.length > 0 && (
             <div>
               <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--muted)' }}>

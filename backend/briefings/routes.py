@@ -70,6 +70,7 @@ from backend.briefings.extraction import (
     MAX_FILE_BYTES,
     MAX_ZIP_ENTRIES,
     SUPPORTED_EXTENSIONS,
+    UNSUPPORTED_OFFICE_EXTENSIONS,
     ExtractedSubmission,
     ZipValidationError,
     build_code,
@@ -77,6 +78,8 @@ from backend.briefings.extraction import (
     extract_submission,
     iter_submission_entries,
     normalize_ueg,
+    skipped_hint,
+    unsupported_entries,
 )
 from backend.briefings.formal import formal_checks
 from backend.briefings.generator import BriefingGenerator
@@ -283,6 +286,7 @@ class BatchStatus(BaseModel):
     finished_at: str | None = None
     error: str | None = None
     stale: bool = False
+    skipped: list[str] = Field(default_factory=list)   # nicht gelesene Dateien (z.B. .ppt)
 
 
 class BriefingBatchResponse(BatchStatus):
@@ -690,6 +694,7 @@ async def upload_submissions(
     names = [(f.filename or "").rsplit("/", 1)[-1] for f in file]
     upload_name = names[0] if len(names) == 1 else f"{len(names)} Dateien"
     entries: list[tuple[str, bytes]] = []
+    skipped: list[str] = []   # nicht gelesene Dateien — werden dem Tutor gemeldet
     total_bytes = 0
     try:
         for name, part in zip(names, file):
@@ -705,15 +710,26 @@ async def upload_submissions(
                     )
                 entries.append((name, data))
                 continue
+            if name.lower().endswith(UNSUPPORTED_OFFICE_EXTENSIONS):
+                # Bekanntes Office-Format, das nicht gelesen wird (z.B. .ppt): melden
+                skipped.append(name)
+                logger.info("briefing_upload_file_skipped", filename=name, uploaded_by=ctx.label)
+                continue
+            skipped.extend(unsupported_entries(data))
             try:
                 entries.extend(iter_submission_entries(data))
-            except ZipValidationError:
+            except ZipValidationError as exc:
                 if len(file) == 1:
+                    if skipped:
+                        raise ZipValidationError(f"{exc} {skipped_hint(skipped)}") from exc
                     raise
                 # Mehrfachauswahl: Fremddateien im Ordner überspringen
                 logger.info("briefing_upload_file_skipped", filename=name, uploaded_by=ctx.label)
+        if skipped:
+            logger.info("briefing_upload_entries_skipped", files=skipped, uploaded_by=ctx.label)
         if not entries:
-            raise ZipValidationError("Keine PPTX-, DOCX- oder PDF-Dateien im Upload.")
+            detail = "Keine PPTX-, DOCX- oder PDF-Dateien im Upload."
+            raise ZipValidationError(f"{detail} {skipped_hint(skipped)}" if skipped else detail)
         if len(entries) > MAX_ZIP_ENTRIES:
             raise ZipValidationError(f"Upload enthält zu viele Dateien (max. {MAX_ZIP_ENTRIES}).")
     except ZipValidationError as exc:
@@ -734,6 +750,7 @@ async def upload_submissions(
         filename=upload_name,
     )
     batch["tps"] = []
+    batch["skipped"] = skipped
     await asyncio.to_thread(batch_store.save, batch)
     logger.info(
         "briefing_batch_started",

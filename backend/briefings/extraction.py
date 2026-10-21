@@ -326,6 +326,49 @@ def iter_submission_entries(zip_bytes: bytes) -> Iterator[tuple[str, bytes]]:
         yield _zip_entry_name(info).rsplit("/", 1)[-1], archive.read(info)
 
 
+def unsupported_entries(zip_bytes: bytes) -> list[str]:
+    """Dateinamen der ZIP-Einträge, die kein PPTX/DOCX/PDF sind (z.B. ``.ppt``
+    aus altem PowerPoint) — damit der Upload sie melden kann, statt sie
+    stillschweigend zu übergehen. Leer, wenn die Bytes kein ZIP sind."""
+    try:
+        archive = zipfile.ZipFile(io.BytesIO(zip_bytes))
+    except zipfile.BadZipFile:
+        return []
+    return [
+        _zip_entry_name(info).rsplit("/", 1)[-1]
+        for info in archive.infolist()
+        if not info.is_dir()
+        and not info.filename.startswith("__MACOSX/")
+        and not info.filename.rsplit("/", 1)[-1].startswith(".")
+        and not info.filename.lower().endswith(SUPPORTED_EXTENSIONS)
+    ]
+
+
+# Bekannte Office-Formate, die die Pipeline nicht liest: Hinweis statt Rätsel.
+# Vorfall 2026-10-21: eine ``.ppt`` (PowerPoint 97-2003) verschwand kommentarlos
+# aus dem ZIP eines Übungsgruppenleiters.
+FORMAT_HINTS: dict[str, str] = {
+    ".ppt": "altes PowerPoint-Format — in PowerPoint mit „Speichern unter“ als .pptx sichern",
+    ".pps": "altes PowerPoint-Format — in PowerPoint mit „Speichern unter“ als .pptx sichern",
+    ".doc": "altes Word-Format — in Word mit „Speichern unter“ als .docx sichern",
+    ".key": "Keynote — als .pptx oder .pdf exportieren",
+    ".odp": "Impress — als .pptx exportieren",
+    ".odt": "Writer — als .docx exportieren",
+    ".pages": "Pages — als .docx oder .pdf exportieren",
+}
+UNSUPPORTED_OFFICE_EXTENSIONS = tuple(FORMAT_HINTS)
+
+
+def skipped_hint(names: list[str]) -> str:
+    """Tutor-sichtbarer Satz zu nicht gelesenen Dateien, mit Formatrat."""
+    parts = []
+    for name in names:
+        ext = ("." + name.rsplit(".", 1)[-1].lower()) if "." in name else ""
+        hint = FORMAT_HINTS.get(ext)
+        parts.append(f"{name} ({hint})" if hint else name)
+    return "Nicht gelesen, weil nur .pptx, .docx und .pdf gelesen werden: " + ", ".join(parts) + "."
+
+
 def _zip_entry_name(info: zipfile.ZipInfo) -> str:
     """zipfile liest Namen ohne UTF-8-Flag als CP437 — Umlaute und
     Gedankenstriche aus macOS/Canvas-Archiven kämen sonst verstümmelt an."""

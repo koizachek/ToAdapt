@@ -375,6 +375,47 @@ def test_unreadable_file_raises():
         extract_submission("kaputt.pptx", b"nicht pptx", 1)
 
 
+def test_unsupported_entries_and_hint():
+    """Vorfall 2026-10-21: eine .ppt verschwand kommentarlos aus dem ZIP."""
+    from backend.briefings.extraction import skipped_hint, unsupported_entries
+
+    archive = _zip_of({
+        "a/alt.ppt": b"ole", "neu.pptx": b"x", "__MACOSX/._alt.ppt": b"", ".DS_Store": b"", "notizen.txt": b"t",
+    })
+    assert unsupported_entries(archive) == ["alt.ppt", "notizen.txt"]
+    assert unsupported_entries(b"kein zip") == []
+    hint = skipped_hint(["alt.ppt", "notizen.txt"])
+    assert "alt.ppt (altes PowerPoint-Format" in hint and ".pptx" in hint and "notizen.txt" in hint
+
+
+def test_upload_reports_skipped_ppt(client, monkeypatch):
+    """Eine .ppt im ZIP oder in der Mehrfachauswahl wird dem Tutor gemeldet,
+    nicht verschluckt; nur .ppt → 400 mit Formatrat."""
+    _mock_llm(monkeypatch, _llm_payload())
+    good = _template_pptx(1, code="TP1-UEG07-SG1", b1=B1_TEXT, b2=B2_TEXT)
+    resp = _upload(client, {"TP1_UEG07_SG1.pptx": good, "schuerch_TP1_UEG07_SG2.ppt": b"\xd0\xcf\x11\xe0alt"})
+    assert resp.status_code == 202
+    body = resp.json()
+    assert body["total"] == 1 and body["skipped"] == ["schuerch_TP1_UEG07_SG2.ppt"]
+    batch = client.get(f"/briefings/batches/{body['batch_id']}", headers=_tutor_headers("UEGL01")).json()
+    assert batch["skipped"] == ["schuerch_TP1_UEG07_SG2.ppt"]
+
+    parts = [
+        ("file", ("TP1_UEG07_SG1.pptx", good, "application/octet-stream")),
+        ("file", ("alt.ppt", b"\xd0\xcf\x11\xe0alt", "application/octet-stream")),
+    ]
+    resp = client.post("/briefings/upload", files=parts, data={"sync": "1"}, headers=_tutor_headers("UEGL01"))
+    assert resp.status_code == 202 and resp.json()["skipped"] == ["alt.ppt"]
+
+    only_ppt = [("file", ("alt.ppt", b"\xd0\xcf\x11\xe0alt", "application/octet-stream"))]
+    resp = client.post("/briefings/upload", files=only_ppt, data={"sync": "1"}, headers=_tutor_headers("UEGL01"))
+    assert resp.status_code == 400
+    assert "Keine PPTX" in resp.json()["detail"] and "alt.ppt (altes PowerPoint-Format" in resp.json()["detail"]
+
+    resp = _upload(client, {"alt.ppt": b"\xd0\xcf\x11\xe0alt"})
+    assert resp.status_code == 400 and "alt.ppt (altes PowerPoint-Format" in resp.json()["detail"]
+
+
 # ---------------------------------------------------------------------------
 # Formale Vorprüfung
 # ---------------------------------------------------------------------------
