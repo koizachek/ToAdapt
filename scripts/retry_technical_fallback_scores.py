@@ -12,7 +12,7 @@ from typing import Any
 
 from backend.cases.manager import case_manager
 from backend.evaluator.rubric_evaluator import RubricEvaluator
-from backend.llm import get_openrouter_key
+from backend.llm import get_requesty_key
 from backend.models.submission import QuestionScore, Submission, SubmissionStatus
 
 
@@ -162,9 +162,9 @@ async def main_async() -> int:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    api_key = get_openrouter_key()
+    api_key = get_requesty_key()
     if not api_key:
-        raise RuntimeError("OPENROUTER_API_KEY nicht konfiguriert")
+        raise RuntimeError("REQUESTY_API_KEY nicht konfiguriert")
 
     answer_index = _load_answer_index(args.comparison_csv)
     evaluator = RubricEvaluator(api_key=api_key)

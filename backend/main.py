@@ -53,7 +53,7 @@ from backend.dashboard.routes import router as dashboard_router
 from backend.briefings.routes import router as briefings_router, upload_router as briefings_upload_router
 from backend.config.tp_configs import current_tp_phase
 from backend.db.experiment_logger import experiment_logger
-from backend.llm import DEFAULT_OPENROUTER_MODEL
+from backend.llm import DEFAULT_REQUESTY_MODEL, get_requesty_key
 
 logger = structlog.get_logger(__name__)
 BUILD_MARKER = "railway-mongo-env-diagnostics-2026-05-14-1809z"
@@ -61,16 +61,16 @@ BUILD_MARKER = "railway-mongo-env-diagnostics-2026-05-14-1809z"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    key = os.environ.get("OPENROUTER_API_KEY", "")
+    key = get_requesty_key()
     mongo = experiment_logger.diagnostics
     # Kein Key-Material (auch keine Prefixe) und keine Env-Key-Namen loggen —
     # nur boolescher Konfigurationsstatus.
     logger.info(
         "toadapt_startup",
         tp_phase=current_tp_phase(),
-        llm_provider="openrouter",
-        llm_model=os.environ.get("OPENROUTER_MODEL", DEFAULT_OPENROUTER_MODEL),
-        openrouter_api_key_configured=bool(key),
+        llm_provider="requesty",
+        llm_model=DEFAULT_REQUESTY_MODEL,
+        requesty_api_key_configured=bool(key),
         mongo_logging_enabled=mongo["enabled"],
         mongo_connection_mode=mongo["connection_mode"],
         student_access_code_configured=student_access_required(),

@@ -165,7 +165,7 @@ async def test_repair_call_recovers_invalid_first_response(monkeypatch):
             return "Hier ist keine JSON-Antwort."
         return _valid_payload(7)
 
-    monkeypatch.setattr("backend.llm.OpenRouterClient.complete", fake_complete)
+    monkeypatch.setattr("backend.llm.RequestyClient.complete", fake_complete)
     evaluator = RubricEvaluator(api_key="test")
     score, _ = await evaluator.evaluate_question(
         submission=_mini_submission({"q1": "Antwort."}), case=_mini_case(),
@@ -180,7 +180,7 @@ async def test_invalid_number_types_fall_back_to_technical_fallback(monkeypatch)
     async def fake_complete(self, *, system, messages, max_tokens):
         return '{"awarded_points": "acht", "feedback": "ok", "canvas_alignment_score": 0.5}'
 
-    monkeypatch.setattr("backend.llm.OpenRouterClient.complete", fake_complete)
+    monkeypatch.setattr("backend.llm.RequestyClient.complete", fake_complete)
     evaluator = RubricEvaluator(api_key="test")
     score, _ = await evaluator.evaluate_question(
         submission=_mini_submission({"q1": "Antwort."}), case=_mini_case(),
@@ -196,7 +196,7 @@ async def test_evaluate_submission_parallel_keeps_order(monkeypatch):
         points = 5 if "F1?" in messages[0]["content"] else 15
         return _valid_payload(points)
 
-    monkeypatch.setattr("backend.llm.OpenRouterClient.complete", fake_complete)
+    monkeypatch.setattr("backend.llm.RequestyClient.complete", fake_complete)
     evaluator = RubricEvaluator(api_key="test")
     result = await evaluator.evaluate_submission(
         _mini_submission({"q1": "A1.", "q2": "A2.", "q3": "   "}), _mini_case(),

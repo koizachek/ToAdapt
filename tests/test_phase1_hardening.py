@@ -118,11 +118,11 @@ def test_dashboard_store_file_fallback(tmp_path, monkeypatch):
 # LLM-Client: geteilte Instanz + Concurrency-Limit vorhanden
 # ---------------------------------------------------------------------------
 
-def test_openrouter_client_is_shared():
-    from backend.llm import OpenRouterClient
+def test_requesty_client_is_shared():
+    from backend.llm import RequestyClient
 
-    a = OpenRouterClient(api_key="test-key")
-    b = OpenRouterClient(api_key="test-key")
+    a = RequestyClient(api_key="test-key")
+    b = RequestyClient(api_key="test-key")
     assert a.client is b.client
 
 

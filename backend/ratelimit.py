@@ -3,7 +3,7 @@
 Bewusst ohne externe Abhängigkeit (Redis o.ä.): Die Limits gelten pro
 Worker-Prozess und sind als Kosten-/Missbrauchsbremse gedacht, nicht als
 exakte globale Quote. Bei N Workern ist das effektive Limit maximal N-mal
-so hoch — für den Schutz von LLM-Kosten und OpenRouter-Quota ausreichend.
+so hoch — für den Schutz von LLM-Kosten und Requesty-Budget ausreichend.
 
 Standard-Schlüssel ist die Client-IP (setzt --proxy-headers hinter Railway
 voraus); alternativ kann ein Pfad-Parameter (z.B. session_id) als Schlüssel

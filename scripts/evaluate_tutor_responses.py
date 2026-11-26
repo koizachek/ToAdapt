@@ -43,7 +43,7 @@ from backend.evaluator.tutor_eval import (  # noqa: E402
     TutorResponseEvaluator,
     aggregate_annotations,
 )
-from backend.llm import get_openrouter_key  # noqa: E402
+from backend.llm import get_requesty_key  # noqa: E402
 
 DEFAULT_EVENTS = REPO_ROOT / "data" / "experiment_events.json"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "data" / "prolific_runs" / "derived" / "tutor_eval"
@@ -197,7 +197,7 @@ def main() -> int:
                         help="nur blindes Human-Annotations-Workbook erzeugen (keine LLM-Calls)")
     parser.add_argument("--aggregate-only", type=Path, default=None,
                         help="vorhandene JSONL-Ergebnisse nur neu aggregieren")
-    parser.add_argument("--model", default=None, help="Judge-Modell (Default: OPENROUTER_MODEL)")
+    parser.add_argument("--model", default=None, help="Judge-Modell (Default: REQUESTY_MODEL)")
     parser.add_argument("--dry-run", action="store_true", help="Items nur auflisten")
     args = parser.parse_args()
 
@@ -233,9 +233,9 @@ def main() -> int:
         print(f"Annotations-Workbook -> {path}")
         return 0
 
-    api_key = get_openrouter_key()
+    api_key = get_requesty_key()
     if not api_key:
-        print("FEHLER: OPENROUTER_API_KEY nicht konfiguriert.", file=sys.stderr)
+        print("FEHLER: REQUESTY_API_KEY nicht konfiguriert.", file=sys.stderr)
         return 1
 
     print("Starte LLM-Judge (kostet API-Calls) …")

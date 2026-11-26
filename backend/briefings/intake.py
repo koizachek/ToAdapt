@@ -34,7 +34,7 @@ import structlog
 from backend.briefings.extraction import ExtractedSubmission
 from backend.briefings.extraction import scrub_personal_data as _scrub_personal_data
 from backend.briefings.rubrics import SUPPORTED_TPS, BriefingRubric
-from backend.llm import OpenRouterClient
+from backend.llm import RequestyClient
 
 logger = structlog.get_logger(__name__)
 
@@ -192,7 +192,7 @@ class TopicClassifier:
     zur Prüfung markiert."""
 
     def __init__(self, api_key: str, model: str | None = None):
-        self.client = OpenRouterClient(api_key=api_key, model=model)
+        self.client = RequestyClient(api_key=api_key, model=model)
 
     async def check(self, rubrics: dict[int, BriefingRubric], sub: ExtractedSubmission) -> TopicResult:
         kd = sub.kenndaten

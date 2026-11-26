@@ -30,7 +30,7 @@ from backend.evaluator.formative_feedback import (
 )
 from backend.evaluator.rubric_evaluator import RubricEvaluator
 from backend.evaluator.rubric_loader import load_question_rubric
-from backend.llm import get_openrouter_key
+from backend.llm import get_requesty_key
 from backend.models.experiment import ExperimentContext
 from backend.models.session import Session, SessionCreate, SessionResponse
 from backend.models.submission import (
@@ -239,9 +239,9 @@ async def chat(session_id: str, body: ChatRequest):
     if not case:
         raise HTTPException(status_code=404, detail="Case nicht gefunden")
 
-    api_key = get_openrouter_key()
+    api_key = get_requesty_key()
     if not api_key:
-        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
+        raise HTTPException(status_code=500, detail="REQUESTY_API_KEY nicht konfiguriert")
     orchestrator = AgentOrchestrator(api_key=api_key)
 
     case_context = f"{case.title}\n{case.tagline}\n" + "\n".join(
@@ -432,9 +432,9 @@ async def formative_feedback(submission_id: str, question_id: str, body: DraftAn
 
     case, question = _get_case_question(sub, question_id)
 
-    api_key = get_openrouter_key()
+    api_key = get_requesty_key()
     if not api_key:
-        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
+        raise HTTPException(status_code=500, detail="REQUESTY_API_KEY nicht konfiguriert")
 
     try:
         feedback = await generate_formative_feedback(
@@ -487,9 +487,9 @@ async def submit_and_evaluate(submission_id: str):
     if not case:
         raise HTTPException(status_code=404, detail="Case nicht gefunden")
 
-    api_key = get_openrouter_key()
+    api_key = get_requesty_key()
     if not api_key:
-        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
+        raise HTTPException(status_code=500, detail="REQUESTY_API_KEY nicht konfiguriert")
     evaluator = RubricEvaluator(api_key=api_key)
 
     sub.status = SubmissionStatus.SUBMITTED

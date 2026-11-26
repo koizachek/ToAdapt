@@ -1,8 +1,8 @@
-"""OpenRouter-Stub für Lasttests — imitiert /chat/completions ohne Kosten.
+"""Requesty-Stub für Lasttests — imitiert /chat/completions ohne Kosten.
 
 Verwendung (Staging/Lokal, NIE in Produktion):
     .venv/bin/python -m uvicorn scripts.llm_stub:app --port 9500
-    # Backend mit: OPENROUTER_BASE_URL=http://127.0.0.1:9500/v1  OPENROUTER_API_KEY=stub
+    # Backend mit: REQUESTY_BASE_URL=http://127.0.0.1:9500/v1  REQUESTY_API_KEY=stub
 
 Verhalten:
 - Chat-/Formative-Prompts → guardrail-sichere sokratische Frage (Deutsch),

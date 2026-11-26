@@ -157,7 +157,7 @@ async def test_generator_parses_embedded_package(monkeypatch):
     async def fake_complete(self, *, system, messages, max_tokens):
         return draft_json
 
-    monkeypatch.setattr("backend.llm.OpenRouterClient.complete", fake_complete)
+    monkeypatch.setattr("backend.llm.RequestyClient.complete", fake_complete)
 
     generator = CaseGenerator(api_key="test-key")
     result = await generator.generate_draft(

@@ -28,7 +28,7 @@ from typing import Any
 import structlog
 
 from backend.evaluator.rubric_evaluator import parse_evaluation_payload
-from backend.llm import OpenRouterClient
+from backend.llm import RequestyClient
 
 logger = structlog.get_logger(__name__)
 
@@ -207,7 +207,7 @@ class TutorResponseEvaluator:
     """LLM-as-Judge über einzelne Tutor-Turns (offline/Forschung)."""
 
     def __init__(self, api_key: str, model: str | None = None):
-        self.client = OpenRouterClient(api_key=api_key, model=model)
+        self.client = RequestyClient(api_key=api_key, model=model)
 
     async def evaluate_turn(
         self,

@@ -13,7 +13,7 @@ Der Lauf misst daher Selbstkonsistenz (erkennt der Judge seine eigenen
 Anker wieder?), nicht Generalisierung. Ein Fehlschlag hier ist ein hartes
 Warnsignal; ein Erfolg ist notwendig, nicht hinreichend.
 
-Aufruf (vom Repo-Root, OPENROUTER_API_KEY in der Umgebung):
+Aufruf (vom Repo-Root, REQUESTY_API_KEY in der Umgebung):
     .venv/bin/python scripts/calibrate_briefings.py --tp 1
     .venv/bin/python scripts/calibrate_briefings.py --all --out report.json
     .venv/bin/python scripts/calibrate_briefings.py --tp 1 --dry-run   # nur Prompts zeigen
@@ -125,9 +125,9 @@ async def main() -> int:
 
     generator = None
     if not args.dry_run:
-        api_key = os.environ.get("OPENROUTER_API_KEY", "")
+        api_key = os.environ.get("REQUESTY_API_KEY", "")
         if not api_key:
-            print("OPENROUTER_API_KEY fehlt (oder --dry-run verwenden)", file=sys.stderr)
+            print("REQUESTY_API_KEY fehlt (oder --dry-run verwenden)", file=sys.stderr)
             return 2
         generator = BriefingGenerator(api_key=api_key)
 

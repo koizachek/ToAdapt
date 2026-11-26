@@ -23,7 +23,7 @@ import re
 import structlog
 
 from backend.evaluator.rubric_loader import QuestionRubric, load_question_rubric
-from backend.llm import OpenRouterClient
+from backend.llm import RequestyClient
 from backend.models.case import Case, CaseQuestion
 from backend.models.submission import QuestionScore, Submission, SubmissionResult
 
@@ -277,7 +277,7 @@ def _as_string_list(value: object) -> list[str]:
 
 class RubricEvaluator:
     def __init__(self, api_key: str):
-        self.client = OpenRouterClient(api_key=api_key)
+        self.client = RequestyClient(api_key=api_key)
 
     # -- Prompt-Bausteine ---------------------------------------------------
 

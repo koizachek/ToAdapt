@@ -16,7 +16,7 @@ import unicodedata
 import structlog
 
 from backend.config.tp_configs import TP_CONFIGS
-from backend.llm import OpenRouterClient
+from backend.llm import RequestyClient
 from backend.models.message import AgentType
 from backend.models.session import Session
 
@@ -396,7 +396,7 @@ def _session_language(session: Session) -> str:
 
 class AgentOrchestrator:
     def __init__(self, api_key: str):
-        self.client = OpenRouterClient(api_key=api_key)
+        self.client = RequestyClient(api_key=api_key)
 
     async def respond(
         self,

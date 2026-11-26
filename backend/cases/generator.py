@@ -14,7 +14,7 @@ from backend.timeutils import naive_utcnow
 import structlog
 
 from backend.config.tp_configs import TP_CONFIGS
-from backend.llm import OpenRouterClient
+from backend.llm import RequestyClient
 from backend.models.case import (
     AgentGuidance,
     Case,
@@ -311,7 +311,7 @@ TP_GENERATION_PARAMS: dict[int, dict] = {
 
 class CaseGenerator:
     def __init__(self, api_key: str):
-        self.client = OpenRouterClient(api_key=api_key)
+        self.client = RequestyClient(api_key=api_key)
 
     async def generate_draft(
         self,

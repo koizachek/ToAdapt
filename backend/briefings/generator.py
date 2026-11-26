@@ -48,7 +48,7 @@ from backend.briefings.i18n import (
 )
 from backend.briefings.rubrics import BriefingRubric, case_context_for_tp
 from backend.evaluator.rubric_evaluator import REPAIR_PROMPT, parse_evaluation_payload
-from backend.llm import OpenRouterClient
+from backend.llm import RequestyClient
 
 logger = structlog.get_logger(__name__)
 
@@ -592,9 +592,9 @@ def fallback_result(rubric: BriefingRubric, sub: ExtractedSubmission, reason: st
 
 class BriefingGenerator:
     def __init__(self, api_key: str, model: str | None = None):
-        # model: optional abweichendes OpenRouter-Modell (Modellvergleich,
-        # scripts/compare_briefing_models.py); Default = OPENROUTER_MODEL.
-        self.client = OpenRouterClient(api_key=api_key, model=model)
+        # model: optional abweichendes Requesty-Modell (Modellvergleich,
+        # scripts/compare_briefing_models.py); Default = REQUESTY_MODEL.
+        self.client = RequestyClient(api_key=api_key, model=model)
 
     async def _call(self, *, system: str, messages: list[dict[str, str]], max_tokens: int = BRIEFING_MAX_TOKENS) -> str:
         return await self.client.complete(

@@ -10,7 +10,7 @@ from backend.auth import reject_revoked_teacher_session, require_api_key, requir
 from backend.cases.generator import CaseGenerator
 from backend.cases.manager import case_manager
 from backend.cases.validator import CaseValidationReport, validate_case
-from backend.llm import get_openrouter_key
+from backend.llm import get_requesty_key
 from backend.models.case import (
     AgentGuidance,
     Case,
@@ -97,9 +97,9 @@ async def generate_case(body: GenerateCaseRequest):
     if body.language not in {"de", "en"}:
         raise HTTPException(status_code=400, detail="Ungültige Sprache")
 
-    api_key = get_openrouter_key()
+    api_key = get_requesty_key()
     if not api_key:
-        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
+        raise HTTPException(status_code=500, detail="REQUESTY_API_KEY nicht konfiguriert")
 
     generator = CaseGenerator(api_key=api_key)
 
@@ -161,9 +161,9 @@ async def regenerate_case_part(case_id: str, body: RegeneratePartRequest):
     """Regeneriert gezielt einen Teil des Cases nach Anweisung der Lehrperson."""
     case = _require_case(case_id)
 
-    api_key = get_openrouter_key()
+    api_key = get_requesty_key()
     if not api_key:
-        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
+        raise HTTPException(status_code=500, detail="REQUESTY_API_KEY nicht konfiguriert")
     generator = CaseGenerator(api_key=api_key)
 
     try:

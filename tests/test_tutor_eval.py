@@ -118,7 +118,7 @@ async def test_evaluator_parses_judge_json(monkeypatch):
     async def fake_complete(self, *, system, messages, max_tokens):
         return reply
 
-    monkeypatch.setattr("backend.llm.OpenRouterClient.complete", fake_complete)
+    monkeypatch.setattr("backend.llm.RequestyClient.complete", fake_complete)
     evaluator = TutorResponseEvaluator(api_key="test")
     annotation = await evaluator.evaluate_turn(
         context="", student_message="Frage?", tutor_response="Gegenfrage?",

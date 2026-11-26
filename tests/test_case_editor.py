@@ -178,12 +178,12 @@ def test_retire_removes_case_from_pool(env):
 def test_regenerate_section_replaces_content(env, monkeypatch):
     case = _sample_case()
     manager_module.case_manager.save(case)
-    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setenv("REQUESTY_API_KEY", "test-key")
 
     async def fake_complete(self, *, system, messages, max_tokens):
         return '{"section_id": "s1", "title": "Neuer Titel", "content": "Neuer Inhalt."}'
 
-    monkeypatch.setattr("backend.llm.OpenRouterClient.complete", fake_complete)
+    monkeypatch.setattr("backend.llm.RequestyClient.complete", fake_complete)
 
     res = env.post(
         f"/admin/cases/{case.case_id}/regenerate",
@@ -206,7 +206,7 @@ def test_regenerate_section_replaces_content(env, monkeypatch):
 def test_regenerate_unknown_target_returns_400(env, monkeypatch):
     case = _sample_case()
     manager_module.case_manager.save(case)
-    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setenv("REQUESTY_API_KEY", "test-key")
 
     res = env.post(
         f"/admin/cases/{case.case_id}/regenerate",

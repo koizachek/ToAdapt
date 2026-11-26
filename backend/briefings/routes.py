@@ -97,7 +97,7 @@ from backend.config.tutor_accounts import MASTER_ACCOUNT, TUTOR_ACCOUNTS
 from backend.db.briefing_store import briefing_store
 from backend.db.download_log import download_log
 from backend.db.tutor_account_store import tutor_account_store
-from backend.llm import get_openrouter_key
+from backend.llm import get_requesty_key
 from backend.timeutils import naive_utcnow
 
 logger = structlog.get_logger(__name__)
@@ -687,9 +687,9 @@ async def upload_submissions(
     Standard ist asynchron: Antwort 202 mit Batch-Status, Verarbeitung im
     Hintergrund (Fortschritt über GET /briefings/batches/{batch_id}).
     ``sync=1`` wartet auf das Ergebnis (Tests, Skripte, kleine Batches)."""
-    api_key = get_openrouter_key()
+    api_key = get_requesty_key()
     if not api_key:
-        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY nicht konfiguriert")
+        raise HTTPException(status_code=500, detail="REQUESTY_API_KEY nicht konfiguriert")
 
     names = [(f.filename or "").rsplit("/", 1)[-1] for f in file]
     upload_name = names[0] if len(names) == 1 else f"{len(names)} Dateien"

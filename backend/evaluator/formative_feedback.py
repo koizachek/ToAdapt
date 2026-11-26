@@ -11,7 +11,7 @@ from __future__ import annotations
 import structlog
 
 from backend.agents.orchestrator import guardrail_check
-from backend.llm import OpenRouterClient
+from backend.llm import RequestyClient
 from backend.models.case import Case, CaseQuestion
 
 logger = structlog.get_logger(__name__)
@@ -97,7 +97,7 @@ async def generate_formative_feedback(
         answer_text=answer_text.strip()[:4000],
     )
 
-    client = OpenRouterClient(api_key=api_key)
+    client = RequestyClient(api_key=api_key)
     text = await client.complete(
         system=system,
         messages=[{"role": "user", "content": prompt}],

@@ -56,7 +56,7 @@ from backend.briefings.rubrics import (
     load_rubric,
     template_boilerplate,
 )
-from backend.llm import OpenRouterClient
+from backend.llm import RequestyClient
 from backend.main import app
 from backend.timeutils import naive_utcnow
 
@@ -197,14 +197,14 @@ def _mock_llm(monkeypatch, response_text: str, topic_text: str = ON_TOPIC):
             return topic_text
         return response_text
 
-    monkeypatch.setattr(OpenRouterClient, "complete", fake_complete)
+    monkeypatch.setattr(RequestyClient, "complete", fake_complete)
     return calls
 
 
 @pytest.fixture()
 def client(monkeypatch, tmp_path):
     monkeypatch.setenv("TOADAPT_API_KEY", API_KEY)
-    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setenv("REQUESTY_API_KEY", "test-key")
     for module, attr, name in (
         (briefing_store_module, "RESULTS_DIR", "briefings"),
         (batches_module, "BATCH_DIR", "batches"),
@@ -576,7 +576,7 @@ async def test_generator_garbage_then_repair_then_fallback(monkeypatch):
 async def test_generator_transport_error_falls_back(monkeypatch):
     async def boom(self, **kwargs):
         raise RuntimeError("timeout")
-    monkeypatch.setattr(OpenRouterClient, "complete", boom)
+    monkeypatch.setattr(RequestyClient, "complete", boom)
     result = await BriefingGenerator("k").generate(briefing_id="b3", rubric=load_rubric(1), sub=_sub())
     assert result["evaluation_status"] == "technical_fallback"
 
@@ -1100,7 +1100,7 @@ def _mock_llm_sequence(monkeypatch, responses: list[str]):
         calls.append({"system": system, "messages": messages})
         return responses[min(len(calls) - 1, len(responses) - 1)]
 
-    monkeypatch.setattr(OpenRouterClient, "complete", fake_complete)
+    monkeypatch.setattr(RequestyClient, "complete", fake_complete)
     return calls
 
 
@@ -1186,7 +1186,7 @@ def test_english_submission_gets_english_briefing(client, monkeypatch):
             return ON_TOPIC
         return _llm_payload_en() if "SG5" in messages[0]["content"].split("\n")[0] else _llm_payload()
 
-    monkeypatch.setattr(OpenRouterClient, "complete", fake_complete)
+    monkeypatch.setattr(RequestyClient, "complete", fake_complete)
     files = {
         "TP1_UEG07_SG3.pptx": _template_pptx(1, code="TP1-UEG07-SG3", b1=B1_TEXT, b2=B2_TEXT),
         "TP1_UEG07_SG5.pptx": _template_pptx(1, code="TP1-UEG07-SG5", b1=B1_TEXT_EN, b2=B2_TEXT_EN),

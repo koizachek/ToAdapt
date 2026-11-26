@@ -1,7 +1,7 @@
 """Modellvergleich für die KI-Briefings: dieselben Abgaben, verschiedene LLMs.
 
 Schickt jede Datei einer Test-ZIP durch Extraktion → Briefing mit
-dem angegebenen OpenRouter-Modell und legt je Modell EIN Word-Dokument mit
+dem angegebenen Requesty-Modell und legt je Modell EIN Word-Dokument mit
 allen Stammgruppen ab (identischer Renderer wie im Betrieb) plus die rohen
 Datensätze als JSON (für Nachvergleiche). Optional wird ein bestehender
 Lauf aus dem lokalen Datei-Store (backend/db/briefings/*.json, z.B. der
@@ -11,12 +11,12 @@ gerendert.
 Aufruf (vom Repo-Root, echte LLM-Calls, kostet Geld):
     .venv/bin/python scripts/compare_briefing_models.py \\
         --zip docs/beispiele/TP1_UEG07_submissions.zip \\
-        --model mistralai/mistral-large-2512 --model deepseek/deepseek-v3.2 \\
+        --model mistral/mistral-large-2512 --model deepseek/deepseek-v3.2 \\
         --from-store anthropic/claude-sonnet-4.5 \\
         --out docs/beispiele/modellvergleich
 
 Klasse B2 (Tutor-Pipeline) — Ergebnisse sind Vergleichsmaterial, keine
-Freigabe eines Modells. Die Modellwahl für den Betrieb bleibt OPENROUTER_MODEL.
+Freigabe eines Modells. Die Modellwahl für den Betrieb bleibt REQUESTY_MODEL.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ from backend.briefings.extraction import build_code, extract_submission  # noqa:
 from backend.briefings.formal import formal_checks  # noqa: E402
 from backend.briefings.generator import BriefingGenerator  # noqa: E402
 from backend.briefings.rubrics import SUPPORTED_TPS, load_rubric  # noqa: E402
-from backend.llm import get_openrouter_key  # noqa: E402
+from backend.llm import get_requesty_key  # noqa: E402
 from backend.timeutils import naive_utcnow  # noqa: E402
 
 STORE_DIR = Path(__file__).resolve().parent.parent / "backend" / "db" / "briefings"
@@ -130,7 +130,7 @@ def _write(records: list[dict], model_label: str, out: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--zip", required=True, type=Path, help="ZIP mit Abgaben (PPTX/DOCX/PDF)")
-    parser.add_argument("--model", action="append", default=[], help="OpenRouter-Modell-ID (mehrfach möglich)")
+    parser.add_argument("--model", action="append", default=[], help="Requesty-Modell-ID (mehrfach möglich)")
     parser.add_argument("--from-store", default=None,
                         help="Label für einen bestehenden Lauf aus backend/db/briefings (uploaded_by-Filter über --store-uploaded-by)")
     parser.add_argument("--store-uploaded-by", default="UEGL00")
@@ -147,9 +147,9 @@ def main() -> None:
         _write(_from_store(args.store_uploaded_by), args.from_store, args.out)
 
     if args.model:
-        api_key = get_openrouter_key()
+        api_key = get_requesty_key()
         if not api_key:
-            raise SystemExit("OPENROUTER_API_KEY fehlt")
+            raise SystemExit("REQUESTY_API_KEY fehlt")
         for model in args.model:
             print(f"\n[{model}]")
             records = asyncio.run(_run_model(model, entries, api_key))

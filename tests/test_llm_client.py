@@ -1,4 +1,4 @@
-"""Tests für Prompt-Caching und Fallback-Routing im OpenRouter-Client.
+"""Tests für Prompt-Caching und Request-Parameter im Requesty-Client.
 
 Kein echter LLM-Call: der AsyncOpenAI-Client wird durch einen Stub ersetzt,
 der die Request-Parameter aufzeichnet — geprüft wird, WAS gesendet würde.
@@ -10,9 +10,8 @@ from types import SimpleNamespace
 import pytest
 
 from backend.llm import (
-    OpenRouterClient,
+    RequestyClient,
     build_request_messages,
-    fallback_models,
     prompt_caching_enabled,
 )
 
@@ -27,13 +26,6 @@ def test_prompt_caching_enabled_default_and_off_switch(monkeypatch):
     for off in ("0", "false", "OFF", " no "):
         monkeypatch.setenv("LLM_PROMPT_CACHING", off)
         assert prompt_caching_enabled() is False
-
-
-def test_fallback_models_parsing(monkeypatch):
-    monkeypatch.delenv("OPENROUTER_FALLBACK_MODELS", raising=False)
-    assert fallback_models() == []
-    monkeypatch.setenv("OPENROUTER_FALLBACK_MODELS", "openai/gpt-4.1, google/gemini-2.5-pro ,")
-    assert fallback_models() == ["openai/gpt-4.1", "google/gemini-2.5-pro"]
 
 
 def test_build_request_messages_plain_system(monkeypatch):
@@ -79,7 +71,7 @@ class _StubCompletions:
     async def create(self, **kwargs):
         self.last_kwargs = kwargs
         return SimpleNamespace(
-            model="openai/gpt-4.1",  # simuliert: Fallback hat übernommen
+            model="mistral/mistral-medium-3-5",
             usage=SimpleNamespace(
                 prompt_tokens=3000, completion_tokens=200, total_tokens=3200,
                 prompt_tokens_details=SimpleNamespace(cached_tokens=2700),
@@ -88,16 +80,17 @@ class _StubCompletions:
         )
 
 
-def _stubbed_client(monkeypatch) -> tuple[OpenRouterClient, _StubCompletions]:
-    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
-    client = OpenRouterClient(api_key="test-key")
+def _stubbed_client(monkeypatch) -> tuple[RequestyClient, _StubCompletions]:
+    monkeypatch.setenv("REQUESTY_API_KEY", "test-key")
+    client = RequestyClient(api_key="test-key")
     stub = _StubCompletions()
     client.client = SimpleNamespace(chat=SimpleNamespace(completions=stub))
     return client, stub
 
 
-def test_complete_sends_fallback_routing_list(monkeypatch):
-    monkeypatch.setenv("OPENROUTER_FALLBACK_MODELS", "openai/gpt-4.1")
+def test_complete_sends_plain_openai_request(monkeypatch):
+    """Kein Router-Sonderfeld im Body: der Fallback liegt in der
+    Requesty-Policy (REQUESTY_MODEL=policy/<name>), nicht im Request."""
     client, stub = _stubbed_client(monkeypatch)
 
     text = asyncio.run(client.complete(
@@ -105,20 +98,24 @@ def test_complete_sends_fallback_routing_list(monkeypatch):
         max_tokens=100, cache_system=True,
     ))
     assert text == "Antwort"
-    assert stub.last_kwargs["extra_body"] == {"models": [client.model, "openai/gpt-4.1"]}
+    assert set(stub.last_kwargs) == {"model", "messages", "max_tokens"}
+    assert stub.last_kwargs["model"] == client.model
     assert stub.last_kwargs["messages"][0]["content"][0]["cache_control"] == {"type": "ephemeral"}
 
 
-def test_complete_without_fallbacks_sends_no_models_list(monkeypatch):
-    monkeypatch.delenv("OPENROUTER_FALLBACK_MODELS", raising=False)
+def test_complete_without_cache_keeps_plain_system_string(monkeypatch):
     client, stub = _stubbed_client(monkeypatch)
 
     asyncio.run(client.complete(
         system="SYS", messages=[{"role": "user", "content": "hi"}], max_tokens=100,
     ))
-    assert stub.last_kwargs["extra_body"] is None
-    # ohne cache_system bleibt der System-Prompt ein einfacher String
     assert stub.last_kwargs["messages"][0]["content"] == "SYS"
+
+
+def test_policy_model_is_passed_through(monkeypatch):
+    monkeypatch.setenv("REQUESTY_API_KEY", "test-key")
+    client = RequestyClient(api_key="test-key", model="policy/toadapt")
+    assert client.model == "policy/toadapt"
 
 
 def test_complete_raises_on_empty_response(monkeypatch):

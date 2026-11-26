@@ -80,12 +80,12 @@ def test_coverage_unknown_question_404(client):
 # ---------------------------------------------------------------------------
 
 def _mock_llm(monkeypatch, reply: str):
-    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setenv("REQUESTY_API_KEY", "test-key")
 
     async def fake_complete(self, *, system, messages, max_tokens):
         return reply
 
-    monkeypatch.setattr("backend.llm.OpenRouterClient.complete", fake_complete)
+    monkeypatch.setattr("backend.llm.RequestyClient.complete", fake_complete)
 
 
 def test_feedback_limited_to_two_per_question(client, monkeypatch):

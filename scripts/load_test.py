@@ -21,7 +21,7 @@ oder auf die Staging-DB (MONGODB_DATABASE=toadapt_staging).
     .venv/bin/python -m uvicorn scripts.llm_stub:app --port 9500
     # Terminal 2: Backend (Staging-Konfiguration, Mongo explizit isoliert!)
     MONGODB_MAS_NAME='' MONGODB_MAS_KEY='' MONGODB_HOST='' MONGODB_URI='' \
-    OPENROUTER_BASE_URL=http://127.0.0.1:9500/v1 OPENROUTER_API_KEY=stub \
+    REQUESTY_BASE_URL=http://127.0.0.1:9500/v1 REQUESTY_API_KEY=stub \
     GROUP_CODE_MAX=360 TOADAPT_API_KEY=<key> PSEUDONYM_SECRET=staging \
     .venv/bin/python -m uvicorn backend.main:app --proxy-headers --port 8000
     # Terminal 3: Lasttest
